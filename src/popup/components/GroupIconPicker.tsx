@@ -1,6 +1,12 @@
 import { useState, useMemo, useRef } from "preact/hooks";
 import { JSX } from "preact";
-import { MaterialSymbol, searchMaterialSymbols } from "./MaterialSymbols";
+import {
+  MaterialSymbol,
+  RECOMMENDED_MATERIAL_SYMBOLS,
+  searchMaterialSymbols,
+  isValidSymbolName,
+  normalizeSymbolName,
+} from "./MaterialSymbols";
 import type { GroupIcon } from "../../shared/types";
 
 interface GroupIconPickerProps {
@@ -10,25 +16,59 @@ interface GroupIconPickerProps {
 }
 
 export function GroupIconPicker({ currentIcon, onSelectIcon, onClose }: GroupIconPickerProps) {
+  const [activeTab, setActiveTab] = useState<"material" | "custom">("material");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedTab, setSelectedTab] = useState<"material" | "custom">("material");
+  const [visibleCount, setVisibleCount] = useState(72);
+  const [manualInput, setManualInput] = useState("");
   const [uploadError, setUploadError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const filteredIcons = useMemo(() => {
-    return searchMaterialSymbols(searchQuery);
+  // Normalize current icon name
+  const currentIconName = useMemo(() => {
+    if (typeof currentIcon === "object" && currentIcon?.type === "material") {
+      return normalizeSymbolName(currentIcon.name);
+    }
+    if (typeof currentIcon === "string" && currentIcon.trim()) {
+      return normalizeSymbolName(currentIcon);
+    }
+    return "folder";
+  }, [currentIcon]);
+
+  // Search / browse results
+  const searchResults = useMemo(() => {
+    return searchMaterialSymbols(searchQuery, 300);
   }, [searchQuery]);
 
-  const currentIconName =
-    typeof currentIcon === "object" && currentIcon?.type === "material"
-      ? currentIcon.name
-      : typeof currentIcon === "string"
-      ? "folder"
-      : "folder";
+  const displayedSearchResults = useMemo(() => {
+    return searchResults.slice(0, visibleCount);
+  }, [searchResults, visibleCount]);
+
+  // Manual input validation & live preview
+  const normalizedManualInput = useMemo(() => {
+    return normalizeSymbolName(manualInput);
+  }, [manualInput]);
+
+  const isManualValid = useMemo(() => {
+    return Boolean(normalizedManualInput && isValidSymbolName(normalizedManualInput));
+  }, [normalizedManualInput]);
 
   const handleSelectMaterial = (name: string) => {
-    onSelectIcon({ type: "material", name });
+    const validName = isValidSymbolName(name) ? normalizeSymbolName(name) : "folder";
+    onSelectIcon({ type: "material", name: validName });
     onClose();
+  };
+
+  const handleApplyManual = () => {
+    if (isManualValid) {
+      handleSelectMaterial(normalizedManualInput);
+    }
+  };
+
+  const handleManualKeyDown = (e: JSX.TargetedKeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && isManualValid) {
+      e.preventDefault();
+      handleApplyManual();
+    }
   };
 
   const handleFileUpload = (e: JSX.TargetedEvent<HTMLInputElement, Event>) => {
@@ -51,7 +91,6 @@ export function GroupIconPicker({ currentIcon, onSelectIcon, onClose }: GroupIco
     reader.onload = (loadEvent) => {
       const img = new Image();
       img.onload = () => {
-        // Downscale to 64x64 square
         const canvas = document.createElement("canvas");
         canvas.width = 64;
         canvas.height = 64;
@@ -74,40 +113,51 @@ export function GroupIconPicker({ currentIcon, onSelectIcon, onClose }: GroupIco
   return (
     <div className="icon-picker-overlay" onClick={onClose}>
       <div className="icon-picker-modal" onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
         <div className="icon-picker-header">
-          <h3>Choose group icon</h3>
+          <div className="icon-picker-title-row">
+            <h3>Choose group icon</h3>
+          </div>
           <button className="icon-picker-close-btn" onClick={onClose} aria-label="Close">
             ✕
           </button>
         </div>
 
+        {/* Top Tabs */}
         <div className="icon-picker-tabs">
           <button
-            className={`icon-picker-tab ${selectedTab === "material" ? "active" : ""}`}
-            onClick={() => setSelectedTab("material")}
+            type="button"
+            className={`icon-picker-tab ${activeTab === "material" ? "active" : ""}`}
+            onClick={() => setActiveTab("material")}
           >
             Material Symbols
           </button>
           <button
-            className={`icon-picker-tab ${selectedTab === "custom" ? "active" : ""}`}
-            onClick={() => setSelectedTab("custom")}
+            type="button"
+            className={`icon-picker-tab ${activeTab === "custom" ? "active" : ""}`}
+            onClick={() => setActiveTab("custom")}
           >
             Custom Upload
           </button>
         </div>
 
-        {selectedTab === "material" ? (
-          <>
+        {activeTab === "material" ? (
+          <div className="icon-picker-scroll-body">
+            {/* Search Input */}
             <div className="icon-picker-search-bar">
               <input
                 type="text"
-                placeholder="Search icons (e.g. cart, car, code, dev, star, security)..."
+                placeholder="Search 3,800+ icons (e.g. cart, code, shield, book, car)..."
                 value={searchQuery}
-                onInput={(e) => setSearchQuery((e.target as HTMLInputElement).value)}
+                onInput={(e) => {
+                  setSearchQuery((e.target as HTMLInputElement).value);
+                  setVisibleCount(72);
+                }}
                 autoFocus
               />
               {searchQuery && (
                 <button
+                  type="button"
                   className="icon-picker-clear-search"
                   onClick={() => setSearchQuery("")}
                   title="Clear search"
@@ -117,32 +167,135 @@ export function GroupIconPicker({ currentIcon, onSelectIcon, onClose }: GroupIco
               )}
             </div>
 
-            <div className="icon-picker-grid">
-              {filteredIcons.map((meta) => {
-                const isSelected = meta.name === currentIconName;
-                return (
-                  <button
-                    key={meta.name}
-                    className={`icon-picker-item ${isSelected ? "selected" : ""}`}
-                    onClick={() => handleSelectMaterial(meta.name)}
-                    title={meta.name}
-                  >
-                    <MaterialSymbol name={meta.name} size={28} />
-                    <span className="icon-item-name">{meta.name.replace(/_/g, " ")}</span>
-                  </button>
-                );
-              })}
-              {filteredIcons.length === 0 && (
+            {/* 1. Recommended Palette */}
+            {!searchQuery && (
+              <div className="icon-picker-section">
+                <div className="icon-picker-section-title">Recommended</div>
+                <div className="icon-picker-grid">
+                  {RECOMMENDED_MATERIAL_SYMBOLS.map((item) => {
+                    const isSelected = item.name === currentIconName;
+                    return (
+                      <button
+                        type="button"
+                        key={item.name}
+                        className={`icon-picker-item ${isSelected ? "selected" : ""}`}
+                        onClick={() => handleSelectMaterial(item.name)}
+                        title={`${item.label} (${item.name})`}
+                      >
+                        <MaterialSymbol name={item.name} size={28} />
+                        <span className="icon-item-name">{item.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* 2. All / Search Results Section */}
+            <div className="icon-picker-section">
+              <div className="icon-picker-section-title">
+                {searchQuery
+                  ? `Search results for "${searchQuery}" (${searchResults.length})`
+                  : "All Material Symbols"}
+              </div>
+
+              {searchResults.length > 0 ? (
+                <>
+                  <div className="icon-picker-grid">
+                    {displayedSearchResults.map((name) => {
+                      const isSelected = name === currentIconName;
+                      return (
+                        <button
+                          type="button"
+                          key={name}
+                          className={`icon-picker-item ${isSelected ? "selected" : ""}`}
+                          onClick={() => handleSelectMaterial(name)}
+                          title={name}
+                        >
+                          <MaterialSymbol name={name} size={28} />
+                          <span className="icon-item-name">{name.replace(/_/g, " ")}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {visibleCount < searchResults.length && (
+                    <div className="icon-picker-load-more">
+                      <button
+                        type="button"
+                        className="btn btn-secondary load-more-btn"
+                        onClick={() => setVisibleCount((prev) => prev + 72)}
+                      >
+                        Load more icons ({searchResults.length - visibleCount} remaining)
+                      </button>
+                    </div>
+                  )}
+                </>
+              ) : (
                 <div className="icon-picker-empty">
-                  No icons matching "{searchQuery}". Try searching "folder", "code", or "tool".
+                  No Material Symbol found matching "{searchQuery}".
                 </div>
               )}
             </div>
-          </>
+
+            {/* 3. Browse Google Fonts & Manual Input Section */}
+            <div className="icon-picker-manual-card">
+              <div className="manual-card-header">
+                <span className="manual-card-title">Can't find the icon you want?</span>
+                <a
+                  href="https://fonts.google.com/icons"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="browse-google-fonts-link"
+                >
+                  Browse all Material Symbols ↗
+                </a>
+              </div>
+              <p className="manual-card-desc">
+                Find an icon name on Google Fonts (e.g. <code>crossword</code>, <code>travel</code>, <code>code</code>), then paste it below.
+              </p>
+
+              <div className="manual-input-row">
+                <input
+                  type="text"
+                  className="manual-name-input"
+                  placeholder="Paste or type icon name (e.g. crossword)..."
+                  value={manualInput}
+                  onInput={(e) => setManualInput((e.target as HTMLInputElement).value)}
+                  onKeyDown={handleManualKeyDown}
+                />
+              </div>
+
+              {manualInput.trim() && (
+                <div className="manual-preview-row">
+                  {isManualValid ? (
+                    <div className="manual-preview-valid">
+                      <div className="preview-symbol-box">
+                        <MaterialSymbol name={normalizedManualInput} size={28} />
+                      </div>
+                      <span className="preview-name">{normalizedManualInput}</span>
+                      <button
+                        type="button"
+                        className="btn btn-primary use-icon-btn"
+                        onClick={handleApplyManual}
+                      >
+                        Use icon
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="manual-preview-invalid">
+                      <span className="invalid-icon-warning">⚠️ Icon not found in official Material Symbols catalog</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
         ) : (
+          /* Custom Upload Section */
           <div className="icon-picker-custom-section">
             <p className="custom-upload-desc">
-              Upload a custom PNG, JPEG, or WebP icon. It will be automatically resized to a crisp 64×64 icon.
+              Upload a custom PNG, JPEG, or WebP icon. It will be automatically resized to a crisp 64×64 group icon.
             </p>
             <input
               type="file"
@@ -152,6 +305,7 @@ export function GroupIconPicker({ currentIcon, onSelectIcon, onClose }: GroupIco
               onChange={handleFileUpload}
             />
             <button
+              type="button"
               className="btn btn-primary upload-btn"
               onClick={() => fileInputRef.current?.click()}
             >
@@ -161,17 +315,19 @@ export function GroupIconPicker({ currentIcon, onSelectIcon, onClose }: GroupIco
           </div>
         )}
 
+        {/* Footer */}
         <div className="icon-picker-footer">
           <button
+            type="button"
             className="btn btn-secondary"
             onClick={() => {
               onSelectIcon({ type: "material", name: "folder" });
               onClose();
             }}
           >
-            Reset to Default
+            Reset to Default (Folder)
           </button>
-          <button className="btn btn-secondary" onClick={onClose}>
+          <button type="button" className="btn btn-secondary" onClick={onClose}>
             Cancel
           </button>
         </div>

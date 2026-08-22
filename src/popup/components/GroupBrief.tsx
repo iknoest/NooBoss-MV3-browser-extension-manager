@@ -20,7 +20,7 @@ export interface GroupBriefProps {
 export function renderGroupIcon(group: ExtensionGroup, size: number = 32, color?: string) {
   if (group.icon && typeof group.icon === "object") {
     if (group.icon.type === "material" && group.icon.name) {
-      return <MaterialSymbol name={group.icon.name} size={size} color={color || "currentColor"} />;
+      return <MaterialSymbol name={group.icon.name} size={size} color={color || "currentColor"} fallback="folder" />;
     }
     if (group.icon.type === "custom" && group.icon.dataUrl) {
       return (
@@ -37,10 +37,10 @@ export function renderGroupIcon(group: ExtensionGroup, size: number = 32, color?
     }
   }
   if (typeof group.icon === "string" && group.icon.trim()) {
-    return <MaterialSymbol name={group.icon} size={size} color={color || "currentColor"} />;
+    return <MaterialSymbol name={group.icon} size={size} color={color || "currentColor"} fallback="folder" />;
   }
   // Default robust fallback
-  return <MaterialSymbol name="folder" size={size} color={color || "currentColor"} />;
+  return <MaterialSymbol name="folder" size={size} color={color || "currentColor"} fallback="folder" />;
 }
 
 export function GroupBrief({

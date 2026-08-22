@@ -14,8 +14,7 @@ async function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-// Simple static file server for dist directory
-function startStaticServer(port = 8787) {
+function startStaticServer(port = 8788) {
   const mimeTypes = {
     ".html": "text/html",
     ".js": "text/javascript",
@@ -23,6 +22,7 @@ function startStaticServer(port = 8787) {
     ".json": "application/json",
     ".png": "image/png",
     ".svg": "image/svg+xml",
+    ".woff2": "font/woff2",
   };
 
   const server = http.createServer((req, res) => {
@@ -54,7 +54,7 @@ async function main() {
     fs.mkdirSync(ARTIFACT_DIR, { recursive: true });
   }
 
-  const server = await startStaticServer(8787);
+  const server = await startStaticServer(8788);
   const migratedData = JSON.parse(fs.readFileSync(MIGRATED_JSON, "utf8"));
 
   const sampleExtensions = [
@@ -68,7 +68,7 @@ async function main() {
       mayDisable: true,
       description: "Access ChatGPT directly from your browser toolbar.",
       homepageUrl: "https://openai.com",
-      icons: [{ size: 48, url: "https://lh3.googleusercontent.com/fife/ALs6j_placeholder" }],
+      icons: [{ size: 48, url: "https://lh3.googleusercontent.com/fife/ALs6j_gpt" }],
     },
     {
       id: "cjpalhdlnbpafiamejdnhcphjbkeiagm",
@@ -117,28 +117,16 @@ async function main() {
       description: "React profiling and debugging tools for Chrome.",
       icons: [{ size: 48, url: "https://lh3.googleusercontent.com/fife/ALs6j_rdt" }],
     },
-    {
-      id: "lmhkpmbekcpmknklioeibfkpmmfibljd",
-      name: "Redux DevTools",
-      version: "3.1.6",
-      enabled: true,
-      type: "extension",
-      installType: "normal",
-      mayDisable: true,
-      description: "Redux dev tools inspection and state time-traveling.",
-      icons: [{ size: 48, url: "https://lh3.googleusercontent.com/fife/ALs6j_redux" }],
-    },
   ];
 
-  // Assign extensions and rich material icons to migrated groups
+  // Assign groups: some with specific requested Material Symbols, some with Folder default
   const groupsWithExts = (migratedData.groups || []).map((g, idx) => {
     if (idx === 0) return { ...g, icon: { type: "material", name: "shopping_cart" }, extensionIds: ["ghbmnnjggjcganegdakffhaeglpncmno", "cjpalhdlnbpafiamejdnhcphjbkeiagm"] };
-    if (idx === 1) return { ...g, icon: { type: "material", name: "code" }, extensionIds: ["fmkadmapgofadopljbjfkapdkoienihi", "lmhkpmbekcpmknklioeibfkpmmfibljd"] };
-    if (idx === 2) return { ...g, icon: { type: "material", name: "shield" }, extensionIds: ["eimadpbcbfnmbkopoojfekhnkhdbieeh"] };
-    if (idx === 3) return { ...g, icon: { type: "material", name: "work" }, extensionIds: ["nkbihfbeogaeaoehlefnkodbefgpgknn"] };
-    if (idx === 4) return { ...g, icon: { type: "material", name: "movie" }, extensionIds: [] };
-    if (idx === 5) return { ...g, icon: { type: "material", name: "palette" }, extensionIds: [] };
-    return { ...g, icon: { type: "material", name: "folder" }, extensionIds: [] };
+    if (idx === 1) return { ...g, icon: { type: "material", name: "code" }, extensionIds: ["fmkadmapgofadopljbjfkapdkoienihi"] };
+    if (idx === 2) return { ...g, icon: { type: "material", name: "business_center" }, extensionIds: ["nkbihfbeogaeaoehlefnkodbefgpgknn"] };
+    if (idx === 3) return { ...g, icon: { type: "material", name: "shield" }, extensionIds: ["eimadpbcbfnmbkopoojfekhnkhdbieeh"] };
+    // Groups 4-7 have no icon set, verifying default Folder fallback
+    return { ...g, icon: undefined, extensionIds: [] };
   });
 
   const browser = await puppeteer.launch({
@@ -150,16 +138,11 @@ async function main() {
   const page = await browser.newPage();
   await page.setViewport({ width: 760, height: 560 });
 
-  // Injected chrome API bridge
   await page.evaluateOnNewDocument((exts, grps, rls, setts) => {
     let internalExts = [...exts];
     let internalGrps = [...grps];
     let internalRls = [...rls];
-    let internalSetts = { ...setts, theme: "system", accentPreset: "default", accentColor: "#1a73e8" };
-    let internalHist = [
-      { id: "h1", extensionId: "ghbmnnjggjcganegdakffhaeglpncmno", extensionName: "ChatGPT for Chrome", action: "enabled", timestamp: Date.now() - 3600000 },
-      { id: "h2", extensionId: "cjpalhdlnbpafiamejdnhcphjbkeiagm", extensionName: "uBlock Origin", action: "installed", timestamp: Date.now() - 7200000 },
-    ];
+    let internalSetts = { ...setts, theme: "system", accentPreset: "default", accentColor: "#1a73e8", viewMode: "grid" };
 
     window.chrome = {
       runtime: {
@@ -173,7 +156,7 @@ async function main() {
             case "GET_AUTOSTATE_RULES":
               return internalRls;
             case "GET_HISTORY":
-              return internalHist;
+              return [];
             case "GET_SETTINGS":
               return internalSetts;
             case "GET_PENDING_CHANGES":
@@ -200,140 +183,176 @@ async function main() {
               internalGrps = internalGrps.map((g) => (g.id === msg.group.id ? msg.group : g));
               return { success: true };
             }
-            case "CREATE_GROUP": {
-              const newGrp = { id: "g_" + Date.now(), name: msg.name, extensionIds: [], color: "#1a73e8" };
-              internalGrps.push(newGrp);
-              return { success: true, group: newGrp };
-            }
-            case "DELETE_GROUP":
-              internalGrps = internalGrps.filter((g) => g.id !== msg.id);
-              return { success: true };
-            case "CLEAR_HISTORY":
-              internalHist = [];
-              return { success: true };
-            case "EXPORT_DATA":
-              return { version: 1, exportedAt: Date.now(), groups: internalGrps, autoStateRules: internalRls, settings: internalSetts };
             default:
               return { success: true };
           }
         },
-        onMessage: {
-          addListener: () => {},
-          removeListener: () => {},
-        },
+        onMessage: { addListener: () => {}, removeListener: () => {} },
       },
-      i18n: {
-        getMessage: (key) => key,
-      },
+      i18n: { getMessage: (k) => k },
     };
   }, sampleExtensions, groupsWithExts, migratedData.autoStateRules || [], migratedData.settings || {});
 
-  console.log("Navigating to popup on localhost:8787...");
-  await page.goto("http://localhost:8787/popup/popup.html", { waitUntil: "networkidle0" });
+  await page.goto("http://localhost:8788/popup/popup.html", { waitUntil: "networkidle0" });
   await sleep(1000);
 
-  // 1. Default landing page (Extensions / Manage) in Tile View (76x76)
-  const s1Path = path.join(ARTIFACT_DIR, "modern_01_manage_tile_default.png");
+  // Evidence 1: Default landing page (Extensions / Manage) showing groups with Folder default and requested icons
+  const s1Path = path.join(ARTIFACT_DIR, "refinement_01_groups_folder_and_icons.png");
   await page.screenshot({ path: s1Path });
   console.log("Captured:", s1Path);
 
-  // 2. Big Tile View (212x66)
-  const bigTileBtn = await page.$("button[title=\"Big tile view\"]");
-  if (bigTileBtn) {
-    await bigTileBtn.click();
-    await sleep(400);
+  // Open Group Edit modal for group 0
+  await page.evaluate(() => {
+    const editIcons = document.querySelectorAll(".item-controls svg");
+    if (editIcons[1]) {
+      editIcons[1].dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    }
+  });
+  await sleep(600);
+
+  // Open Group Icon Picker
+  const iconEditBtn = await page.$(".group-icon-edit-btn");
+  if (iconEditBtn) {
+    await iconEditBtn.click();
+    await sleep(600);
   }
-  const s2Path = path.join(ARTIFACT_DIR, "modern_02_manage_big_tile.png");
+
+  // Evidence 2: Recommended Icon Palette
+  const s2Path = path.join(ARTIFACT_DIR, "refinement_02_recommended_palette.png");
   await page.screenshot({ path: s2Path });
   console.log("Captured:", s2Path);
 
-  // 3. List View (33px row)
-  const listBtn = await page.$("button[title=\"List view\"]");
-  if (listBtn) {
-    await listBtn.click();
-    await sleep(400);
+  // Evidence 3: Search for "car"
+  const searchInput = await page.$(".icon-picker-search-bar input");
+  if (searchInput) {
+    await searchInput.type("car");
+    await sleep(500);
   }
-  const s3Path = path.join(ARTIFACT_DIR, "modern_03_manage_list.png");
+  const s3Path = path.join(ARTIFACT_DIR, "refinement_03_search_car.png");
   await page.screenshot({ path: s3Path });
   console.log("Captured:", s3Path);
 
-  // 4. Options View (Modern Appearance & Settings)
+  // Clear search input
+  const clearBtn = await page.$(".icon-picker-clear-search");
+  if (clearBtn) {
+    await clearBtn.click();
+    await sleep(400);
+  }
+
+  // Evidence 4: Paste / Type "crossword" into manual input and view live preview
+  const manualInput = await page.$(".manual-name-input");
+  if (manualInput) {
+    await manualInput.type("crossword");
+    await page.evaluate(() => {
+      const scrollBody = document.querySelector(".icon-picker-scroll-body");
+      if (scrollBody) scrollBody.scrollTop = scrollBody.scrollHeight;
+    });
+    await sleep(500);
+  }
+  const s4Path = path.join(ARTIFACT_DIR, "refinement_04_pasted_crossword.png");
+  await page.screenshot({ path: s4Path });
+  console.log("Captured:", s4Path);
+
+  // Evidence 5: Type invalid icon name into manual input
+  if (manualInput) {
+    await page.evaluate((el) => {
+      el.value = "";
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+    }, manualInput);
+    await manualInput.type("invalid_random_symbol_xyz");
+    await page.evaluate(() => {
+      const scrollBody = document.querySelector(".icon-picker-scroll-body");
+      if (scrollBody) scrollBody.scrollTop = scrollBody.scrollHeight;
+    });
+    await sleep(500);
+  }
+  const s5Path = path.join(ARTIFACT_DIR, "refinement_05_invalid_icon.png");
+  await page.screenshot({ path: s5Path });
+  console.log("Captured:", s5Path);
+
+  // Close modal and navigate to About view to verify NooBoss Crossword brand icon
+  const closeBtn = await page.$(".icon-picker-close-btn");
+  if (closeBtn) {
+    await closeBtn.click();
+    await sleep(400);
+  }
+  const subWindowClose = await page.$(".subwindow-close-btn");
+  if (subWindowClose) {
+    await subWindowClose.click();
+    await sleep(400);
+  }
+
+  // Evidence 6: About page showing NooBoss Crossword brand icon
   await page.evaluate(() => {
     const btn = Array.from(document.querySelectorAll(".nav-link")).find(
-      (el) => el.textContent.includes("Options") || el.textContent.includes("options")
+      (el) => el.textContent.includes("About") || el.textContent.includes("about")
     );
     if (btn) btn.click();
   });
   await sleep(600);
-  const s4Path = path.join(ARTIFACT_DIR, "modern_04_options_appearance.png");
-  await page.screenshot({ path: s4Path });
-  console.log("Captured:", s4Path);
-
-  // 5. Dark Theme in Options
-  await page.evaluate(() => {
-    const selects = Array.from(document.querySelectorAll(".settings-select"));
-    if (selects[0]) {
-      selects[0].value = "dark";
-      selects[0].dispatchEvent(new Event("change", { bubbles: true }));
-    }
-  });
-  await sleep(600);
-  const s5Path = path.join(ARTIFACT_DIR, "modern_05_dark_mode.png");
-  await page.screenshot({ path: s5Path });
-  console.log("Captured:", s5Path);
-
-  // Switch back to Light theme
-  await page.evaluate(() => {
-    const selects = Array.from(document.querySelectorAll(".settings-select"));
-    if (selects[0]) {
-      selects[0].value = "light";
-      selects[0].dispatchEvent(new Event("change", { bubbles: true }));
-    }
-    const manageBtn = Array.from(document.querySelectorAll(".sub-link")).find(
-      (el) => el.textContent.includes("Manage") || el.textContent.includes("manage")
-    );
-    if (manageBtn) manageBtn.click();
-  });
-  await sleep(600);
-
-  // 6. Group Edit Modal & Single Tri-State State Control
-  await page.evaluate(() => {
-    const editBtns = document.querySelectorAll(".list-actions svg, .item-controls svg");
-    if (editBtns[1]) {
-      editBtns[1].dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    }
-  });
-  await sleep(600);
-  const s6Path = path.join(ARTIFACT_DIR, "modern_06_group_edit_modal.png");
+  const s6Path = path.join(ARTIFACT_DIR, "refinement_06_nooboss_logo_about.png");
   await page.screenshot({ path: s6Path });
   console.log("Captured:", s6Path);
 
-  // 7. Group Icon Picker Modal
-  const iconEditBtn = await page.$(".group-icon-edit-btn");
-  if (iconEditBtn) {
-    await iconEditBtn.click();
-    await sleep(500);
-  }
-  const s7Path = path.join(ARTIFACT_DIR, "modern_07_group_icon_picker.png");
-  await page.screenshot({ path: s7Path });
-  console.log("Captured:", s7Path);
+  // Evidence 7: Toolbar icons light & dark comparison
+  const toolbarPage = await browser.newPage();
+  await toolbarPage.setViewport({ width: 600, height: 280 });
+  const icon16B64 = fs.readFileSync(path.join(ROOT, "src/icons/icon16.png")).toString("base64");
+  const icon32B64 = fs.readFileSync(path.join(ROOT, "src/icons/icon32.png")).toString("base64");
+  const icon48B64 = fs.readFileSync(path.join(ROOT, "src/icons/icon48.png")).toString("base64");
+  const icon128B64 = fs.readFileSync(path.join(ROOT, "src/icons/icon128.png")).toString("base64");
 
-  // 8. Group Icon Search
-  const searchInput = await page.$(".icon-picker-search-bar input");
-  if (searchInput) {
-    await searchInput.type("cart");
-    await sleep(400);
-  }
-  const s8Path = path.join(ARTIFACT_DIR, "modern_08_group_icon_search.png");
-  await page.screenshot({ path: s8Path });
-  console.log("Captured:", s8Path);
+  const comparisonHtml = `<!DOCTYPE html>
+<html>
+<head>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 20px; background: #f8f9fa; color: #202124; }
+  .grid { display: flex; gap: 20px; }
+  .box { flex: 1; border-radius: 8px; padding: 16px; border: 1px solid #dadce0; }
+  .box.light { background: #ffffff; }
+  .box.dark { background: #202124; color: #ffffff; border-color: #3c4043; }
+  h4 { margin: 0 0 14px 0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.8; }
+  .icons-row { display: flex; align-items: center; gap: 16px; }
+  .item { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 11px; }
+</style>
+</head>
+<body>
+  <h3 style="margin: 0 0 16px 0; font-size: 16px;">Chrome Toolbar Crossword Icon Visibility Test (Transparent Background)</h3>
+  <div class="grid">
+    <div class="box light">
+      <h4>Light Toolbar (#ffffff)</h4>
+      <div class="icons-row">
+        <div class="item"><img src="data:image/png;base64,${icon16B64}" width="16" height="16" /><span>16px</span></div>
+        <div class="item"><img src="data:image/png;base64,${icon32B64}" width="32" height="32" /><span>32px</span></div>
+        <div class="item"><img src="data:image/png;base64,${icon48B64}" width="48" height="48" /><span>48px</span></div>
+        <div class="item"><img src="data:image/png;base64,${icon128B64}" width="64" height="64" /><span>128px</span></div>
+      </div>
+    </div>
+    <div class="box dark">
+      <h4>Dark Toolbar (#202124)</h4>
+      <div class="icons-row">
+        <div class="item"><img src="data:image/png;base64,${icon16B64}" width="16" height="16" /><span>16px</span></div>
+        <div class="item"><img src="data:image/png;base64,${icon32B64}" width="32" height="32" /><span>32px</span></div>
+        <div class="item"><img src="data:image/png;base64,${icon48B64}" width="48" height="48" /><span>48px</span></div>
+        <div class="item"><img src="data:image/png;base64,${icon128B64}" width="64" height="64" /><span>128px</span></div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  await toolbarPage.setContent(comparisonHtml, { waitUntil: "networkidle0" });
+  const s7Path = path.join(ARTIFACT_DIR, "refinement_07_toolbar_icon_comparison.png");
+  await toolbarPage.screenshot({ path: s7Path });
+  console.log("Captured:", s7Path);
+  await toolbarPage.close();
 
   await browser.close();
   server.close();
-  console.log("All modern visual screenshots generated successfully!");
+  console.log("All refinement evidence screenshots captured successfully!");
 }
 
-main().catch((e) => {
-  console.error(e);
+main().catch((err) => {
+  console.error(err);
   process.exit(1);
 });

@@ -28,6 +28,7 @@
     "vitest": "^3.2.1"
   },
   "dependencies": {
+    "material-symbols": "^0.46.0",
     "preact": "^10.26.9"
   }
 }
