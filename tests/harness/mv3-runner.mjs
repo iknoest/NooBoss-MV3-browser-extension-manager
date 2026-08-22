@@ -293,13 +293,17 @@ server.listen(PORT, async () => {
       window.chrome = {
         runtime: {
           sendMessage: (msg, callback) => {
-            if (msg.type === "GET_EXTENSIONS") callback?.({ extensions: fixtures.exts });
-            else if (msg.type === "GET_GROUPS") callback?.({ groups: fixtures.grps });
-            else if (msg.type === "GET_AUTOSTATE_RULES") callback?.({ rules: fixtures.rules });
-            else if (msg.type === "GET_HISTORY") callback?.({ records: fixtures.history });
-            else if (msg.type === "GET_SETTINGS") callback?.({ settings: fixtures.settings });
-            else if (msg.type === "GET_PENDING_CHANGES") callback?.({ changes: [] });
-            else callback?.({ success: true });
+            let res;
+            if (msg.type === "GET_EXTENSIONS") res = fixtures.exts;
+            else if (msg.type === "GET_GROUPS") res = fixtures.grps;
+            else if (msg.type === "GET_AUTOSTATE_RULES") res = fixtures.rules;
+            else if (msg.type === "GET_HISTORY") res = fixtures.history;
+            else if (msg.type === "GET_SETTINGS") res = fixtures.settings;
+            else if (msg.type === "GET_PENDING_CHANGES") res = [];
+            else if (msg.type === "EXPORT_DATA") res = { version: 1, exportedAt: Date.now(), generator: "NooBoss-MV3", groups: fixtures.grps, autoStateRules: fixtures.rules, settings: fixtures.settings };
+            else res = { success: true };
+            if (callback) callback(res);
+            return Promise.resolve(res);
           },
           onMessage: {
             addListener: () => {},
