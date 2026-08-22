@@ -30,7 +30,15 @@ export function renderGroupIcon(group: ExtensionGroup, size: number = 32, color?
           alt={group.name}
           style={{ width: `${size}px`, height: `${size}px`, objectFit: "contain", borderRadius: "4px" }}
           onError={(e) => {
-            (e.currentTarget as HTMLImageElement).style.display = "none";
+            const imgEl = e.currentTarget as HTMLImageElement;
+            imgEl.style.display = "none";
+            if (imgEl.parentElement) {
+              const fallbackSpan = document.createElement("span");
+              fallbackSpan.className = "material-symbols-rounded";
+              fallbackSpan.style.fontSize = `${size}px`;
+              fallbackSpan.textContent = "folder";
+              imgEl.parentElement.appendChild(fallbackSpan);
+            }
           }}
         />
       );
@@ -46,7 +54,7 @@ export function renderGroupIcon(group: ExtensionGroup, size: number = 32, color?
 export function GroupBrief({
   group,
   allExtensions = [],
-  viewMode = "tile",
+  viewMode = "bigTile",
   withControl = true,
   selected = null,
   onToggleGroup,
@@ -54,7 +62,7 @@ export function GroupBrief({
   onDeleteGroup,
   onSelect,
   onOpenSubWindow,
-  themeMainColor,
+  themeMainColor = "#1a73e8",
 }: GroupBriefProps) {
   const isSelectable = selected !== null;
   const isSelected = selected === true;
@@ -74,63 +82,72 @@ export function GroupBrief({
     }
   };
 
-  // --- Big Tile View ---
+  // --- Big Tile View (Balanced Default Management Mode) ---
   if (viewMode === "bigTile" && !isSelectable) {
     return (
-      <div className="nb-big-tile group-card">
-        <div className="group-icon-wrapper" onClick={handleOpenDetail}>
+      <div className="nb-big-tile group-big-tile" onClick={handleOpenDetail}>
+        <div className="group-icon-center clickable">
           {renderGroupIcon(group, 36, themeMainColor)}
         </div>
-        <div className="item-meta">
-          <span className="item-name" onClick={handleOpenDetail} title={group.name}>
+        <div className="big-tile-content">
+          <span className="item-name" title={group.name}>
             {group.name}
           </span>
-          <span className="item-sub-info">{group.extensionIds.length} extension(s)</span>
+          <span className="item-version">
+            {group.extensionIds.length} extension(s)
+          </span>
         </div>
+
         {withControl && (
-          <div className="item-controls">
+          <div className="item-controls-strip" onClick={(e) => e.stopPropagation()}>
             {onToggleGroup && (
               <GroupStateToggle
                 groupId={group.id}
                 extensionIds={group.extensionIds}
                 allExtensions={allExtensions}
                 onToggleGroup={onToggleGroup}
-                size="small"
+                size="medium"
               />
             )}
-            <Copyy
-              color={themeMainColor}
-              onClick={(e) => {
-                e.stopPropagation();
-                onCopyGroup?.(group.id);
-              }}
-              title="Copy group"
-            />
-            <Optioney
-              color={themeMainColor}
+            <button
+              type="button"
+              className="action-icon-btn"
+              onClick={() => onCopyGroup?.(group.id)}
+              title="Duplicate Group"
+              aria-label="Duplicate Group"
+            >
+              <Copyy color={themeMainColor} size={16} />
+            </button>
+            <button
+              type="button"
+              className="action-icon-btn"
               onClick={handleOpenDetail}
-              title="Edit group"
-            />
-            <Removy
-              color={themeMainColor}
-              onClick={(e) => {
-                e.stopPropagation();
-                onDeleteGroup?.(group.id);
-              }}
-              title="Delete group"
-            />
+              title="Edit Group"
+              aria-label="Edit Group"
+            >
+              <Optioney color={themeMainColor} size={16} />
+            </button>
+            <button
+              type="button"
+              className="action-icon-btn"
+              onClick={() => onDeleteGroup?.(group.id)}
+              title="Delete Group"
+              aria-label="Delete Group"
+            >
+              <Removy color={themeMainColor} size={16} />
+            </button>
           </div>
         )}
       </div>
     );
   }
 
-  // --- List View ---
+  // --- List View (44px Row Height with Clear Action Strip) ---
   if (viewMode === "list" && !isSelectable) {
     return (
-      <div className="nb-list-row group-row">
+      <div className="nb-list-row group-list-row">
         {withControl && onToggleGroup && (
-          <div className="list-switch">
+          <div className="list-group-toggle-wrap">
             <GroupStateToggle
               groupId={group.id}
               extensionIds={group.extensionIds}
@@ -140,102 +157,98 @@ export function GroupBrief({
             />
           </div>
         )}
-        <div className="list-icon-wrapper" onClick={handleOpenDetail}>
-          {renderGroupIcon(group, 22, themeMainColor)}
+        <div className="list-icon-wrap clickable" onClick={handleOpenDetail}>
+          {renderGroupIcon(group, 26, themeMainColor)}
         </div>
-        <span className="list-name" onClick={handleOpenDetail} title={group.name}>
+        <span
+          className="list-name clickable"
+          onClick={handleOpenDetail}
+          title={group.name}
+        >
           {group.name}
         </span>
         <span className="list-version">{group.extensionIds.length} extension(s)</span>
         {withControl && (
           <div className="list-actions">
-            <Copyy
-              color={themeMainColor}
+            <button
+              type="button"
+              className="action-icon-btn"
               onClick={() => onCopyGroup?.(group.id)}
-              title="Copy group"
-            />
-            <Optioney
-              color={themeMainColor}
+              title="Duplicate Group"
+              aria-label="Duplicate Group"
+            >
+              <Copyy color={themeMainColor} size={16} />
+            </button>
+            <button
+              type="button"
+              className="action-icon-btn"
               onClick={handleOpenDetail}
-              title="Edit group"
-            />
-            <Removy
-              color={themeMainColor}
+              title="Edit Group"
+              aria-label="Edit Group"
+            >
+              <Optioney color={themeMainColor} size={16} />
+            </button>
+            <button
+              type="button"
+              className="action-icon-btn"
               onClick={() => onDeleteGroup?.(group.id)}
-              title="Delete group"
-            />
+              title="Delete Group"
+              aria-label="Delete Group"
+            >
+              <Removy color={themeMainColor} size={16} />
+            </button>
           </div>
         )}
       </div>
     );
   }
 
-  // --- Default Tile View (76x76 3D Flip) ---
+  // --- Normal Tile View (~104x104px, Max 6 Columns) ---
   return (
     <div
       className={`nb-tile group-tile ${isSelectable ? "selectable " + (isSelected ? "is-selected" : "not-selected") : ""}`}
-      onClick={handleCardClick}
+      onClick={isSelectable ? handleCardClick : handleOpenDetail}
     >
-      <div className="flip-card">
-        <div className="card-front">
-          <div className="group-icon-center" onClick={handleOpenDetail}>
-            {renderGroupIcon(group, 36, themeMainColor)}
-          </div>
-          <span
-            className="item-name-front"
-            onClick={handleOpenDetail}
-            title={group.name}
-          >
-            {group.name}
-          </span>
+      <div className="tile-body">
+        <div className="group-icon-center">
+          {renderGroupIcon(group, 36, themeMainColor)}
         </div>
-
-        {!isSelectable && (
-          <div className="card-back">
-            {withControl && (
-              <div className="item-controls">
-                {onToggleGroup && (
-                  <GroupStateToggle
-                    groupId={group.id}
-                    extensionIds={group.extensionIds}
-                    allExtensions={allExtensions}
-                    onToggleGroup={onToggleGroup}
-                    size="small"
-                  />
-                )}
-                <Copyy
-                  color={themeMainColor}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onCopyGroup?.(group.id);
-                  }}
-                  title="Copy"
-                />
-                <Optioney
-                  color={themeMainColor}
-                  onClick={handleOpenDetail}
-                  title="Edit"
-                />
-                <Removy
-                  color={themeMainColor}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDeleteGroup?.(group.id);
-                  }}
-                  title="Delete"
-                />
-              </div>
-            )}
-            <span
-              className="item-name-back"
-              onClick={handleOpenDetail}
-              title={group.name}
-            >
-              {group.name}
-            </span>
-          </div>
-        )}
+        <span className="tile-item-name" title={group.name}>
+          {group.name}
+        </span>
       </div>
+
+      {!isSelectable && withControl && (
+        <div className="tile-hover-bar" onClick={(e) => e.stopPropagation()}>
+          {onToggleGroup && (
+            <GroupStateToggle
+              groupId={group.id}
+              extensionIds={group.extensionIds}
+              allExtensions={allExtensions}
+              onToggleGroup={onToggleGroup}
+              size="small"
+            />
+          )}
+          <button
+            type="button"
+            className="tile-action-btn"
+            onClick={handleOpenDetail}
+            title="Edit Group"
+            aria-label="Edit Group"
+          >
+            <Optioney color={themeMainColor} size={14} />
+          </button>
+          <button
+            type="button"
+            className="tile-action-btn"
+            onClick={() => onDeleteGroup?.(group.id)}
+            title="Delete Group"
+            aria-label="Delete Group"
+          >
+            <Removy color={themeMainColor} size={14} />
+          </button>
+        </div>
+      )}
     </div>
   );
 }

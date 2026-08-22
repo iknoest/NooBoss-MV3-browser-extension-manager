@@ -34,7 +34,7 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [pendingChanges, setPendingChanges] = useState<PendingAutoStateChange[]>([]);
 
-  const [viewMode, setViewMode] = useState<"tile" | "bigTile" | "list">("tile");
+  const [viewMode, setViewMode] = useState<"tile" | "bigTile" | "list">("bigTile");
   const [subWindow, setSubWindow] = useState<{ display: "" | "extension" | "group"; targetId: string }>({
     display: "",
     targetId: "",
@@ -109,7 +109,9 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
       setSettings(resolvedSetts);
       setPendingChanges(resolvedPending);
 
-      if (resolvedSetts.viewMode === "grid") {
+      if (resolvedSetts.viewMode === "grid" || resolvedSetts.viewMode === "bigTile") {
+        setViewMode("bigTile");
+      } else if (resolvedSetts.viewMode === "tile") {
         setViewMode("tile");
       } else if (resolvedSetts.viewMode === "list") {
         setViewMode("list");
@@ -150,13 +152,22 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
     }
   }, [loadData]);
 
-  // Extension actions
+  // Extension actions: direct management call preserves user-gesture context in popup
   const handleToggleExtension = async (id: string, enabled: boolean) => {
     setExtensions((prev) =>
       prev.map((ext) => (ext.id === id ? { ...ext, enabled } : ext))
     );
-    await chrome.runtime?.sendMessage?.({ type: "TOGGLE_EXTENSION", id, enabled });
-    await loadData();
+    try {
+      if (typeof chrome !== "undefined" && chrome.management?.setEnabled) {
+        await chrome.management.setEnabled(id, enabled);
+      } else if (typeof chrome !== "undefined" && chrome.runtime?.sendMessage) {
+        await chrome.runtime.sendMessage({ type: "TOGGLE_EXTENSION", id, enabled });
+      }
+    } catch (err) {
+      console.error("[NooBoss] Direct setEnabled failed:", err);
+    } finally {
+      await loadData();
+    }
   };
 
   const handleOpenOptions = async (id: string) => {
@@ -168,14 +179,49 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
   };
 
   const handleUninstall = async (id: string) => {
-    await chrome.runtime?.sendMessage?.({ type: "UNINSTALL_EXTENSION", id });
-    await loadData();
+    try {
+      if (typeof chrome !== "undefined" && chrome.management?.uninstall) {
+        await chrome.management.uninstall(id, { showConfirmDialog: true });
+      } else {
+        await chrome.runtime?.sendMessage?.({ type: "UNINSTALL_EXTENSION", id });
+      }
+    } catch (err) {
+      console.warn("[NooBoss] Uninstall cancelled or failed:", err);
+    } finally {
+      await loadData();
+    }
   };
 
-  // Group actions
+  // Group actions: synchronously dispatch all member operations in click gesture
   const handleToggleGroup = async (id: string, enabled: boolean) => {
-    await chrome.runtime?.sendMessage?.({ type: "TOGGLE_GROUP", id, enabled });
-    await loadData();
+    const group = groups.find((g) => g.id === id);
+    if (!group || group.extensionIds.length === 0) return;
+
+    try {
+      if (typeof chrome !== "undefined" && chrome.management?.setEnabled) {
+        const selfId = chrome.runtime?.id;
+        const eligibleIds = group.extensionIds.filter((extId) => extId !== selfId);
+        const operations = eligibleIds.map(async (extId) => {
+          try {
+            await chrome.management.setEnabled(extId, enabled);
+            return { id: extId, success: true };
+          } catch (err) {
+            return { id: extId, success: false, error: err instanceof Error ? err.message : String(err) };
+          }
+        });
+        const results = await Promise.all(operations);
+        const failed = results.filter((r) => !r.success);
+        if (failed.length > 0) {
+          console.warn(`[NooBoss] Group toggle: ${eligibleIds.length - failed.length} changed, ${failed.length} failed`);
+        }
+      } else if (typeof chrome !== "undefined" && chrome.runtime?.sendMessage) {
+        await chrome.runtime.sendMessage({ type: "TOGGLE_GROUP", id, enabled });
+      }
+    } catch (err) {
+      console.error("[NooBoss] Group toggle error:", err);
+    } finally {
+      await loadData();
+    }
   };
 
   const handleCreateGroup = async () => {
@@ -288,9 +334,9 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
 
   const handleChangeViewMode = (mode: "tile" | "bigTile" | "list") => {
     setViewMode(mode);
-    const updatedSettings = {
+    const updatedSettings: AppSettings = {
       ...settings,
-      viewMode: mode === "list" ? ("list" as const) : ("grid" as const),
+      viewMode: mode,
     };
     handleSaveSettings(updatedSettings);
   };

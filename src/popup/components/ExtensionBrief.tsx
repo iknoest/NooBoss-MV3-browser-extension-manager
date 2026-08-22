@@ -18,7 +18,7 @@ export interface ExtensionBriefProps {
 
 export function ExtensionBrief({
   extension,
-  viewMode = "tile",
+  viewMode = "bigTile",
   withControl = true,
   selected = null,
   iconUrl,
@@ -28,7 +28,7 @@ export function ExtensionBrief({
   onUninstall,
   onSelect,
   onOpenSubWindow,
-  themeMainColor,
+  themeMainColor = "#1a73e8",
 }: ExtensionBriefProps) {
   const isSelectable = selected !== null;
   const isSelected = selected === true;
@@ -57,75 +57,152 @@ export function ExtensionBrief({
     }
   };
 
-  // --- Big Tile View ---
-  if (viewMode === "bigTile" && !isSelectable) {
+  // --- Selectable Mode (Used inside Group Editor Member Selector) ---
+  if (isSelectable) {
+    if (viewMode === "bigTile") {
+      return (
+        <div
+          className={`nb-big-tile selectable-big-tile ${disabled ? "disabled" : ""} ${isSelected ? "is-selected" : "not-selected"}`}
+          onClick={handleCardClick}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === " " || e.key === "Enter") {
+              e.preventDefault();
+              onSelect?.(extension.id);
+            }
+          }}
+        >
+          <div className="select-indicator">
+            <span className={`select-box ${isSelected ? "checked" : ""}`}>
+              {isSelected ? "✓" : ""}
+            </span>
+          </div>
+          <img className="extension-icon" src={displayIcon} alt={extension.name} />
+          <div className="big-tile-info">
+            <span className="item-name" title={extension.name}>{extension.name}</span>
+            <span className="item-version">{extension.version}</span>
+          </div>
+          <span className={`status-pill-badge ${extension.enabled ? "enabled" : "disabled"}`}>
+            {extension.enabled ? "ON" : "OFF"}
+          </span>
+        </div>
+      );
+    }
+
+    // Default Selectable: List View (Full Row Clickable)
+    return (
+      <div
+        className={`nb-list-row selectable-row ${disabled ? "disabled" : ""} ${isSelected ? "is-selected" : "not-selected"}`}
+        onClick={handleCardClick}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === " " || e.key === "Enter") {
+            e.preventDefault();
+            onSelect?.(extension.id);
+          }
+        }}
+      >
+        <div className="select-indicator">
+          <span className={`select-box ${isSelected ? "checked" : ""}`}>
+            {isSelected ? "✓" : ""}
+          </span>
+        </div>
+        <img className="list-icon" src={displayIcon} alt={extension.name} />
+        <span className="list-name" title={extension.name}>{extension.name}</span>
+        <span className="list-version">{extension.version}</span>
+        <span className={`status-pill-badge ${extension.enabled ? "enabled" : "disabled"}`}>
+          {extension.enabled ? "ON" : "OFF"}
+        </span>
+      </div>
+    );
+  }
+
+  // --- Normal Big Tile View (Balanced Default Management Mode) ---
+  if (viewMode === "bigTile") {
     return (
       <div className={`nb-big-tile ${disabled ? "disabled" : ""}`}>
         <img
-          className="extension-icon"
+          className="extension-icon clickable"
           src={displayIcon}
           alt={extension.name}
           onClick={handleOpenDetail}
           title={extension.name}
         />
-        <span
-          className="item-name"
-          onClick={handleOpenDetail}
-          title={extension.name}
-        >
-          {extension.name}
-        </span>
-        <span className="item-version">{extension.version}</span>
+        <div className="big-tile-content" onClick={handleOpenDetail}>
+          <span className="item-name" title={extension.name}>
+            {extension.name}
+          </span>
+          <span className="item-version">{extension.version}</span>
+        </div>
+
         {withControl && (
-          <div className="item-controls">
+          <div className="item-controls-strip">
             {extension.type !== "theme" && (
-              <Switchy
-                color={themeMainColor}
+              <button
+                type="button"
+                className="action-icon-btn toggle-btn"
                 onClick={(e) => {
                   e.stopPropagation();
                   onToggle?.(extension.id, !extension.enabled);
                 }}
-                title={extension.enabled ? "Disable" : "Enable"}
-              />
+                title={extension.enabled ? "Disable extension" : "Enable extension"}
+                aria-label={extension.enabled ? "Disable extension" : "Enable extension"}
+              >
+                <Switchy color={themeMainColor} size={18} />
+              </button>
             )}
             {extension.optionsUrl && (
-              <Optioney
-                color={themeMainColor}
+              <button
+                type="button"
+                className="action-icon-btn"
                 onClick={(e) => {
                   e.stopPropagation();
                   onOpenOptions?.(extension.id);
                 }}
                 title="Options"
-              />
+                aria-label="Options"
+              >
+                <Optioney color={themeMainColor} size={16} />
+              </button>
             )}
-            <Removy
-              color={themeMainColor}
+            <button
+              type="button"
+              className="action-icon-btn"
               onClick={(e) => {
                 e.stopPropagation();
                 onUninstall?.(extension.id);
               }}
               title="Uninstall"
-            />
-            <Chromey
-              color={themeMainColor}
+              aria-label="Uninstall"
+            >
+              <Removy color={themeMainColor} size={16} />
+            </button>
+            <button
+              type="button"
+              className="action-icon-btn"
               onClick={(e) => {
                 e.stopPropagation();
                 onOpenDetails?.(extension.id);
               }}
               title="Chrome Details"
-            />
+              aria-label="Chrome Details"
+            >
+              <Chromey color={themeMainColor} size={16} />
+            </button>
           </div>
         )}
       </div>
     );
   }
 
-  // --- List View ---
-  if (viewMode === "list" && !isSelectable) {
+  // --- Normal List View (Highest Information Density, 44px Rows) ---
+  if (viewMode === "list") {
     return (
       <div className={`nb-list-row ${disabled ? "disabled" : ""}`}>
         {withControl && extension.type !== "theme" && (
-          <div className="list-switch">
+          <div className="list-switch-wrap">
             <input
               type="checkbox"
               id={`list-switch-${extension.id}`}
@@ -136,18 +213,18 @@ export function ExtensionBrief({
             <label
               htmlFor={`list-switch-${extension.id}`}
               className="switch-label"
-              title={extension.enabled ? "Disable" : "Enable"}
+              title={extension.enabled ? "Disable extension" : "Enable extension"}
             />
           </div>
         )}
         <img
-          className="list-icon"
+          className="list-icon clickable"
           src={displayIcon}
           alt={extension.name}
           onClick={handleOpenDetail}
         />
         <span
-          className="list-name"
+          className="list-name clickable"
           onClick={handleOpenDetail}
           title={extension.name}
         >
@@ -157,111 +234,101 @@ export function ExtensionBrief({
         {withControl && (
           <div className="list-actions">
             {extension.type === "app" && (
-              <Launchy
-                color={themeMainColor}
+              <button
+                type="button"
+                className="action-icon-btn"
                 onClick={() => onOpenDetails?.(extension.id)}
                 title="Launch App"
-              />
+                aria-label="Launch App"
+              >
+                <Launchy color={themeMainColor} size={16} />
+              </button>
             )}
             {extension.optionsUrl && (
-              <Optioney
-                color={themeMainColor}
+              <button
+                type="button"
+                className="action-icon-btn"
                 onClick={() => onOpenOptions?.(extension.id)}
                 title="Options"
-              />
+                aria-label="Options"
+              >
+                <Optioney color={themeMainColor} size={16} />
+              </button>
             )}
-            <Removy
-              color={themeMainColor}
+            <button
+              type="button"
+              className="action-icon-btn"
               onClick={() => onUninstall?.(extension.id)}
               title="Uninstall"
-            />
-            <Chromey
-              color={themeMainColor}
+              aria-label="Uninstall"
+            >
+              <Removy color={themeMainColor} size={16} />
+            </button>
+            <button
+              type="button"
+              className="action-icon-btn"
               onClick={() => onOpenDetails?.(extension.id)}
               title="Chrome Details"
-            />
+              aria-label="Chrome Details"
+            >
+              <Chromey color={themeMainColor} size={16} />
+            </button>
           </div>
         )}
       </div>
     );
   }
 
-  // --- Default Tile View (76x76 3D Flip) ---
+  // --- Normal Tile View (Visual Browsing Mode, ~104x104px, Max 6 Columns) ---
   return (
-    <div
-      className={`nb-tile ${disabled ? "disabled" : ""} ${isSelectable ? "selectable " + (isSelected ? "is-selected" : "not-selected") : ""}`}
-      onClick={handleCardClick}
-    >
-      <div className="flip-card">
-        <div className="card-front">
-          <img
-            className="extension-icon"
-            src={displayIcon}
-            alt={extension.name}
-            onClick={handleOpenDetail}
-          />
-          <span
-            className="item-name-front"
-            onClick={handleOpenDetail}
-            title={extension.name}
-          >
-            {extension.name}
-          </span>
-        </div>
-
-        {!isSelectable && (
-          <div className="card-back">
-            {withControl && (
-              <div className="item-controls">
-                {extension.type !== "theme" && (
-                  <Switchy
-                    color={themeMainColor}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onToggle?.(extension.id, !extension.enabled);
-                    }}
-                    title={extension.enabled ? "Disable" : "Enable"}
-                  />
-                )}
-                {extension.optionsUrl && (
-                  <Optioney
-                    color={themeMainColor}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onOpenOptions?.(extension.id);
-                    }}
-                    title="Options"
-                  />
-                )}
-                <Removy
-                  color={themeMainColor}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onUninstall?.(extension.id);
-                  }}
-                  title="Uninstall"
-                />
-                <Chromey
-                  color={themeMainColor}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onOpenDetails?.(extension.id);
-                  }}
-                  title="Chrome Details"
-                />
-              </div>
-            )}
-            <span className="item-version">{extension.version}</span>
-            <span
-              className="item-name-back"
-              onClick={handleOpenDetail}
-              title={extension.name}
-            >
-              {extension.name}
-            </span>
-          </div>
-        )}
+    <div className={`nb-tile ${disabled ? "disabled" : ""}`} onClick={handleOpenDetail}>
+      <div className="tile-body">
+        <img
+          className="extension-icon"
+          src={displayIcon}
+          alt={extension.name}
+          title={extension.name}
+        />
+        <span className="tile-item-name" title={extension.name}>
+          {extension.name}
+        </span>
       </div>
+
+      {withControl && (
+        <div className="tile-hover-bar" onClick={(e) => e.stopPropagation()}>
+          {extension.type !== "theme" && (
+            <button
+              type="button"
+              className="tile-action-btn"
+              onClick={() => onToggle?.(extension.id, !extension.enabled)}
+              title={extension.enabled ? "Disable" : "Enable"}
+              aria-label={extension.enabled ? "Disable" : "Enable"}
+            >
+              <Switchy color={themeMainColor} size={16} />
+            </button>
+          )}
+          {extension.optionsUrl && (
+            <button
+              type="button"
+              className="tile-action-btn"
+              onClick={() => onOpenOptions?.(extension.id)}
+              title="Options"
+              aria-label="Options"
+            >
+              <Optioney color={themeMainColor} size={14} />
+            </button>
+          )}
+          <button
+            type="button"
+            className="tile-action-btn"
+            onClick={() => onUninstall?.(extension.id)}
+            title="Uninstall"
+            aria-label="Uninstall"
+          >
+            <Removy color={themeMainColor} size={14} />
+          </button>
+        </div>
+      )}
     </div>
   );
 }

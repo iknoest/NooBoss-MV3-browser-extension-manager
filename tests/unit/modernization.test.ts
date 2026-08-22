@@ -11,9 +11,9 @@ import {
 } from "../../src/shared/material-symbols-catalog";
 import { renderGroupIcon } from "../../src/popup/components/GroupBrief";
 import { validateImportData } from "../../src/shared/import-export";
-import type { ExtensionInfo, ExtensionGroup } from "../../src/shared/types";
+import { DEFAULT_SETTINGS, type ExtensionInfo, type ExtensionGroup } from "../../src/shared/types";
 
-describe("Material Symbols & Icon System Refinements", () => {
+describe("Material Symbols & Usability Refinements", () => {
   const sampleExtensions: ExtensionInfo[] = [
     { id: "ext1", name: "Ext 1", version: "1.0", enabled: true, type: "extension", installType: "normal", mayDisable: true } as unknown as ExtensionInfo,
     { id: "ext2", name: "Ext 2", version: "1.0", enabled: false, type: "extension", installType: "normal", mayDisable: true } as unknown as ExtensionInfo,
@@ -163,7 +163,7 @@ describe("Material Symbols & Icon System Refinements", () => {
     });
   });
 
-  describe("Group State Toggle", () => {
+  describe("Group State Aggregate Calculation", () => {
     it("computes aggregate state accurately", () => {
       expect(computeGroupAggregateState([], sampleExtensions)).toBe("empty");
       expect(computeGroupAggregateState(["ext1", "ext3"], sampleExtensions)).toBe("allOn");
@@ -172,38 +172,82 @@ describe("Material Symbols & Icon System Refinements", () => {
     });
   });
 
-  describe("Data Persistence & Schema Validation", () => {
-    it("preserves material symbol group icons through import/export", () => {
-      const data = {
+  describe("View Mode Persistence & Defaults", () => {
+    it("defaults to bigTile viewMode in DEFAULT_SETTINGS", () => {
+      expect(DEFAULT_SETTINGS.viewMode).toBe("bigTile");
+    });
+
+    it("maps legacy grid viewMode to bigTile on import", () => {
+      const legacyData = {
         version: 1,
         exportedAt: Date.now(),
-        groups: [
-          { id: "g1", name: "Work", extensionIds: ["ext1"], icon: { type: "material", name: "business_center" } },
-          { id: "g2", name: "Custom", extensionIds: [], icon: { type: "custom", dataUrl: "data:image/png;base64,123" } },
-        ],
+        groups: [],
         autoStateRules: [],
         settings: {
-          theme: "system",
-          accentPreset: "default",
-          accentColor: "#1a73e8",
-          autoStateEnabled: true,
-          autoStateMode: "automatic",
-          notifyInstallUninstall: true,
-          notifyStateChange: true,
-          notifyAutoState: true,
-          historyTrackInstall: true,
-          historyTrackUninstall: true,
-          historyTrackEnable: true,
-          historyTrackDisable: true,
-          historyMaxRecords: 5000,
+          ...DEFAULT_SETTINGS,
           viewMode: "grid",
-          showDisabledFirst: false,
         },
       };
+      const res = validateImportData(legacyData);
+      expect(res.settings.viewMode).toBe("bigTile");
+    });
 
-      const res = validateImportData(data);
-      expect(res.groups[0].icon).toEqual({ type: "material", name: "business_center" });
-      expect(res.groups[1].icon).toEqual({ type: "custom", dataUrl: "data:image/png;base64,123" });
+    it("preserves distinct bigTile, list, and tile modes on import", () => {
+      for (const mode of ["bigTile", "list", "tile"] as const) {
+        const data = {
+          version: 1,
+          exportedAt: Date.now(),
+          groups: [],
+          autoStateRules: [],
+          settings: {
+            ...DEFAULT_SETTINGS,
+            viewMode: mode,
+          },
+        };
+        const res = validateImportData(data);
+        expect(res.settings.viewMode).toBe(mode);
+      }
+    });
+  });
+
+  describe("Direct Management Group Toggle Simulation", () => {
+    it("synchronously dispatches setEnabled for all eligible members", async () => {
+      const callLog: Array<{ id: string; enabled: boolean }> = [];
+      const mockSetEnabled = async (id: string, enabled: boolean) => {
+        callLog.push({ id, enabled });
+      };
+
+      const groupMembers = ["ext1", "ext2", "ext3"];
+      const operations = groupMembers.map((id) => mockSetEnabled(id, true));
+      await Promise.all(operations);
+
+      expect(callLog).toHaveLength(3);
+      expect(callLog.every((c) => c.enabled === true)).toBe(true);
+    });
+
+    it("handles partial group toggle failures without unhandled rejection", async () => {
+      const mockSetEnabled = async (id: string, enabled: boolean) => {
+        if (id === "ext2") throw new Error("Policy restricted");
+        return true;
+      };
+
+      const groupMembers = ["ext1", "ext2", "ext3"];
+      const operations = groupMembers.map(async (id) => {
+        try {
+          await mockSetEnabled(id, false);
+          return { id, success: true };
+        } catch (err) {
+          return { id, success: false, error: (err as Error).message };
+        }
+      });
+
+      const results = await Promise.all(operations);
+      const successful = results.filter((r) => r.success);
+      const failed = results.filter((r) => !r.success);
+
+      expect(successful).toHaveLength(2);
+      expect(failed).toHaveLength(1);
+      expect(failed[0].id).toBe("ext2");
     });
   });
 

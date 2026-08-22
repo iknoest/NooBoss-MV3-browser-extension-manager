@@ -6,6 +6,7 @@ import { GL } from "./i18n";
 import { Listy, Tiley, BigTiley, Cleary } from "./icons";
 
 export interface SelectorProps {
+  allowedViewModes?: Array<"list" | "bigTile" | "tile">;
   extensions: ExtensionInfo[];
   groups?: ExtensionGroup[];
   viewMode?: "tile" | "bigTile" | "list";
@@ -32,6 +33,7 @@ export function Selector({
   groups = [],
   viewMode = "tile",
   onChangeViewMode,
+  allowedViewModes = ["list", "bigTile", "tile"],
   actionBar = true,
   withControl = true,
   selectedList,
@@ -215,30 +217,36 @@ export function Selector({
           )}
 
           <div className="view-mode-switcher">
-            <button
-              type="button"
-              className={`view-mode-btn ${viewMode === "list" ? "active" : ""}`}
-              onClick={() => onChangeViewMode?.("list")}
-              title="List view"
-            >
-              <Listy color="currentColor" size={18} />
-            </button>
-            <button
-              type="button"
-              className={`view-mode-btn ${viewMode === "bigTile" ? "active" : ""}`}
-              onClick={() => onChangeViewMode?.("bigTile")}
-              title="Big tile view"
-            >
-              <BigTiley color="currentColor" size={18} />
-            </button>
-            <button
-              type="button"
-              className={`view-mode-btn ${viewMode === "tile" ? "active" : ""}`}
-              onClick={() => onChangeViewMode?.("tile")}
-              title="Tile view"
-            >
-              <Tiley color="currentColor" size={18} />
-            </button>
+            {allowedViewModes.includes("list") && (
+              <button
+                type="button"
+                className={`view-mode-btn ${viewMode === "list" ? "active" : ""}`}
+                onClick={() => onChangeViewMode?.("list")}
+                title="List view"
+              >
+                <Listy color="currentColor" size={18} />
+              </button>
+            )}
+            {allowedViewModes.includes("bigTile") && (
+              <button
+                type="button"
+                className={`view-mode-btn ${viewMode === "bigTile" ? "active" : ""}`}
+                onClick={() => onChangeViewMode?.("bigTile")}
+                title="Big tile view"
+              >
+                <BigTiley color="currentColor" size={18} />
+              </button>
+            )}
+            {allowedViewModes.includes("tile") && (
+              <button
+                type="button"
+                className={`view-mode-btn ${viewMode === "tile" ? "active" : ""}`}
+                onClick={() => onChangeViewMode?.("tile")}
+                title="Tile view"
+              >
+                <Tiley color="currentColor" size={18} />
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -247,7 +255,7 @@ export function Selector({
       {filteredGroups.length > 0 && (
         <div id="groupList" className="extension-container">
           <h2 className="nb-heading">{GL("group")}</h2>
-          <div className={viewMode === "tile" ? "tile-grid" : viewMode === "bigTile" ? "big-tile-grid" : "list-container"}>
+          <div className={viewMode === "tile" ? "tile-grid" : viewMode === "bigTile" ? (selectedList !== undefined ? "modal-big-tile-grid" : "big-tile-grid") : "list-container"}>
             {filteredGroups.map((group) => (
               <GroupBrief
                 key={group.id}
@@ -272,7 +280,7 @@ export function Selector({
       {extensionList.length > 0 && (
         <div id="extensionList" className="extension-container">
           <h2 className="nb-heading">{GL("extension")}</h2>
-          <div className={viewMode === "tile" ? "tile-grid" : viewMode === "bigTile" ? "big-tile-grid" : "list-container"}>
+          <div className={viewMode === "tile" ? "tile-grid" : viewMode === "bigTile" ? (selectedList !== undefined ? "modal-big-tile-grid" : "big-tile-grid") : "list-container"}>
             {extensionList.map((ext) => (
               <ExtensionBrief
                 key={ext.id}
@@ -297,7 +305,7 @@ export function Selector({
       {appList.length > 0 && (
         <div id="appList" className="extension-container">
           <h2 className="nb-heading">{GL("app")}</h2>
-          <div className={viewMode === "tile" ? "tile-grid" : viewMode === "bigTile" ? "big-tile-grid" : "list-container"}>
+          <div className={viewMode === "tile" ? "tile-grid" : viewMode === "bigTile" ? (selectedList !== undefined ? "modal-big-tile-grid" : "big-tile-grid") : "list-container"}>
             {appList.map((app) => (
               <ExtensionBrief
                 key={app.id}
@@ -322,7 +330,7 @@ export function Selector({
       {themeList.length > 0 && (
         <div id="themeList" className="extension-container">
           <h2 className="nb-heading">{GL("theme")}</h2>
-          <div className={viewMode === "tile" ? "tile-grid" : viewMode === "bigTile" ? "big-tile-grid" : "list-container"}>
+          <div className={viewMode === "tile" ? "tile-grid" : viewMode === "bigTile" ? (selectedList !== undefined ? "modal-big-tile-grid" : "big-tile-grid") : "list-container"}>
             {themeList.map((theme) => (
               <ExtensionBrief
                 key={theme.id}

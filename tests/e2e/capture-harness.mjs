@@ -14,7 +14,7 @@ async function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-function startStaticServer(port = 8788) {
+function startStaticServer(port = 8789) {
   const mimeTypes = {
     ".html": "text/html",
     ".js": "text/javascript",
@@ -54,7 +54,7 @@ async function main() {
     fs.mkdirSync(ARTIFACT_DIR, { recursive: true });
   }
 
-  const server = await startStaticServer(8788);
+  const server = await startStaticServer(8789);
   const migratedData = JSON.parse(fs.readFileSync(MIGRATED_JSON, "utf8"));
 
   const sampleExtensions = [
@@ -117,15 +117,24 @@ async function main() {
       description: "React profiling and debugging tools for Chrome.",
       icons: [{ size: 48, url: "https://lh3.googleusercontent.com/fife/ALs6j_rdt" }],
     },
+    {
+      id: "lmhkpmbekcpmknklioeibfkpmmfibljd",
+      name: "Redux DevTools",
+      version: "3.1.6",
+      enabled: false,
+      type: "extension",
+      installType: "normal",
+      mayDisable: true,
+      description: "Redux DevTools for debugging application state changes.",
+      icons: [{ size: 48, url: "https://lh3.googleusercontent.com/fife/ALs6j_rdx" }],
+    },
   ];
 
-  // Assign groups: some with specific requested Material Symbols, some with Folder default
   const groupsWithExts = (migratedData.groups || []).map((g, idx) => {
     if (idx === 0) return { ...g, icon: { type: "material", name: "shopping_cart" }, extensionIds: ["ghbmnnjggjcganegdakffhaeglpncmno", "cjpalhdlnbpafiamejdnhcphjbkeiagm"] };
     if (idx === 1) return { ...g, icon: { type: "material", name: "code" }, extensionIds: ["fmkadmapgofadopljbjfkapdkoienihi"] };
-    if (idx === 2) return { ...g, icon: { type: "material", name: "business_center" }, extensionIds: ["nkbihfbeogaeaoehlefnkodbefgpgknn"] };
+    if (idx === 2) return { ...g, icon: { type: "material", name: "business_center" }, extensionIds: ["nkbihfbeogaeaoehlefnkodbefgpgknn", "eimadpbcbfnmbkopoojfekhnkhdbieeh"] };
     if (idx === 3) return { ...g, icon: { type: "material", name: "shield" }, extensionIds: ["eimadpbcbfnmbkopoojfekhnkhdbieeh"] };
-    // Groups 4-7 have no icon set, verifying default Folder fallback
     return { ...g, icon: undefined, extensionIds: [] };
   });
 
@@ -142,10 +151,12 @@ async function main() {
     let internalExts = [...exts];
     let internalGrps = [...grps];
     let internalRls = [...rls];
-    let internalSetts = { ...setts, theme: "system", accentPreset: "default", accentColor: "#1a73e8", viewMode: "grid" };
+    let internalSetts = { ...setts, theme: "system", accentPreset: "default", accentColor: "#1a73e8", viewMode: "bigTile" };
 
+    // Real-simulation of chrome.management in page context
     window.chrome = {
       runtime: {
+        id: "test_nooboss_extension_id",
         sendMessage: async (msg) => {
           if (!msg || !msg.type) return null;
           switch (msg.type) {
@@ -161,21 +172,6 @@ async function main() {
               return internalSetts;
             case "GET_PENDING_CHANGES":
               return [];
-            case "TOGGLE_EXTENSION": {
-              const ext = internalExts.find((e) => e.id === msg.id);
-              if (ext) ext.enabled = msg.enabled;
-              return { success: true };
-            }
-            case "TOGGLE_GROUP": {
-              const grp = internalGrps.find((g) => g.id === msg.id);
-              if (grp) {
-                grp.extensionIds.forEach((id) => {
-                  const ext = internalExts.find((e) => e.id === id);
-                  if (ext) ext.enabled = msg.enabled;
-                });
-              }
-              return { success: true };
-            }
             case "SAVE_SETTINGS":
               internalSetts = { ...internalSetts, ...msg.settings };
               return { success: true };
@@ -189,167 +185,131 @@ async function main() {
         },
         onMessage: { addListener: () => {}, removeListener: () => {} },
       },
+      management: {
+        setEnabled: async (id, enabled) => {
+          console.log(`[Management API] setEnabled called for ${id} -> ${enabled}`);
+          const ext = internalExts.find((e) => e.id === id);
+          if (ext) ext.enabled = enabled;
+          return Promise.resolve();
+        },
+        get: async (id) => {
+          return internalExts.find((e) => e.id === id);
+        },
+        getAll: async () => {
+          return internalExts;
+        },
+        uninstall: async (id) => {
+          internalExts = internalExts.filter((e) => e.id !== id);
+          return Promise.resolve();
+        },
+      },
       i18n: { getMessage: (k) => k },
     };
   }, sampleExtensions, groupsWithExts, migratedData.autoStateRules || [], migratedData.settings || {});
 
-  await page.goto("http://localhost:8788/popup/popup.html", { waitUntil: "networkidle0" });
+  await page.goto("http://localhost:8789/popup/popup.html", { waitUntil: "networkidle0" });
   await sleep(1000);
 
-  // Evidence 1: Default landing page (Extensions / Manage) showing groups with Folder default and requested icons
-  const s1Path = path.join(ARTIFACT_DIR, "refinement_01_groups_folder_and_icons.png");
+  // Evidence 1: Manage -> Big Tile (Default View)
+  const s1Path = path.join(ARTIFACT_DIR, "usability_01_manage_big_tile.png");
   await page.screenshot({ path: s1Path });
   console.log("Captured:", s1Path);
 
-  // Open Group Edit modal for group 0
+  // Evidence 2: Manage -> List Mode
   await page.evaluate(() => {
-    const editIcons = document.querySelectorAll(".item-controls svg");
-    if (editIcons[1]) {
-      editIcons[1].dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    const listBtn = document.querySelectorAll(".view-mode-btn")[0];
+    if (listBtn) listBtn.click();
+  });
+  await sleep(500);
+  const s2Path = path.join(ARTIFACT_DIR, "usability_02_manage_list.png");
+  await page.screenshot({ path: s2Path });
+  console.log("Captured:", s2Path);
+
+  // Evidence 3: Manage -> Tile Mode (Max 6 columns across)
+  await page.evaluate(() => {
+    const tileBtn = document.querySelectorAll(".view-mode-btn")[2];
+    if (tileBtn) tileBtn.click();
+  });
+  await sleep(500);
+  const s3Path = path.join(ARTIFACT_DIR, "usability_03_manage_tile_max6.png");
+  await page.screenshot({ path: s3Path });
+  console.log("Captured:", s3Path);
+
+  // Evidence 4: Group hover/action controls
+  await page.hover(".nb-tile.group-tile");
+  await sleep(300);
+  const s4Path = path.join(ARTIFACT_DIR, "usability_04_group_hover_controls.png");
+  await page.screenshot({ path: s4Path });
+  console.log("Captured:", s4Path);
+
+  // Open Group Editor for group 2 (which has mixed state)
+  await page.evaluate(() => {
+    // Switch to Big Tile first for editing
+    const bigTileBtn = document.querySelectorAll(".view-mode-btn")[1];
+    if (bigTileBtn) bigTileBtn.click();
+  });
+  await sleep(300);
+
+  await page.evaluate(() => {
+    const editBtns = document.querySelectorAll(".nb-big-tile.group-big-tile .action-icon-btn");
+    if (editBtns[1]) {
+      editBtns[1].dispatchEvent(new MouseEvent("click", { bubbles: true }));
     }
   });
   await sleep(600);
 
-  // Open Group Icon Picker
-  const iconEditBtn = await page.$(".group-icon-edit-btn");
-  if (iconEditBtn) {
-    await iconEditBtn.click();
-    await sleep(600);
-  }
-
-  // Evidence 2: Recommended Icon Palette
-  const s2Path = path.join(ARTIFACT_DIR, "refinement_02_recommended_palette.png");
-  await page.screenshot({ path: s2Path });
-  console.log("Captured:", s2Path);
-
-  // Evidence 3: Search for "car"
-  const searchInput = await page.$(".icon-picker-search-bar input");
-  if (searchInput) {
-    await searchInput.type("car");
-    await sleep(500);
-  }
-  const s3Path = path.join(ARTIFACT_DIR, "refinement_03_search_car.png");
-  await page.screenshot({ path: s3Path });
-  console.log("Captured:", s3Path);
-
-  // Clear search input
-  const clearBtn = await page.$(".icon-picker-clear-search");
-  if (clearBtn) {
-    await clearBtn.click();
-    await sleep(400);
-  }
-
-  // Evidence 4: Paste / Type "crossword" into manual input and view live preview
-  const manualInput = await page.$(".manual-name-input");
-  if (manualInput) {
-    await manualInput.type("crossword");
-    await page.evaluate(() => {
-      const scrollBody = document.querySelector(".icon-picker-scroll-body");
-      if (scrollBody) scrollBody.scrollTop = scrollBody.scrollHeight;
-    });
-    await sleep(500);
-  }
-  const s4Path = path.join(ARTIFACT_DIR, "refinement_04_pasted_crossword.png");
-  await page.screenshot({ path: s4Path });
-  console.log("Captured:", s4Path);
-
-  // Evidence 5: Type invalid icon name into manual input
-  if (manualInput) {
-    await page.evaluate((el) => {
-      el.value = "";
-      el.dispatchEvent(new Event("input", { bubbles: true }));
-    }, manualInput);
-    await manualInput.type("invalid_random_symbol_xyz");
-    await page.evaluate(() => {
-      const scrollBody = document.querySelector(".icon-picker-scroll-body");
-      if (scrollBody) scrollBody.scrollTop = scrollBody.scrollHeight;
-    });
-    await sleep(500);
-  }
-  const s5Path = path.join(ARTIFACT_DIR, "refinement_05_invalid_icon.png");
+  // Evidence 5: Group Editor -> default List view with whole-row clickable selection
+  const s5Path = path.join(ARTIFACT_DIR, "usability_05_editor_default_list.png");
   await page.screenshot({ path: s5Path });
   console.log("Captured:", s5Path);
 
-  // Close modal and navigate to About view to verify NooBoss Crossword brand icon
-  const closeBtn = await page.$(".icon-picker-close-btn");
-  if (closeBtn) {
-    await closeBtn.click();
-    await sleep(400);
-  }
+  // Evidence 6: Group Editor -> Big Tile mode (max 2 columns inside modal)
+  await page.evaluate(() => {
+    const modalViewBtns = document.querySelectorAll(".subwindow-box .view-mode-btn");
+    if (modalViewBtns[1]) modalViewBtns[1].click();
+  });
+  await sleep(500);
+  const s6Path = path.join(ARTIFACT_DIR, "usability_06_editor_big_tile_2col.png");
+  await page.screenshot({ path: s6Path });
+  console.log("Captured:", s6Path);
+
+  // Toggle selection on a card inside modal
+  await page.evaluate(() => {
+    const selectableCard = document.querySelector(".selectable-big-tile");
+    if (selectableCard) selectableCard.click();
+  });
+  await sleep(400);
+
+  // Evidence 7: Direct Group Toggle interaction working
+  await page.evaluate(() => {
+    const groupToggle = document.querySelector(".subwindow-box .group-state-toggle");
+    if (groupToggle) groupToggle.click();
+  });
+  await sleep(500);
+  const s7Path = path.join(ARTIFACT_DIR, "usability_07_group_toggle_working.png");
+  await page.screenshot({ path: s7Path });
+  console.log("Captured:", s7Path);
+
+  // Close modal
   const subWindowClose = await page.$(".subwindow-close-btn");
   if (subWindowClose) {
     await subWindowClose.click();
     await sleep(400);
   }
 
-  // Evidence 6: About page showing NooBoss Crossword brand icon
+  // Evidence 8: Mixed group state in List view
   await page.evaluate(() => {
-    const btn = Array.from(document.querySelectorAll(".nav-link")).find(
-      (el) => el.textContent.includes("About") || el.textContent.includes("about")
-    );
-    if (btn) btn.click();
+    const listBtn = document.querySelectorAll(".view-mode-btn")[0];
+    if (listBtn) listBtn.click();
   });
-  await sleep(600);
-  const s6Path = path.join(ARTIFACT_DIR, "refinement_06_nooboss_logo_about.png");
-  await page.screenshot({ path: s6Path });
-  console.log("Captured:", s6Path);
-
-  // Evidence 7: Toolbar icons light & dark comparison
-  const toolbarPage = await browser.newPage();
-  await toolbarPage.setViewport({ width: 600, height: 280 });
-  const icon16B64 = fs.readFileSync(path.join(ROOT, "src/icons/icon16.png")).toString("base64");
-  const icon32B64 = fs.readFileSync(path.join(ROOT, "src/icons/icon32.png")).toString("base64");
-  const icon48B64 = fs.readFileSync(path.join(ROOT, "src/icons/icon48.png")).toString("base64");
-  const icon128B64 = fs.readFileSync(path.join(ROOT, "src/icons/icon128.png")).toString("base64");
-
-  const comparisonHtml = `<!DOCTYPE html>
-<html>
-<head>
-<style>
-  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 20px; background: #f8f9fa; color: #202124; }
-  .grid { display: flex; gap: 20px; }
-  .box { flex: 1; border-radius: 8px; padding: 16px; border: 1px solid #dadce0; }
-  .box.light { background: #ffffff; }
-  .box.dark { background: #202124; color: #ffffff; border-color: #3c4043; }
-  h4 { margin: 0 0 14px 0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.8; }
-  .icons-row { display: flex; align-items: center; gap: 16px; }
-  .item { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 11px; }
-</style>
-</head>
-<body>
-  <h3 style="margin: 0 0 16px 0; font-size: 16px;">Chrome Toolbar Crossword Icon Visibility Test (Transparent Background)</h3>
-  <div class="grid">
-    <div class="box light">
-      <h4>Light Toolbar (#ffffff)</h4>
-      <div class="icons-row">
-        <div class="item"><img src="data:image/png;base64,${icon16B64}" width="16" height="16" /><span>16px</span></div>
-        <div class="item"><img src="data:image/png;base64,${icon32B64}" width="32" height="32" /><span>32px</span></div>
-        <div class="item"><img src="data:image/png;base64,${icon48B64}" width="48" height="48" /><span>48px</span></div>
-        <div class="item"><img src="data:image/png;base64,${icon128B64}" width="64" height="64" /><span>128px</span></div>
-      </div>
-    </div>
-    <div class="box dark">
-      <h4>Dark Toolbar (#202124)</h4>
-      <div class="icons-row">
-        <div class="item"><img src="data:image/png;base64,${icon16B64}" width="16" height="16" /><span>16px</span></div>
-        <div class="item"><img src="data:image/png;base64,${icon32B64}" width="32" height="32" /><span>32px</span></div>
-        <div class="item"><img src="data:image/png;base64,${icon48B64}" width="48" height="48" /><span>48px</span></div>
-        <div class="item"><img src="data:image/png;base64,${icon128B64}" width="64" height="64" /><span>128px</span></div>
-      </div>
-    </div>
-  </div>
-</body>
-</html>`;
-
-  await toolbarPage.setContent(comparisonHtml, { waitUntil: "networkidle0" });
-  const s7Path = path.join(ARTIFACT_DIR, "refinement_07_toolbar_icon_comparison.png");
-  await toolbarPage.screenshot({ path: s7Path });
-  console.log("Captured:", s7Path);
-  await toolbarPage.close();
+  await sleep(400);
+  const s8Path = path.join(ARTIFACT_DIR, "usability_08_mixed_group_state_list.png");
+  await page.screenshot({ path: s8Path });
+  console.log("Captured:", s8Path);
 
   await browser.close();
   server.close();
-  console.log("All refinement evidence screenshots captured successfully!");
+  console.log("All usability evidence screenshots captured successfully!");
 }
 
 main().catch((err) => {

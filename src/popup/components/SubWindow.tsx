@@ -36,6 +36,7 @@ export function SubWindow({
   onUpdateGroup,
   themeMainColor = "#1a73e8",
 }: SubWindowProps) {
+  const [editorViewMode, setEditorViewMode] = useState<"list" | "bigTile">("list");
   const [showIconPicker, setShowIconPicker] = useState(false);
 
   if (!display || !targetId) return null;
@@ -275,7 +276,13 @@ export function SubWindow({
           <Selector
             extensions={extensions}
             groups={[]}
-            viewMode="tile"
+            viewMode={editorViewMode}
+            onChangeViewMode={(mode) => {
+              if (mode === "list" || mode === "bigTile") {
+                setEditorViewMode(mode);
+              }
+            }}
+            allowedViewModes={["list", "bigTile"]}
             actionBar={true}
             withControl={false}
             selectedList={group.extensionIds}

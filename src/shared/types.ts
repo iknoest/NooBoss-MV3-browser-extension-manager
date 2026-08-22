@@ -115,7 +115,7 @@ export interface AppSettings {
   /** Extension list sort order */
   sortOrder: 'name' | 'name-state' | 'type' | 'recently-updated';
   /** View mode */
-  viewMode: 'list' | 'grid';
+  viewMode: 'list' | 'bigTile' | 'tile' | 'grid';
 }
 
 /** Export/Import data format */
@@ -179,7 +179,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   accentPreset: 'default',
   accentColor: '#1a73e8',
   sortOrder: 'name-state',
-  viewMode: 'list',
+  viewMode: 'bigTile',
 };
 
 /** Storage keys */

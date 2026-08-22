@@ -207,8 +207,15 @@ function validateSettings(settings: Record<string, unknown>): AppSettings {
     settings.sortOrder === 'recently-updated'
   )
     result.sortOrder = settings.sortOrder;
-  if (settings.viewMode === 'list' || settings.viewMode === 'grid')
+  if (
+    settings.viewMode === 'list' ||
+    settings.viewMode === 'bigTile' ||
+    settings.viewMode === 'tile'
+  ) {
     result.viewMode = settings.viewMode;
+  } else if (settings.viewMode === 'grid') {
+    result.viewMode = 'bigTile';
+  }
 
   return result;
 }

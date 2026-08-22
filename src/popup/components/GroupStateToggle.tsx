@@ -68,11 +68,19 @@ export function GroupStateToggle({
     titleText = "Group is empty (no extensions)";
   }
 
+  const handleKeyDown = (e: JSX.TargetedKeyboardEvent<HTMLButtonElement>) => {
+    if (e.key === " " || e.key === "Enter") {
+      e.preventDefault();
+      handleClick(e as unknown as JSX.TargetedMouseEvent<HTMLButtonElement>);
+    }
+  };
+
   return (
     <button
       type="button"
       className={`group-state-toggle size-${size} state-${aggregateState} ${className}`}
       onClick={handleClick}
+      onKeyDown={handleKeyDown}
       title={titleText}
       aria-label={titleText}
       disabled={aggregateState === "empty"}
