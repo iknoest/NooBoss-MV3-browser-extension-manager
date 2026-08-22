@@ -82,14 +82,14 @@ export function GroupBrief({
     }
   };
 
-  // --- Big Tile View (Balanced Default Management Mode) ---
+  // --- Big Tile View (2 Columns Layout) ---
   if (viewMode === "bigTile" && !isSelectable) {
     return (
-      <div className="nb-big-tile group-big-tile" onClick={handleOpenDetail}>
-        <div className="group-icon-center clickable">
+      <div className="nb-big-tile group-big-tile">
+        <div className="group-icon-center clickable" onClick={handleOpenDetail}>
           {renderGroupIcon(group, 36, themeMainColor)}
         </div>
-        <div className="big-tile-content">
+        <div className="big-tile-content" onClick={handleOpenDetail}>
           <span className="item-name" title={group.name}>
             {group.name}
           </span>
@@ -99,7 +99,7 @@ export function GroupBrief({
         </div>
 
         {withControl && (
-          <div className="item-controls-strip" onClick={(e) => e.stopPropagation()}>
+          <div className="item-controls-strip">
             {onToggleGroup && (
               <GroupStateToggle
                 groupId={group.id}
@@ -112,7 +112,10 @@ export function GroupBrief({
             <button
               type="button"
               className="action-icon-btn"
-              onClick={() => onCopyGroup?.(group.id)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onCopyGroup?.(group.id);
+              }}
               title="Duplicate Group"
               aria-label="Duplicate Group"
             >
@@ -121,7 +124,10 @@ export function GroupBrief({
             <button
               type="button"
               className="action-icon-btn"
-              onClick={handleOpenDetail}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleOpenDetail(e as unknown as MouseEvent);
+              }}
               title="Edit Group"
               aria-label="Edit Group"
             >
@@ -130,7 +136,10 @@ export function GroupBrief({
             <button
               type="button"
               className="action-icon-btn"
-              onClick={() => onDeleteGroup?.(group.id)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onDeleteGroup?.(group.id);
+              }}
               title="Delete Group"
               aria-label="Delete Group"
             >
@@ -147,15 +156,13 @@ export function GroupBrief({
     return (
       <div className="nb-list-row group-list-row">
         {withControl && onToggleGroup && (
-          <div className="list-group-toggle-wrap">
-            <GroupStateToggle
-              groupId={group.id}
-              extensionIds={group.extensionIds}
-              allExtensions={allExtensions}
-              onToggleGroup={onToggleGroup}
-              size="small"
-            />
-          </div>
+          <GroupStateToggle
+            groupId={group.id}
+            extensionIds={group.extensionIds}
+            allExtensions={allExtensions}
+            onToggleGroup={onToggleGroup}
+            size="medium"
+          />
         )}
         <div className="list-icon-wrap clickable" onClick={handleOpenDetail}>
           {renderGroupIcon(group, 26, themeMainColor)}
@@ -173,7 +180,10 @@ export function GroupBrief({
             <button
               type="button"
               className="action-icon-btn"
-              onClick={() => onCopyGroup?.(group.id)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onCopyGroup?.(group.id);
+              }}
               title="Duplicate Group"
               aria-label="Duplicate Group"
             >
@@ -182,7 +192,10 @@ export function GroupBrief({
             <button
               type="button"
               className="action-icon-btn"
-              onClick={handleOpenDetail}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleOpenDetail(e as unknown as MouseEvent);
+              }}
               title="Edit Group"
               aria-label="Edit Group"
             >
@@ -191,7 +204,10 @@ export function GroupBrief({
             <button
               type="button"
               className="action-icon-btn"
-              onClick={() => onDeleteGroup?.(group.id)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onDeleteGroup?.(group.id);
+              }}
               title="Delete Group"
               aria-label="Delete Group"
             >
@@ -231,8 +247,11 @@ export function GroupBrief({
           )}
           <button
             type="button"
-            className="tile-action-btn"
-            onClick={handleOpenDetail}
+            className="action-icon-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleOpenDetail(e as unknown as MouseEvent);
+            }}
             title="Edit Group"
             aria-label="Edit Group"
           >
@@ -240,8 +259,11 @@ export function GroupBrief({
           </button>
           <button
             type="button"
-            className="tile-action-btn"
-            onClick={() => onDeleteGroup?.(group.id)}
+            className="action-icon-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDeleteGroup?.(group.id);
+            }}
             title="Delete Group"
             aria-label="Delete Group"
           >

@@ -1,5 +1,6 @@
+import type { JSX } from "preact";
 import type { ExtensionInfo } from "../../shared/types";
-import { Switchy, Optioney, Removy, Chromey, Launchy } from "./icons";
+import { Optioney, Removy, Chromey, Launchy } from "./icons";
 
 export interface ExtensionBriefProps {
   extension: ExtensionInfo;
@@ -14,6 +15,54 @@ export interface ExtensionBriefProps {
   onSelect?: (id: string) => void;
   onOpenSubWindow?: (type: "extension", id: string) => void;
   themeMainColor?: string;
+}
+
+interface ExtensionSwitchProps {
+  id: string;
+  enabled: boolean;
+  onToggle?: (id: string, enabled: boolean) => void;
+  className?: string;
+  size?: "small" | "medium";
+}
+
+export function ExtensionSwitch({
+  id,
+  enabled,
+  onToggle,
+  className = "",
+  size = "medium",
+}: ExtensionSwitchProps) {
+  const handleClick = (e: JSX.TargetedMouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    onToggle?.(id, !enabled);
+  };
+
+  const handleKeyDown = (e: JSX.TargetedKeyboardEvent<HTMLButtonElement>) => {
+    if (e.key === " " || e.key === "Enter") {
+      e.preventDefault();
+      e.stopPropagation();
+      onToggle?.(id, !enabled);
+    }
+  };
+
+  const titleText = enabled ? "Disable extension" : "Enable extension";
+
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={enabled}
+      className={`extension-switch size-${size} ${enabled ? "state-on" : "state-off"} ${className}`}
+      onClick={handleClick}
+      onKeyDown={handleKeyDown}
+      title={titleText}
+      aria-label={titleText}
+    >
+      <span className="toggle-track">
+        <span className="toggle-thumb" />
+      </span>
+    </button>
+  );
 }
 
 export function ExtensionBrief({
@@ -79,7 +128,7 @@ export function ExtensionBrief({
             </span>
           </div>
           <img className="extension-icon" src={displayIcon} alt={extension.name} />
-          <div className="big-tile-info">
+          <div className="big-tile-content">
             <span className="item-name" title={extension.name}>{extension.name}</span>
             <span className="item-version">{extension.version}</span>
           </div>
@@ -90,7 +139,7 @@ export function ExtensionBrief({
       );
     }
 
-    // Default Selectable: List View (Full Row Clickable)
+    // Default Selectable: List View (Whole Row Clickable)
     return (
       <div
         className={`nb-list-row selectable-row ${disabled ? "disabled" : ""} ${isSelected ? "is-selected" : "not-selected"}`}
@@ -119,7 +168,7 @@ export function ExtensionBrief({
     );
   }
 
-  // --- Normal Big Tile View (Balanced Default Management Mode) ---
+  // --- Normal Big Tile View (2 Columns Layout, Verified Switch Control) ---
   if (viewMode === "bigTile") {
     return (
       <div className={`nb-big-tile ${disabled ? "disabled" : ""}`}>
@@ -140,18 +189,12 @@ export function ExtensionBrief({
         {withControl && (
           <div className="item-controls-strip">
             {extension.type !== "theme" && (
-              <button
-                type="button"
-                className="action-icon-btn toggle-btn"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onToggle?.(extension.id, !extension.enabled);
-                }}
-                title={extension.enabled ? "Disable extension" : "Enable extension"}
-                aria-label={extension.enabled ? "Disable extension" : "Enable extension"}
-              >
-                <Switchy color={themeMainColor} size={18} />
-              </button>
+              <ExtensionSwitch
+                id={extension.id}
+                enabled={extension.enabled}
+                onToggle={onToggle}
+                size="medium"
+              />
             )}
             {extension.optionsUrl && (
               <button
@@ -197,25 +240,17 @@ export function ExtensionBrief({
     );
   }
 
-  // --- Normal List View (Highest Information Density, 44px Rows) ---
+  // --- Normal List View (44px Row Height) ---
   if (viewMode === "list") {
     return (
       <div className={`nb-list-row ${disabled ? "disabled" : ""}`}>
         {withControl && extension.type !== "theme" && (
-          <div className="list-switch-wrap">
-            <input
-              type="checkbox"
-              id={`list-switch-${extension.id}`}
-              className="switch-input"
-              checked={extension.enabled}
-              onChange={() => onToggle?.(extension.id, !extension.enabled)}
-            />
-            <label
-              htmlFor={`list-switch-${extension.id}`}
-              className="switch-label"
-              title={extension.enabled ? "Disable extension" : "Enable extension"}
-            />
-          </div>
+          <ExtensionSwitch
+            id={extension.id}
+            enabled={extension.enabled}
+            onToggle={onToggle}
+            size="medium"
+          />
         )}
         <img
           className="list-icon clickable"
@@ -279,7 +314,7 @@ export function ExtensionBrief({
     );
   }
 
-  // --- Normal Tile View (Visual Browsing Mode, ~104x104px, Max 6 Columns) ---
+  // --- Normal Tile View (Max 6 Columns) ---
   return (
     <div className={`nb-tile ${disabled ? "disabled" : ""}`} onClick={handleOpenDetail}>
       <div className="tile-body">
@@ -297,20 +332,17 @@ export function ExtensionBrief({
       {withControl && (
         <div className="tile-hover-bar" onClick={(e) => e.stopPropagation()}>
           {extension.type !== "theme" && (
-            <button
-              type="button"
-              className="tile-action-btn"
-              onClick={() => onToggle?.(extension.id, !extension.enabled)}
-              title={extension.enabled ? "Disable" : "Enable"}
-              aria-label={extension.enabled ? "Disable" : "Enable"}
-            >
-              <Switchy color={themeMainColor} size={16} />
-            </button>
+            <ExtensionSwitch
+              id={extension.id}
+              enabled={extension.enabled}
+              onToggle={onToggle}
+              size="small"
+            />
           )}
           {extension.optionsUrl && (
             <button
               type="button"
-              className="tile-action-btn"
+              className="action-icon-btn"
               onClick={() => onOpenOptions?.(extension.id)}
               title="Options"
               aria-label="Options"
@@ -320,7 +352,7 @@ export function ExtensionBrief({
           )}
           <button
             type="button"
-            className="tile-action-btn"
+            className="action-icon-btn"
             onClick={() => onUninstall?.(extension.id)}
             title="Uninstall"
             aria-label="Uninstall"

@@ -1,0 +1,6 @@
+{
+  "manifest_version": 3,
+  "name": "Disposable Test Extension Two",
+  "version": "2.1.0",
+  "description": "Test fixture extension for real Chrome group toggle testing"
+}

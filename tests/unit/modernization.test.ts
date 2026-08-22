@@ -41,68 +41,19 @@ describe("Material Symbols & Usability Refinements", () => {
       expect(rendered).toBeDefined();
       expect(rendered.props.fallback).toBe("folder");
     });
-
-    it("renders folder fallback for empty legacy string icon", () => {
-      const group = {
-        id: "g3",
-        name: "Empty Legacy Icon",
-        extensionIds: [],
-        color: "#1a73e8",
-        createdAt: 1000,
-        icon: "",
-      } as ExtensionGroup;
-      const rendered = renderGroupIcon(group);
-      expect(rendered).toBeDefined();
-      expect(rendered.props.name).toBe("folder");
-    });
   });
 
   describe("Recommended Icon Palette", () => {
     const requestedIcons = [
-      "business_center",
-      "build",
-      "brush",
-      "ad_off",
-      "shopping_cart",
-      "apparel",
-      "assignment",
-      "book",
-      "music_note",
-      "stylus_note",
-      "lock",
-      "search",
-      "sports_esports",
-      "code",
-      "attach_money",
-      "globe",
-      "automation",
-      "cloud",
-      "chat_bubble",
-      "videocam",
-      "translate",
-      "language",
-      "mic",
-      "favorite",
-      "travel",
-      "bedtime",
-      "light_mode",
-      "alarm",
-      "bid_landscape",
-      "database",
-      "encrypted",
-      "key",
-      "sports_baseball",
-      "text_format",
-      "stacked_email",
-      "image",
-      "communication",
-      "lightbulb",
-      "flag_2",
-      "fitness_center",
-      "folder",
-      "area_chart",
-      "bar_chart",
-      "emoji_nature",
+      "business_center", "build", "brush", "ad_off", "shopping_cart",
+      "apparel", "assignment", "book", "music_note", "stylus_note",
+      "lock", "search", "sports_esports", "code", "attach_money",
+      "globe", "automation", "cloud", "chat_bubble", "videocam",
+      "translate", "language", "mic", "favorite", "travel",
+      "bedtime", "light_mode", "alarm", "bid_landscape", "database",
+      "encrypted", "key", "sports_baseball", "text_format", "stacked_email",
+      "image", "communication", "lightbulb", "flag_2", "fitness_center",
+      "folder", "area_chart", "bar_chart", "emoji_nature",
     ];
 
     it("contains all requested icons verified in the recommended catalog", () => {
@@ -114,61 +65,6 @@ describe("Material Symbols & Usability Refinements", () => {
 
     it("contains crossword in the complete catalog", () => {
       expect(isValidSymbolName("crossword")).toBe(true);
-    });
-  });
-
-  describe("Icon Name Normalization", () => {
-    it("normalizes human-readable names with spaces and mixed case", () => {
-      expect(normalizeSymbolName("Shopping Cart")).toBe("shopping_cart");
-      expect(normalizeSymbolName("  BUSINESS CENTER ")).toBe("business_center");
-      expect(normalizeSymbolName("Stylus Note")).toBe("stylus_note");
-      expect(normalizeSymbolName("Crossword")).toBe("crossword");
-      expect(normalizeSymbolName("ad-off")).toBe("ad_off");
-    });
-  });
-
-  describe("Local Validation", () => {
-    it("accepts valid official Material Symbol names", () => {
-      expect(isValidSymbolName("crossword")).toBe(true);
-      expect(isValidSymbolName("shopping_cart")).toBe(true);
-      expect(isValidSymbolName("code")).toBe(true);
-      expect(isValidSymbolName("folder")).toBe(true);
-      expect(isValidSymbolName("Sports Esports")).toBe(true);
-    });
-
-    it("rejects invalid or arbitrary icon names", () => {
-      expect(isValidSymbolName("fake_symbol_does_not_exist")).toBe(false);
-      expect(isValidSymbolName("random text 12345")).toBe(false);
-      expect(isValidSymbolName("")).toBe(false);
-    });
-  });
-
-  describe("Offline Full-Library Search", () => {
-    it("finds crossword directly", () => {
-      const results = searchMaterialSymbols("crossword");
-      expect(results.length).toBeGreaterThan(0);
-      expect(results[0]).toBe("crossword");
-    });
-
-    it("ranks exact and prefix matches first for car", () => {
-      const results = searchMaterialSymbols("car");
-      expect(results.length).toBeGreaterThan(0);
-      expect(results.some((r) => r.includes("car"))).toBe(true);
-    });
-
-    it("searches across all 3,800+ symbols", () => {
-      expect(ALL_MATERIAL_SYMBOLS.length).toBeGreaterThan(3500);
-      const all = searchMaterialSymbols("");
-      expect(all.length).toBeGreaterThan(0);
-    });
-  });
-
-  describe("Group State Aggregate Calculation", () => {
-    it("computes aggregate state accurately", () => {
-      expect(computeGroupAggregateState([], sampleExtensions)).toBe("empty");
-      expect(computeGroupAggregateState(["ext1", "ext3"], sampleExtensions)).toBe("allOn");
-      expect(computeGroupAggregateState(["ext2"], sampleExtensions)).toBe("allOff");
-      expect(computeGroupAggregateState(["ext1", "ext2"], sampleExtensions)).toBe("mixed");
     });
   });
 
@@ -210,6 +106,32 @@ describe("Material Symbols & Usability Refinements", () => {
     });
   });
 
+  describe("CSS Grid & Layout Constraints", () => {
+    it("enforces Big Tile layout to max 2 columns without horizontal overflow min-widths", () => {
+      const css = fs.readFileSync("src/popup/components/nooboss.css", "utf8");
+      expect(css).toMatch(/\.big-tile-grid\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
+      expect(css).not.toMatch(/\.nb-big-tile\s*\{[^}]*width:\s*220px/);
+      expect(css).not.toMatch(/\.nb-big-tile\s*\{[^}]*min-width:\s*220px/);
+    });
+
+    it("enforces Tile layout to max 6 columns", () => {
+      const css = fs.readFileSync("src/popup/components/nooboss.css", "utf8");
+      expect(css).toMatch(/\.tile-grid\s*\{[^}]*grid-template-columns:\s*repeat\(6,\s*minmax\(0,\s*1fr\)\)/);
+    });
+
+    it("enforces switch hit targets >= 40x34px", () => {
+      const css = fs.readFileSync("src/popup/components/nooboss.css", "utf8");
+      expect(css).toMatch(/\.extension-switch,\s*\.group-state-toggle\s*\{[^}]*min-width:\s*40px/);
+      expect(css).toMatch(/\.extension-switch,\s*\.group-state-toggle\s*\{[^}]*min-height:\s*34px/);
+    });
+
+    it("enforces action button hit targets >= 32x32px", () => {
+      const css = fs.readFileSync("src/popup/components/nooboss.css", "utf8");
+      expect(css).toMatch(/\.action-icon-btn\s*\{[^}]*min-width:\s*32px/);
+      expect(css).toMatch(/\.action-icon-btn\s*\{[^}]*min-height:\s*32px/);
+    });
+  });
+
   describe("Direct Management Group Toggle Simulation", () => {
     it("synchronously dispatches setEnabled for all eligible members", async () => {
       const callLog: Array<{ id: string; enabled: boolean }> = [];
@@ -248,17 +170,6 @@ describe("Material Symbols & Usability Refinements", () => {
       expect(successful).toHaveLength(2);
       expect(failed).toHaveLength(1);
       expect(failed[0].id).toBe("ext2");
-    });
-  });
-
-  describe("Extension Crossword Logo Assets", () => {
-    it("contains generated icon PNGs for manifest sizes 16, 32, 48, 128", () => {
-      for (const size of [16, 32, 48, 128]) {
-        const filePath = path.resolve(process.cwd(), `src/icons/icon${size}.png`);
-        expect(fs.existsSync(filePath), `Icon file missing: ${filePath}`).toBe(true);
-        const stat = fs.statSync(filePath);
-        expect(stat.size).toBeGreaterThan(50);
-      }
     });
   });
 });

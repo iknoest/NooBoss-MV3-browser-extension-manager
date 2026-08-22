@@ -497,10 +497,7 @@ input[type="search"]:focus,
   box-shadow: var(--shadow-sm);
 }
 
-.nb-tile:hover .flip-card {
-  transform: rotateY(180deg);
-  box-shadow: var(--shadow-md);
-}
+
 
 .nb-tile.disabled {
   opacity: 0.65;
@@ -512,37 +509,15 @@ input[type="search"]:focus,
   opacity: 1;
 }
 
-.nb-tile.selectable.is-selected .flip-card {
-  border-color: var(--theme-main);
-  background-color: var(--theme-main-subtle);
-}
 
-.nb-tile.selectable.not-selected {
-  opacity: 0.45;
-}
 
-.card-front,
-.card-back {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  backface-visibility: hidden;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-md);
-  padding: 4px;
-}
 
-.card-front {
-  background-color: var(--bg-card);
-}
 
-.card-back {
-  background-color: var(--bg-hover);
-  transform: rotateY(180deg);
-}
+
+
+
+
+
 
 .extension-icon,
 .group-icon-center {
@@ -589,84 +564,9 @@ input[type="search"]:focus,
   color: var(--text-muted);
 }
 
-/* ==========================================================================
-   Big Tile View (212x66px)
-   ========================================================================== */
 
-.nb-big-tile {
-  width: 220px;
-  height: 70px;
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
-  background-color: var(--bg-card);
-  border: 1px solid var(--border-card);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
 
-.nb-big-tile:hover {
-  background-color: var(--bg-card-hover);
-  border-color: var(--border-medium);
-  box-shadow: var(--shadow-md);
-}
 
-.nb-big-tile.disabled {
-  opacity: 0.65;
-  filter: grayscale(85%);
-}
-
-.nb-big-tile .item-meta {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.nb-big-tile .item-name {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.nb-big-tile .item-sub-info {
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-/* ==========================================================================
-   List View (33px Row)
-   ========================================================================== */
-
-.nb-list-row {
-  display: flex;
-  align-items: center;
-  height: 36px;
-  padding: 0 12px;
-  background-color: var(--bg-card);
-  border-bottom: 1px solid var(--border-subtle);
-  transition: background-color 0.1s ease;
-}
-
-.nb-list-row:hover {
-  background-color: var(--bg-hover);
-}
-
-.nb-list-row.disabled {
-  opacity: 0.65;
-}
-
-.list-switch {
-  margin-right: 10px;
-  display: flex;
-  align-items: center;
-}
 
 .list-icon-wrapper,
 .nb-list-row img.list-icon {
@@ -1393,28 +1293,7 @@ input[type="search"]:focus,
   border-bottom: none;
 }
 
-/* Layout Grids */
-.tile-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
 
-.big-tile-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.list-container {
-  display: flex;
-  flex-direction: column;
-  background-color: var(--bg-card);
-  border: 1px solid var(--border-card);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  box-shadow: var(--shadow-sm);
-}
 
 .action-buttons-group {
   display: flex;
@@ -1592,37 +1471,10 @@ input[type="search"]:focus,
 }
 
 /* ==========================================================================
-   Interaction & Layout Corrections (Usability Pass)
+   Consolidated Layout Grids & Usability Architecture (2-Column Big Tile)
    ========================================================================== */
 
-/* Main Tile Grid: Hard capped at 6 columns */
-.tile-grid {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 10px;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-/* Big Tile Grid: 3 columns on main page */
-.big-tile-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-/* Modal Big Tile Grid: 2 columns inside Group Editor */
-.modal-big-tile-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-/* List Container */
+/* Main View - List: 1 column */
 .list-container {
   display: flex;
   flex-direction: column;
@@ -1635,7 +1487,94 @@ input[type="search"]:focus,
   box-sizing: border-box;
 }
 
-/* List Row: 44px height, comfortable click targets */
+/* Main View - Big Tile: strictly 2 columns maximum (never 3) */
+.big-tile-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Modal Group Editor - Big Tile: 2 columns */
+.modal-big-tile-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Main View - Normal Tile: strictly 6 columns maximum */
+.tile-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Big Tile Card (2-column layout, perfectly balanced, zero overflow) */
+.nb-big-tile {
+  width: 100%;
+  min-width: 0;
+  height: 76px;
+  min-height: 76px;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  gap: 10px;
+  position: relative;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.nb-big-tile:hover {
+  border-color: var(--theme-main);
+  box-shadow: var(--shadow-sm);
+}
+
+.nb-big-tile.disabled {
+  opacity: 0.7;
+}
+
+.big-tile-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  gap: 2px;
+  cursor: pointer;
+}
+
+.big-tile-content .item-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.big-tile-content .item-version {
+  font-size: 11px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.item-controls-strip {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+/* List Row: 44px height, generous column alignment */
 .nb-list-row {
   height: 44px;
   min-height: 44px;
@@ -1657,87 +1596,48 @@ input[type="search"]:focus,
   background-color: var(--bg-hover);
 }
 
-/* Switches & Hit Areas */
-.list-switch-wrap,
-.list-group-toggle-wrap {
-  width: 40px;
-  min-width: 40px;
-  height: 34px;
-  min-height: 34px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.nb-list-row.disabled {
+  opacity: 0.7;
+}
+
+.list-icon {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+  border-radius: 4px;
   flex-shrink: 0;
 }
 
-.switch-input {
-  display: none;
-}
-
-.switch-label {
-  position: relative;
-  display: block;
-  width: 34px;
-  height: 18px;
-  background-color: var(--border-input);
-  border-radius: 9px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.switch-label::after {
-  content: "";
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 14px;
-  height: 14px;
-  background-color: #ffffff;
-  border-radius: 50%;
-  transition: transform 0.2s ease;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-}
-
-.switch-input:checked + .switch-label {
-  background-color: var(--theme-main);
-}
-
-.switch-input:checked + .switch-label::after {
-  transform: translateX(16px);
-}
-
-/* Action Icon Buttons: >= 32x32px hit target */
-.action-icon-btn {
-  width: 32px;
-  height: 32px;
-  min-width: 32px;
-  min-height: 32px;
-  border-radius: var(--radius-sm);
-  border: 1px solid transparent;
-  background: transparent;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  color: var(--text-secondary);
-  transition: background-color 0.15s ease, color 0.15s ease;
-  padding: 0;
-  flex-shrink: 0;
-}
-
-.action-icon-btn:hover {
-  background-color: var(--bg-hover);
+.list-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 500;
   color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.action-icon-btn:focus-visible {
-  outline: 2px solid var(--theme-main);
-  outline-offset: 1px;
+.list-version {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: right;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
-/* Normal Tile: ~104x104px */
+.list-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+/* Normal Tile Card: ~104x104px */
 .nb-tile {
   width: 100%;
+  min-width: 0;
   min-height: 104px;
   height: 104px;
   background-color: var(--bg-card);
@@ -1758,6 +1658,10 @@ input[type="search"]:focus,
 .nb-tile:hover {
   border-color: var(--theme-main);
   box-shadow: var(--shadow-sm);
+}
+
+.nb-tile.disabled {
+  opacity: 0.7;
 }
 
 .tile-body {
@@ -1793,7 +1697,7 @@ input[type="search"]:focus,
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 4px;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.15s ease;
@@ -1804,62 +1708,111 @@ input[type="search"]:focus,
   pointer-events: auto;
 }
 
-.tile-action-btn {
+/* Universal Switch Controls: >= 40x34px hit target */
+.extension-switch,
+.group-state-toggle {
+  width: 40px;
+  min-width: 40px;
+  height: 34px;
+  min-height: 34px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.extension-switch:focus-visible,
+.group-state-toggle:focus-visible {
+  outline: 2px solid var(--theme-main);
+  outline-offset: 1px;
+}
+
+.extension-switch .toggle-track,
+.group-state-toggle .toggle-track {
+  width: 34px;
+  height: 18px;
+  background-color: var(--border-input);
+  border-radius: 9px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  transition: background-color 0.2s ease;
+}
+
+.extension-switch.state-on .toggle-track,
+.group-state-toggle.state-allOn .toggle-track {
+  background-color: var(--theme-main);
+}
+
+.group-state-toggle.state-mixed .toggle-track {
+  background-color: var(--theme-main);
+  opacity: 0.85;
+}
+
+.extension-switch .toggle-thumb,
+.group-state-toggle .toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  background-color: #ffffff;
+  border-radius: 50%;
+  transition: transform 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.extension-switch.state-on .toggle-thumb,
+.group-state-toggle.state-allOn .toggle-thumb {
+  transform: translateX(16px);
+}
+
+.group-state-toggle.state-mixed .toggle-thumb {
+  transform: translateX(8px);
+}
+
+.group-state-toggle.state-mixed .indeterminate-dash {
+  width: 8px;
+  height: 2px;
+  background-color: var(--theme-main);
+  border-radius: 1px;
+}
+
+/* Secondary Action Icon Buttons: >= 32x32px hit target */
+.action-icon-btn {
   width: 32px;
   height: 32px;
   min-width: 32px;
   min-height: 32px;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--border-card);
-  background: var(--bg-secondary);
+  border: 1px solid transparent;
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background-color 0.15s ease;
+  color: var(--text-secondary);
+  transition: background-color 0.15s ease, color 0.15s ease;
   padding: 0;
-}
-
-.tile-action-btn:hover {
-  background-color: var(--bg-hover);
-}
-
-/* Big Tile */
-.nb-big-tile {
-  width: 100%;
-  height: 76px;
-  min-height: 76px;
-  background-color: var(--bg-card);
-  border: 1px solid var(--border-card);
-  border-radius: var(--radius-md);
-  display: flex;
-  align-items: center;
-  padding: 8px 10px;
-  gap: 10px;
-  position: relative;
-  box-sizing: border-box;
-  transition: border-color 0.15s ease, background-color 0.15s ease;
-}
-
-.nb-big-tile:hover {
-  border-color: var(--theme-main);
-  box-shadow: var(--shadow-sm);
-}
-
-.big-tile-content {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-width: 0;
-  gap: 2px;
-  cursor: pointer;
-}
-
-.item-controls-strip {
-  display: flex;
-  align-items: center;
-  gap: 2px;
   flex-shrink: 0;
+}
+
+.action-icon-btn:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.action-icon-btn:focus-visible {
+  outline: 2px solid var(--theme-main);
+  outline-offset: 1px;
 }
 
 /* Selectable Rows & Big Tiles in Group Editor */
@@ -1933,7 +1886,7 @@ input[type="search"]:focus,
   color: var(--text-secondary);
 }
 
-/* Modal Dimensions */
+/* Modal Dialog Box */
 .subwindow-box {
   background-color: var(--bg-card);
   width: 620px;
