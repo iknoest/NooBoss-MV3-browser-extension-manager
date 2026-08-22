@@ -1,6 +1,5 @@
 import { useState } from "preact/hooks";
 import type { AppSettings, ExtensionInfo } from "../../shared/types";
-import { GL } from "./i18n";
 
 export interface OptionsViewProps {
   settings: AppSettings;
@@ -12,6 +11,14 @@ export interface OptionsViewProps {
   themeMainColor?: string;
 }
 
+const ACCENT_PRESETS: Record<string, string> = {
+  default: "#1a73e8",
+  blue: "#2563eb",
+  purple: "#9333ea",
+  green: "#16a34a",
+  orange: "#ea580c",
+};
+
 export function OptionsView({
   settings,
   extensions = [],
@@ -19,28 +26,38 @@ export function OptionsView({
   onClearHistory,
   onExportData,
   onImportData,
-  themeMainColor = "#c393dc",
+  themeMainColor = "#1a73e8",
 }: OptionsViewProps) {
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
-    experience: true,
-    experienceTheme: true,
-    extensions: true,
-    extensionsNotifications: true,
-    extensionsHistory: true,
-    extensionsAutoState: true,
-    advanced: true,
-    advancedClean: true,
-    advancedBackup: true,
-  });
-
-  const [confirmModal, setConfirmModal] = useState<string | null>(null);
-
-  const toggleSection = (key: string) => {
-    setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
-  };
+  const [confirmClearHistory, setConfirmClearHistory] = useState(false);
 
   const handleUpdateSetting = <K extends keyof AppSettings>(key: K, val: AppSettings[K]) => {
     onSaveSettings({ ...settings, [key]: val });
+  };
+
+  const handleAccentPresetChange = (preset: AppSettings["accentPreset"]) => {
+    if (!preset) return;
+    if (preset === "custom") {
+      onSaveSettings({
+        ...settings,
+        accentPreset: "custom",
+        accentColor: settings.accentColor || "#1a73e8",
+      });
+    } else {
+      const color = ACCENT_PRESETS[preset] || ACCENT_PRESETS.default;
+      onSaveSettings({
+        ...settings,
+        accentPreset: preset,
+        accentColor: color,
+      });
+    }
+  };
+
+  const handleCustomColorChange = (hex: string) => {
+    onSaveSettings({
+      ...settings,
+      accentPreset: "custom",
+      accentColor: hex,
+    });
   };
 
   const handleExportHtml = () => {
@@ -70,287 +87,348 @@ ${extensions.map((e) => `<li><a href="https://chrome.google.com/webstore/detail/
     }
   };
 
-  const renderSectionHeader = (key: string, title: string, level = 1) => {
-    const isOpen = !!openSections[key];
-    const fontSize = level === 1 ? "20px" : level === 2 ? "16px" : "14px";
-    return (
-      <div
-        style={{
-          fontSize,
-          fontWeight: "bold",
-          cursor: "pointer",
-          margin: "12px 0 6px 0",
-          userSelect: "none",
-          display: "flex",
-          alignItems: "center",
-          fontFamily: level === 1 ? "Georgia, serif, system-ui" : "inherit",
-          color: level === 1 ? "#222" : "inherit",
-        }}
-        onClick={() => toggleSection(key)}
-      >
-        <span>{title}</span>
-        <span
-          style={{
-            marginLeft: "6px",
-            fontSize: "0.8em",
-            opacity: 0.5,
-            transition: "transform 0.2s",
-            transform: isOpen ? "rotate(0deg)" : "rotate(-90deg)",
-          }}
-        >
-          ▼
-        </span>
-      </div>
-    );
-  };
-
   return (
-    <div className="nb-page" style={{ userSelect: "none", paddingBottom: "32px" }}>
-      {/* Experience Section */}
-      <section>
-        {renderSectionHeader("experience", GL("experience"), 1)}
-        {openSections["experience"] && (
-          <div style={{ paddingLeft: "20px" }}>
-            {renderSectionHeader("experienceTheme", GL("theme"), 2)}
-            {openSections["experienceTheme"] && (
-              <div style={{ paddingLeft: "16px", display: "flex", flexDirection: "column", gap: "8px" }}>
-                <div style={{ display: "flex", alignItems: "center" }}>
-                  <span style={{ width: "120px" }}>{GL("main_color")}</span>
-                  <input
-                    type="color"
-                    value={themeMainColor}
-                    onChange={(e) => {
-                      // Save theme color
-                      document.documentElement.style.setProperty("--theme-main", (e.target as HTMLInputElement).value);
-                    }}
-                    style={{ width: "40px", height: "24px", padding: 0, border: "none", cursor: "pointer" }}
-                  />
-                </div>
-
-                <div style={{ display: "flex", alignItems: "center" }}>
-                  <span style={{ width: "120px" }}>Theme Preset</span>
-                  <select
-                    value={settings.theme}
-                    onChange={(e) => handleUpdateSetting("theme", (e.target as HTMLSelectElement).value as AppSettings["theme"])}
-                  >
-                    <option value="system">System Default (Lilac)</option>
-                    <option value="light">Light</option>
-                    <option value="dark">Dark</option>
-                  </select>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </section>
-
-      {/* Extensions Section */}
-      <section>
-        {renderSectionHeader("extensions", GL("extensions"), 1)}
-        {openSections["extensions"] && (
-          <div style={{ paddingLeft: "20px" }}>
-            {/* Notifications */}
-            {renderSectionHeader("extensionsNotifications", GL("notifications"), 2)}
-            {openSections["extensionsNotifications"] && (
-              <div style={{ paddingLeft: "16px", display: "flex", flexDirection: "column", gap: "6px" }}>
-                <label style={{ display: "flex", alignItems: "center", cursor: "pointer" }}>
-                  <input
-                    type="checkbox"
-                    checked={settings.notifyStateChange}
-                    onChange={(e) => handleUpdateSetting("notifyStateChange", (e.target as HTMLInputElement).checked)}
-                    style={{ marginRight: "8px" }}
-                  />
-                  <span>{GL("notify_state_change")}</span>
-                </label>
-
-                <label style={{ display: "flex", alignItems: "center", cursor: "pointer" }}>
-                  <input
-                    type="checkbox"
-                    checked={settings.notifyInstallUninstall}
-                    onChange={(e) => handleUpdateSetting("notifyInstallUninstall", (e.target as HTMLInputElement).checked)}
-                    style={{ marginRight: "8px" }}
-                  />
-                  <span>{GL("notify_installation")}</span>
-                </label>
-
-                <label style={{ display: "flex", alignItems: "center", cursor: "pointer" }}>
-                  <input
-                    type="checkbox"
-                    checked={settings.notifyAutoState}
-                    onChange={(e) => handleUpdateSetting("notifyAutoState", (e.target as HTMLInputElement).checked)}
-                    style={{ marginRight: "8px" }}
-                  />
-                  <span>{GL("notify_extension_state_change")}</span>
-                </label>
-              </div>
-            )}
-
-            {/* History */}
-            {renderSectionHeader("extensionsHistory", GL("history"), 2)}
-            {openSections["extensionsHistory"] && (
-              <div style={{ paddingLeft: "16px", display: "flex", flexDirection: "column", gap: "6px" }}>
-                <label style={{ display: "flex", alignItems: "center", cursor: "pointer" }}>
-                  <input
-                    type="checkbox"
-                    checked={settings.historyTrackInstall}
-                    onChange={(e) => handleUpdateSetting("historyTrackInstall", (e.target as HTMLInputElement).checked)}
-                    style={{ marginRight: "8px" }}
-                  />
-                  <span>{GL("record_installation")}</span>
-                </label>
-
-                <label style={{ display: "flex", alignItems: "center", cursor: "pointer" }}>
-                  <input
-                    type="checkbox"
-                    checked={settings.historyTrackUninstall}
-                    onChange={(e) => handleUpdateSetting("historyTrackUninstall", (e.target as HTMLInputElement).checked)}
-                    style={{ marginRight: "8px" }}
-                  />
-                  <span>{GL("record_removal")}</span>
-                </label>
-
-                <label style={{ display: "flex", alignItems: "center", cursor: "pointer" }}>
-                  <input
-                    type="checkbox"
-                    checked={settings.historyTrackEnable}
-                    onChange={(e) => handleUpdateSetting("historyTrackEnable", (e.target as HTMLInputElement).checked)}
-                    style={{ marginRight: "8px" }}
-                  />
-                  <span>{GL("record_enable")}</span>
-                </label>
-
-                <label style={{ display: "flex", alignItems: "center", cursor: "pointer" }}>
-                  <input
-                    type="checkbox"
-                    checked={settings.historyTrackDisable}
-                    onChange={(e) => handleUpdateSetting("historyTrackDisable", (e.target as HTMLInputElement).checked)}
-                    style={{ marginRight: "8px" }}
-                  />
-                  <span>{GL("record_disable")}</span>
-                </label>
-              </div>
-            )}
-
-            {/* AutoState */}
-            {renderSectionHeader("extensionsAutoState", GL("autoState"), 2)}
-            {openSections["extensionsAutoState"] && (
-              <div style={{ paddingLeft: "16px", display: "flex", flexDirection: "column", gap: "8px" }}>
-                <label style={{ display: "flex", alignItems: "center", cursor: "pointer" }}>
-                  <input
-                    type="checkbox"
-                    checked={settings.autoStateEnabled}
-                    onChange={(e) => handleUpdateSetting("autoStateEnabled", (e.target as HTMLInputElement).checked)}
-                    style={{ marginRight: "8px" }}
-                  />
-                  <span>{GL("autoState")} Enabled</span>
-                </label>
-
-                <div style={{ display: "flex", alignItems: "center", marginTop: "4px" }}>
-                  <span style={{ width: "120px" }}>AutoState Mode</span>
-                  <select
-                    value={settings.autoStateMode}
-                    onChange={(e) => handleUpdateSetting("autoStateMode", (e.target as HTMLSelectElement).value as AppSettings["autoStateMode"])}
-                  >
-                    <option value="automatic">Automatic (Direct)</option>
-                    <option value="assisted">Assisted (Pending Confirmation)</option>
-                  </select>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </section>
-
-      {/* Advanced Section */}
-      <section>
-        {renderSectionHeader("advanced", GL("advanced"), 1)}
-        {openSections["advanced"] && (
-          <div style={{ paddingLeft: "20px" }}>
-            {/* Clean */}
-            {renderSectionHeader("advancedClean", GL("clean"), 2)}
-            {openSections["advancedClean"] && (
-              <div style={{ paddingLeft: "16px", display: "flex", flexDirection: "column", gap: "10px" }}>
-                <div>
-                  <button className="nb-btn" onClick={() => setConfirmModal("clean_history")}>
-                    {GL("empty_history")}
-                  </button>
-                </div>
-                <div>
-                  <button className="nb-btn" onClick={() => setConfirmModal("reset_all")}>
-                    {GL("reset_everything")}
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Backup */}
-            {renderSectionHeader("advancedBackup", GL("backup"), 2)}
-            {openSections["advancedBackup"] && (
-              <div style={{ paddingLeft: "16px", display: "flex", flexDirection: "column", gap: "10px" }}>
-                <div>
-                  <button className="nb-btn" onClick={handleExportHtml}>
-                    {GL("export_extensions_to_html")}
-                  </button>
-                </div>
-                <div>
-                  <button className="nb-btn" onClick={onExportData}>
-                    {GL("export_options")}
-                  </button>
-                </div>
-                <div>
-                  <input
-                    id="upload-options-file"
-                    type="file"
-                    accept=".json,.options"
-                    onChange={handleFileUpload}
-                    style={{ display: "none" }}
-                  />
-                  <button className="nb-btn" onClick={() => document.getElementById("upload-options-file")?.click()}>
-                    {GL("import_options")}
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </section>
-
-      {/* Confirm Modal */}
-      {confirmModal && (
-        <div className="subwindow-overlay" onClick={() => setConfirmModal(null)}>
-          <div
-            style={{
-              width: "300px",
-              padding: "20px",
-              background: "#fff",
-              textAlign: "center",
-              boxShadow: "0 0 16px rgba(0,0,0,0.3)",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ fontSize: "16px", marginBottom: "16px" }}>{GL("are_you_sure")}</div>
-            <div style={{ display: "flex", justifyContent: "center", gap: "16px" }}>
-              <button
-                className="nb-btn"
-                onClick={() => {
-                  if (confirmModal === "clean_history") {
-                    onClearHistory();
-                  } else if (confirmModal === "reset_all") {
-                    onClearHistory();
-                    // Reset settings
-                  }
-                  setConfirmModal(null);
-                }}
+    <div className="options-container">
+      {/* 1. Appearance Section */}
+      <section className="settings-section">
+        <h2 className="settings-section-title">Appearance</h2>
+        <div className="settings-card">
+          <div className="settings-row">
+            <div className="settings-row-text">
+              <span className="settings-label">Theme Mode</span>
+              <span className="settings-description">Choose how NooBoss appears</span>
+            </div>
+            <div className="settings-control">
+              <select
+                className="settings-select"
+                value={settings.theme}
+                onChange={(e) =>
+                  handleUpdateSetting(
+                    "theme",
+                    (e.target as HTMLSelectElement).value as AppSettings["theme"]
+                  )
+                }
               >
-                {GL("confirm")}
-              </button>
-              <button className="nb-btn inActive" onClick={() => setConfirmModal(null)}>
-                {GL("cancel")}
-              </button>
+                <option value="system">System (Follows OS/Browser)</option>
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="settings-row">
+            <div className="settings-row-text">
+              <span className="settings-label">Accent Color</span>
+              <span className="settings-description">Color used for active controls and highlights</span>
+            </div>
+            <div className="settings-control accent-control-group">
+              <select
+                className="settings-select"
+                value={settings.accentPreset || "default"}
+                onChange={(e) =>
+                  handleAccentPresetChange(
+                    (e.target as HTMLSelectElement).value as AppSettings["accentPreset"]
+                  )
+                }
+              >
+                <option value="default">Default (System Blue)</option>
+                <option value="blue">Blue</option>
+                <option value="purple">Purple</option>
+                <option value="green">Green</option>
+                <option value="orange">Orange</option>
+                <option value="custom">Custom Color...</option>
+              </select>
+
+              {settings.accentPreset === "custom" && (
+                <input
+                  type="color"
+                  className="settings-color-input"
+                  value={settings.accentColor || themeMainColor}
+                  onChange={(e) => handleCustomColorChange((e.target as HTMLInputElement).value)}
+                  title="Choose custom accent color"
+                />
+              )}
             </div>
           </div>
         </div>
-      )}
+      </section>
+
+      {/* 2. AutoState Section */}
+      <section className="settings-section">
+        <h2 className="settings-section-title">AutoState Engine</h2>
+        <div className="settings-card">
+          <div className="settings-row">
+            <div className="settings-row-text">
+              <span className="settings-label">Enable AutoState</span>
+              <span className="settings-description">
+                Automatically manage extensions based on active website URLs
+              </span>
+            </div>
+            <div className="settings-control">
+              <input
+                type="checkbox"
+                id="setting-autostate-enable"
+                className="switch-input"
+                checked={settings.autoStateEnabled}
+                onChange={(e) =>
+                  handleUpdateSetting("autoStateEnabled", (e.target as HTMLInputElement).checked)
+                }
+              />
+              <label htmlFor="setting-autostate-enable" className="switch-label" />
+            </div>
+          </div>
+
+          <div className="settings-row">
+            <div className="settings-row-text">
+              <span className="settings-label">Operation Mode</span>
+              <span className="settings-description">
+                How state changes are applied when URL rules match
+              </span>
+            </div>
+            <div className="settings-control">
+              <select
+                className="settings-select"
+                value={settings.autoStateMode}
+                onChange={(e) =>
+                  handleUpdateSetting(
+                    "autoStateMode",
+                    (e.target as HTMLSelectElement).value as AppSettings["autoStateMode"]
+                  )
+                }
+              >
+                <option value="automatic">Automatic (Apply Immediately)</option>
+                <option value="assisted">Assisted (Ask for Confirmation)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 3. Notifications Section */}
+      <section className="settings-section">
+        <h2 className="settings-section-title">Notifications</h2>
+        <div className="settings-card">
+          <div className="settings-row">
+            <div className="settings-row-text">
+              <span className="settings-label">Installation Alerts</span>
+              <span className="settings-description">Notify when extensions are installed or uninstalled</span>
+            </div>
+            <div className="settings-control">
+              <input
+                type="checkbox"
+                id="setting-notify-install"
+                className="switch-input"
+                checked={settings.notifyInstallUninstall}
+                onChange={(e) =>
+                  handleUpdateSetting("notifyInstallUninstall", (e.target as HTMLInputElement).checked)
+                }
+              />
+              <label htmlFor="setting-notify-install" className="switch-label" />
+            </div>
+          </div>
+
+          <div className="settings-row">
+            <div className="settings-row-text">
+              <span className="settings-label">State Change Alerts</span>
+              <span className="settings-description">Notify when extensions are enabled or disabled</span>
+            </div>
+            <div className="settings-control">
+              <input
+                type="checkbox"
+                id="setting-notify-state"
+                className="switch-input"
+                checked={settings.notifyStateChange}
+                onChange={(e) =>
+                  handleUpdateSetting("notifyStateChange", (e.target as HTMLInputElement).checked)
+                }
+              />
+              <label htmlFor="setting-notify-state" className="switch-label" />
+            </div>
+          </div>
+
+          <div className="settings-row">
+            <div className="settings-row-text">
+              <span className="settings-label">AutoState Alerts</span>
+              <span className="settings-description">Notify when AutoState rules trigger changes</span>
+            </div>
+            <div className="settings-control">
+              <input
+                type="checkbox"
+                id="setting-notify-autostate"
+                className="switch-input"
+                checked={settings.notifyAutoState}
+                onChange={(e) =>
+                  handleUpdateSetting("notifyAutoState", (e.target as HTMLInputElement).checked)
+                }
+              />
+              <label htmlFor="setting-notify-autostate" className="switch-label" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 4. History Tracking Section */}
+      <section className="settings-section">
+        <h2 className="settings-section-title">History Tracking</h2>
+        <div className="settings-card">
+          <div className="settings-row">
+            <div className="settings-row-text">
+              <span className="settings-label">Track Installed Events</span>
+            </div>
+            <div className="settings-control">
+              <input
+                type="checkbox"
+                id="setting-hist-install"
+                className="switch-input"
+                checked={settings.historyTrackInstall}
+                onChange={(e) =>
+                  handleUpdateSetting("historyTrackInstall", (e.target as HTMLInputElement).checked)
+                }
+              />
+              <label htmlFor="setting-hist-install" className="switch-label" />
+            </div>
+          </div>
+
+          <div className="settings-row">
+            <div className="settings-row-text">
+              <span className="settings-label">Track Uninstalled Events</span>
+            </div>
+            <div className="settings-control">
+              <input
+                type="checkbox"
+                id="setting-hist-uninstall"
+                className="switch-input"
+                checked={settings.historyTrackUninstall}
+                onChange={(e) =>
+                  handleUpdateSetting("historyTrackUninstall", (e.target as HTMLInputElement).checked)
+                }
+              />
+              <label htmlFor="setting-hist-uninstall" className="switch-label" />
+            </div>
+          </div>
+
+          <div className="settings-row">
+            <div className="settings-row-text">
+              <span className="settings-label">Track Enable/Disable Events</span>
+            </div>
+            <div className="settings-control">
+              <input
+                type="checkbox"
+                id="setting-hist-enable"
+                className="switch-input"
+                checked={settings.historyTrackEnable}
+                onChange={(e) =>
+                  handleUpdateSetting("historyTrackEnable", (e.target as HTMLInputElement).checked)
+                }
+              />
+              <label htmlFor="setting-hist-enable" className="switch-label" />
+            </div>
+          </div>
+
+          <div className="settings-row">
+            <div className="settings-row-text">
+              <span className="settings-label">Max Records Limit</span>
+              <span className="settings-description">Maximum number of history records to preserve</span>
+            </div>
+            <div className="settings-control">
+              <input
+                type="number"
+                className="settings-number-input"
+                min="100"
+                max="50000"
+                step="100"
+                value={settings.historyMaxRecords}
+                onChange={(e) =>
+                  handleUpdateSetting("historyMaxRecords", parseInt((e.target as HTMLInputElement).value, 10) || 5000)
+                }
+              />
+            </div>
+          </div>
+
+          <div className="settings-row">
+            <div className="settings-row-text">
+              <span className="settings-label">Clear Activity History</span>
+              <span className="settings-description">Erase all recorded extension management history</span>
+            </div>
+            <div className="settings-control">
+              {!confirmClearHistory ? (
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => setConfirmClearHistory(true)}
+                >
+                  Clear History...
+                </button>
+              ) : (
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <button
+                    className="btn btn-danger"
+                    onClick={() => {
+                      onClearHistory();
+                      setConfirmClearHistory(false);
+                    }}
+                  >
+                    Confirm Erase
+                  </button>
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => setConfirmClearHistory(false)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 5. Backup & Data Section */}
+      <section className="settings-section">
+        <h2 className="settings-section-title">Backup & Data</h2>
+        <div className="settings-card">
+          <div className="settings-row">
+            <div className="settings-row-text">
+              <span className="settings-label">Export Configuration</span>
+              <span className="settings-description">Export groups, AutoState rules, and preferences to JSON</span>
+            </div>
+            <div className="settings-control">
+              <button className="btn btn-secondary" onClick={onExportData}>
+                Export JSON
+              </button>
+            </div>
+          </div>
+
+          <div className="settings-row">
+            <div className="settings-row-text">
+              <span className="settings-label">Export Extension List</span>
+              <span className="settings-description">Export a human-readable HTML list of your extensions</span>
+            </div>
+            <div className="settings-control">
+              <button className="btn btn-secondary" onClick={handleExportHtml}>
+                Export HTML
+              </button>
+            </div>
+          </div>
+
+          <div className="settings-row">
+            <div className="settings-row-text">
+              <span className="settings-label">Import Backup</span>
+              <span className="settings-description">Restore groups and settings from a JSON file</span>
+            </div>
+            <div className="settings-control">
+              <label className="btn btn-secondary" style={{ cursor: "pointer", margin: 0 }}>
+                Import JSON
+                <input
+                  type="file"
+                  accept=".json"
+                  style={{ display: "none" }}
+                  onChange={handleFileUpload}
+                />
+              </label>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

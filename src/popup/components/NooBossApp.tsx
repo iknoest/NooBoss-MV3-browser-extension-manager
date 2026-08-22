@@ -23,7 +23,8 @@ export interface NooBossAppProps {
 }
 
 export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
-  const [mainLocation, setMainLocation] = useState<MainLocation>("overview");
+  // Default startup landing page is Extensions / Manage (not Overview)
+  const [mainLocation, setMainLocation] = useState<MainLocation>("extensions");
   const [subLocation, setSubLocation] = useState<SubLocation>("manage");
 
   const [extensions, setExtensions] = useState<ExtensionInfo[]>([]);
@@ -39,6 +40,41 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
     targetId: "",
   });
 
+  const resolvedAccent = settings.accentColor || "#1a73e8";
+
+  // Dynamic Appearance (System / Light / Dark) and Accent Color
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const root = document.documentElement;
+    root.style.setProperty("--theme-main", resolvedAccent);
+
+    const updateTheme = () => {
+      if (settings.theme === "dark") {
+        root.setAttribute("data-theme", "dark");
+        root.style.colorScheme = "dark";
+      } else if (settings.theme === "light") {
+        root.setAttribute("data-theme", "light");
+        root.style.colorScheme = "light";
+      } else {
+        // System
+        root.style.colorScheme = "light dark";
+        const prefersDark =
+          typeof window !== "undefined" &&
+          window.matchMedia &&
+          window.matchMedia("(prefers-color-scheme: dark)").matches;
+        root.setAttribute("data-theme", prefersDark ? "dark" : "light");
+      }
+    };
+
+    updateTheme();
+
+    if (settings.theme === "system" && typeof window !== "undefined" && window.matchMedia) {
+      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+      const handler = () => updateTheme();
+      mediaQuery.addEventListener?.("change", handler);
+      return () => mediaQuery.removeEventListener?.("change", handler);
+    }
+  }, [settings.theme, resolvedAccent]);
 
   // Load all initial data from service worker
   const loadData = useCallback(async () => {
@@ -116,7 +152,6 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
 
   // Extension actions
   const handleToggleExtension = async (id: string, enabled: boolean) => {
-    // Optimistic update
     setExtensions((prev) =>
       prev.map((ext) => (ext.id === id ? { ...ext, enabled } : ext))
     );
@@ -174,7 +209,12 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
     if (res?.group && original.extensionIds.length > 0) {
       await chrome.runtime?.sendMessage?.({
         type: "UPDATE_GROUP",
-        group: { ...res.group, extensionIds: [...original.extensionIds], color: original.color },
+        group: {
+          ...res.group,
+          extensionIds: [...original.extensionIds],
+          color: original.color,
+          icon: original.icon,
+        },
       });
     }
     await loadData();
@@ -264,25 +304,28 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
   };
 
   return (
-    <div className={`nooboss-root ${isFullManager ? "full-manager" : ""}`}>
+    <div
+      className={`nooboss-app ${isFullManager ? "full-manager" : "popup-mode"}`}
+      style={{ minHeight: "100%", width: "100%" }}
+    >
       {/* Top Navigator */}
       <Navigator
         mainLocation={mainLocation}
         subLocation={subLocation}
-        onNavigateMain={(loc) => setMainLocation(loc)}
-        onNavigateSub={(sub) => {
-          setMainLocation("extensions");
-          setSubLocation(sub);
-        }}
+        onNavigateMain={setMainLocation}
+        onNavigateSub={setSubLocation}
+        themeMainColor={resolvedAccent}
       />
 
-      <div className="nooboss-content-wrapper">
+      {/* Main Content Area */}
+      <div className="main-content">
         {/* Overview View */}
         {mainLocation === "overview" && (
           <OverviewView
             extensions={extensions}
             groups={groups}
             rules={rules}
+            themeMainColor={resolvedAccent}
           />
         )}
 
@@ -305,6 +348,7 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
               onDeleteGroup={handleDeleteGroup}
               onCreateGroup={handleCreateGroup}
               onOpenSubWindow={handleOpenSubWindow}
+              themeMainColor={resolvedAccent}
             />
           </div>
         )}
@@ -322,6 +366,7 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
             onSaveRules={handleSaveRules}
             onApplyPending={handleApplyPending}
             onDismissPending={handleDismissPending}
+            themeMainColor={resolvedAccent}
           />
         )}
 
@@ -331,6 +376,7 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
             records={historyRecords}
             onClearHistory={handleClearHistory}
             onOpenSubWindow={handleOpenSubWindow}
+            themeMainColor={resolvedAccent}
           />
         )}
 
@@ -343,11 +389,12 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
             onClearHistory={handleClearHistory}
             onExportData={handleExportData}
             onImportData={handleImportData}
+            themeMainColor={resolvedAccent}
           />
         )}
 
         {/* About View */}
-        {mainLocation === "about" && <AboutView />}
+        {mainLocation === "about" && <AboutView themeMainColor={resolvedAccent} />}
       </div>
 
       {/* Modal SubWindow */}
@@ -358,10 +405,12 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
         groups={groups}
         onClose={handleCloseSubWindow}
         onToggleExtension={handleToggleExtension}
+        onToggleGroup={handleToggleGroup}
         onOpenOptions={handleOpenOptions}
         onOpenDetails={handleOpenDetails}
         onUninstallExtension={handleUninstall}
         onUpdateGroup={handleUpdateGroup}
+        themeMainColor={resolvedAccent}
       />
     </div>
   );

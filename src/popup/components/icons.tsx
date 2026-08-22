@@ -1,24 +1,25 @@
 import type { JSX } from "preact";
 
-interface IconProps {
+export interface IconProps {
   color?: string;
   className?: string;
   id?: string;
   onClick?: (e: MouseEvent) => void;
   style?: JSX.CSSProperties;
   title?: string;
+  size?: number | string;
 }
 
-export function BigTiley({ color = "currentColor", className, id, onClick, style, title }: IconProps) {
+export function BigTiley({ color = "currentColor", className, id, onClick, style, title, size = 18 }: IconProps) {
   return (
     <svg
       className={className}
       id={id}
       onClick={onClick}
       fill={color}
-      height="48"
+      height={size}
       viewBox="0 0 24 24"
-      width="48"
+      width={size}
       style={style}
       xmlns="http://www.w3.org/2000/svg"
     >
@@ -29,16 +30,16 @@ export function BigTiley({ color = "currentColor", className, id, onClick, style
   );
 }
 
-export function Tiley({ color = "currentColor", className, id, onClick, style, title }: IconProps) {
+export function Tiley({ color = "currentColor", className, id, onClick, style, title, size = 18 }: IconProps) {
   return (
     <svg
       className={className}
       id={id}
       onClick={onClick}
       fill={color}
-      height="48"
+      height={size}
       viewBox="0 0 24 24"
-      width="48"
+      width={size}
       style={style}
       xmlns="http://www.w3.org/2000/svg"
     >
@@ -49,16 +50,16 @@ export function Tiley({ color = "currentColor", className, id, onClick, style, t
   );
 }
 
-export function Listy({ color = "currentColor", className, id, onClick, style, title }: IconProps) {
+export function Listy({ color = "currentColor", className, id, onClick, style, title, size = 18 }: IconProps) {
   return (
     <svg
       className={className}
       id={id}
       onClick={onClick}
       fill={color}
-      height="48"
+      height={size}
       viewBox="0 0 24 24"
-      width="48"
+      width={size}
       style={style}
       xmlns="http://www.w3.org/2000/svg"
     >
@@ -69,16 +70,16 @@ export function Listy({ color = "currentColor", className, id, onClick, style, t
   );
 }
 
-export function Closey({ color = "currentColor", className, id, onClick, style, title }: IconProps) {
+export function Closey({ color = "currentColor", className, id, onClick, style, title, size = 20 }: IconProps) {
   return (
     <svg
       className={className}
       id={id}
       onClick={onClick}
       fill={color}
-      height="48"
+      height={size}
       viewBox="0 0 24 24"
-      width="48"
+      width={size}
       style={style}
       xmlns="http://www.w3.org/2000/svg"
     >
@@ -89,16 +90,16 @@ export function Closey({ color = "currentColor", className, id, onClick, style, 
   );
 }
 
-export function Cleary({ color = "currentColor", className, id, onClick, style, title }: IconProps) {
+export function Cleary({ color = "currentColor", className, id, onClick, style, title, size = 16 }: IconProps) {
   return (
     <svg
       className={className}
       id={id}
       onClick={onClick}
       fill={color}
-      height="48"
+      height={size}
       viewBox="0 0 24 24"
-      width="48"
+      width={size}
       style={style}
       xmlns="http://www.w3.org/2000/svg"
     >
@@ -109,56 +110,16 @@ export function Cleary({ color = "currentColor", className, id, onClick, style, 
   );
 }
 
-export function Addy({ color = "currentColor", className, id, onClick, style, title }: IconProps) {
+export function Edity({ color = "currentColor", className, id, onClick, style, title, size = 14 }: IconProps) {
   return (
     <svg
       className={className}
       id={id}
       onClick={onClick}
       fill={color}
-      height="48"
+      height={size}
       viewBox="0 0 24 24"
-      width="48"
-      style={style}
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      {title && <title>{title}</title>}
-      <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
-      <path d="M0 0h24v24H0z" fill="none" />
-    </svg>
-  );
-}
-
-export function Removy({ color = "currentColor", className, id, onClick, style, title }: IconProps) {
-  return (
-    <svg
-      className={className}
-      id={id}
-      onClick={onClick}
-      fill={color}
-      height="48"
-      viewBox="0 0 24 24"
-      width="48"
-      style={style}
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      {title && <title>{title}</title>}
-      <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
-      <path d="M0 0h24v24H0z" fill="none" />
-    </svg>
-  );
-}
-
-export function Edity({ color = "currentColor", className, id, onClick, style, title }: IconProps) {
-  return (
-    <svg
-      className={className}
-      id={id}
-      onClick={onClick}
-      fill={color}
-      height="48"
-      viewBox="0 0 24 24"
-      width="48"
+      width={size}
       style={style}
       xmlns="http://www.w3.org/2000/svg"
     >
@@ -169,162 +130,141 @@ export function Edity({ color = "currentColor", className, id, onClick, style, t
   );
 }
 
-export function Optioney({ color = "currentColor", className, id, onClick, style, title }: IconProps) {
+export function Switchy({ color = "currentColor", className, id, onClick, style, title, size = 16 }: IconProps) {
   return (
     <svg
       className={className}
       id={id}
       onClick={onClick}
       fill={color}
-      height="48"
+      height={size}
       viewBox="0 0 24 24"
-      width="48"
+      width={size}
       style={style}
       xmlns="http://www.w3.org/2000/svg"
     >
       {title && <title>{title}</title>}
+      <path d="M17 7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h10c2.76 0 5-2.24 5-5s-2.24-5-5-5zm0 8c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z" />
       <path d="M0 0h24v24H0z" fill="none" />
-      <path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z" />
     </svg>
   );
 }
 
-export function Switchy({ color = "currentColor", className, id, onClick, style, title }: IconProps) {
+export function Optioney({ color = "currentColor", className, id, onClick, style, title, size = 16 }: IconProps) {
   return (
     <svg
       className={className}
       id={id}
       onClick={onClick}
       fill={color}
-      height="48"
+      height={size}
       viewBox="0 0 24 24"
-      width="48"
+      width={size}
       style={style}
       xmlns="http://www.w3.org/2000/svg"
     >
       {title && <title>{title}</title>}
+      <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
       <path d="M0 0h24v24H0z" fill="none" />
-      <path
-        d="M13 3h-2v10h2V3zm4.83 2.17l-1.42 1.42C17.99 7.86 19 9.81 19 12c0 3.87-3.13 7-7 7s-7-3.13-7-7c0-2.19 1.01-4.14 2.58-5.42L6.17 5.17C4.23 6.82 3 9.26 3 12c0 4.97 4.03 9 9 9s9-4.03 9-9c0-2.74-1.23-5.18-3.17-6.83z"
-        stroke={color}
-        strokeWidth="1.1"
-      />
     </svg>
   );
 }
 
-export function Chromey({ color = "currentColor", className, id, onClick, style, title }: IconProps) {
-  return (
-    <svg
-      className={className}
-      id={id}
-      onClick={onClick}
-      height="512px"
-      viewBox="0 -40 600 600"
-      width="512px"
-      style={style}
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      {title && <title>{title}</title>}
-      <g>
-        <path
-          d="M182.411,256.486c0,37.638,30.512,68.152,68.147,68.152c37.633,0,68.149-30.515,68.149-68.152 c0-37.632-30.516-68.148-68.149-68.148C212.922,188.338,182.41,218.854,182.411,256.486z"
-          fill={color}
-        />
-        <path
-          d="M250.558,149.725c34.618,0,61.106,11.749,80.61,37.287l3.867-0.353l166.004-3.251 C469.779,77.625,371.988,0.271,256,0.271c-37.511,0-73.062,8.285-105.193,22.813l42.613,143.482 C209.966,156.022,229.5,149.725,250.558,149.725z"
-          fill={color}
-        />
-        <path
-          d="M508.098,215.152l-158.07,3c4.572,11.927,7.373,24.787,7.373,38.335c0,59.004-47.84,106.78-106.842,106.78 c-1.804,0-1.334-0.243-3.104-0.307l-0.661,0.99l-99.469,123.282c33,15.565,69.765,24.496,108.677,24.496 c141.244,0,255.705-114.544,255.705-255.755C511.705,242.01,510.244,228.462,508.098,215.152z"
-          fill={color}
-        />
-        <path
-          d="M143.778,256.487c0-26.002,7.711-48.915,23.107-67.451L122.128,38.433 C49.128,83.472,0.294,163.91,0.294,255.975c0,90.729,47.372,170.28,118.663,215.674l93.403-115.738 C172.269,340.499,143.778,301.991,143.778,256.487z"
-          fill={color}
-        />
-      </g>
-    </svg>
-  );
-}
-
-export function Copyy({ color = "currentColor", className, id, onClick, style, title }: IconProps) {
+export function Removy({ color = "currentColor", className, id, onClick, style, title, size = 16 }: IconProps) {
   return (
     <svg
       className={className}
       id={id}
       onClick={onClick}
       fill={color}
-      height="48"
-      viewBox="-3 -1 27 27"
-      width="48"
+      height={size}
+      viewBox="0 0 24 24"
+      width={size}
       style={style}
       xmlns="http://www.w3.org/2000/svg"
     >
       {title && <title>{title}</title>}
+      <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
       <path d="M0 0h24v24H0z" fill="none" />
+    </svg>
+  );
+}
+
+export function Chromey({ color = "currentColor", className, id, onClick, style, title, size = 16 }: IconProps) {
+  return (
+    <svg
+      className={className}
+      id={id}
+      onClick={onClick}
+      fill={color}
+      height={size}
+      viewBox="0 0 24 24"
+      width={size}
+      style={style}
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      {title && <title>{title}</title>}
+      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" />
+    </svg>
+  );
+}
+
+export function Groupy({ color = "currentColor", className, id, onClick, style, title, size = 18 }: IconProps) {
+  return (
+    <svg
+      className={className}
+      id={id}
+      onClick={onClick}
+      fill={color}
+      height={size}
+      viewBox="0 0 24 24"
+      width={size}
+      style={style}
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      {title && <title>{title}</title>}
+      <path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z" />
+      <path d="M0 0h24v24H0z" fill="none" />
+    </svg>
+  );
+}
+
+export function Copyy({ color = "currentColor", className, id, onClick, style, title, size = 16 }: IconProps) {
+  return (
+    <svg
+      className={className}
+      id={id}
+      onClick={onClick}
+      fill={color}
+      height={size}
+      viewBox="0 0 24 24"
+      width={size}
+      style={style}
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      {title && <title>{title}</title>}
       <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z" />
+      <path d="M0 0h24v24H0z" fill="none" />
     </svg>
   );
 }
 
-export function Groupy({ color = "currentColor", className, id, onClick, style, title }: IconProps) {
+export function Launchy({ color = "currentColor", className, id, onClick, style, title, size = 16 }: IconProps) {
   return (
     <svg
       className={className}
       id={id}
       onClick={onClick}
       fill={color}
-      height="48"
+      height={size}
       viewBox="0 0 24 24"
-      width="48"
+      width={size}
       style={style}
       xmlns="http://www.w3.org/2000/svg"
     >
       {title && <title>{title}</title>}
-      <path d="M0 0h24v24H0zm0 0h24v24H0zm21 19c0 1.1-.9 2-2 2H5c-1.1 0-2-.9-2-2V5c0-1.1.9-2 2-2h14c1.1 0 2 .9 2 2" fill="none" />
-      <path d="M0 0h24v24H0z" fill="none" />
-      <path d="M21 5v6.59l-3-3.01-4 4.01-4-4-4 4-3-3.01V5c0-1.1.9-2 2-2h14c1.1 0 2 .9 2 2zm-3 6.42l3 3.01V19c0 1.1-.9 2-2 2H5c-1.1 0-2-.9-2-2v-6.58l3 2.99 4-4 4 4 4-3.99z" />
-    </svg>
-  );
-}
-
-export function Extensiony({ color = "currentColor", className, id, onClick, style, title }: IconProps) {
-  return (
-    <svg
-      className={className}
-      id={id}
-      onClick={onClick}
-      fill={color}
-      height="48"
-      viewBox="0 0 24 24"
-      width="48"
-      style={style}
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      {title && <title>{title}</title>}
-      <path d="M0 0h24v24H0z" fill="none" />
-      <path d="M20.5 11H19V7c0-1.1-.9-2-2-2h-4V3.5C13 2.12 11.88 1 10.5 1S8 2.12 8 3.5V5H4c-1.1 0-1.99.9-1.99 2v3.8H3.5c1.49 0 2.7 1.21 2.7 2.7s-1.21 2.7-2.7 2.7H2V20c0 1.1.9 2 2 2h3.8v-1.5c0-1.49 1.21-2.7 2.7-2.7 1.49 0 2.7 1.21 2.7 2.7V22H17c1.1 0 2-.9 2-2v-4h1.5c1.38 0 2.5-1.12 2.5-2.5S21.88 11 20.5 11z" />
-    </svg>
-  );
-}
-
-export function Launchy({ color = "currentColor", className, id, onClick, style, title }: IconProps) {
-  return (
-    <svg
-      className={className}
-      id={id}
-      onClick={onClick}
-      fill={color}
-      height="48"
-      viewBox="0 0 24 24"
-      width="48"
-      style={style}
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      {title && <title>{title}</title>}
-      <path d="M0 0h24v24H0z" fill="none" />
       <path d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z" />
+      <path d="M0 0h24v24H0z" fill="none" />
     </svg>
   );
 }

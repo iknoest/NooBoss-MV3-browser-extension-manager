@@ -16,65 +16,79 @@ export function Navigator({
   subLocation,
   onNavigateMain,
   onNavigateSub,
-  themeMainColor,
 }: NavigatorProps) {
   return (
-    <nav className="navigator" style={themeMainColor ? { backgroundColor: themeMainColor } : undefined}>
-      <div
-        className={`nav-link ${mainLocation === "overview" ? "active" : ""}`}
-        onClick={() => onNavigateMain("overview")}
-      >
-        {GL("overview")}
-      </div>
+    <nav className="navigator">
+      <div className="nav-items-container">
+        <button
+          type="button"
+          className={`nav-link ${mainLocation === "overview" ? "active" : ""}`}
+          onClick={() => onNavigateMain("overview")}
+        >
+          {GL("overview")}
+        </button>
 
-      <div
-        className={`nav-link has-sub ${mainLocation === "extensions" ? "active" : ""}`}
-        onClick={() => onNavigateMain("extensions")}
-      >
-        {GL("extensions")}
-        <div className="sub-menu">
-          <div
-            className={`sub-link ${mainLocation === "extensions" && subLocation === "manage" ? "active" : ""}`}
-            onClick={(e) => {
-              e.stopPropagation();
+        <div className={`nav-link-dropdown ${mainLocation === "extensions" ? "active" : ""}`}>
+          <button
+            type="button"
+            className="nav-link"
+            onClick={() => {
               onNavigateMain("extensions");
               onNavigateSub("manage");
             }}
           >
-            {GL("manage")}
-          </div>
-          <div
-            className={`sub-link ${mainLocation === "extensions" && subLocation === "autoState" ? "active" : ""}`}
-            onClick={(e) => {
-              e.stopPropagation();
-              onNavigateMain("extensions");
-              onNavigateSub("autoState");
-            }}
-          >
-            {GL("autoState")}
+            {GL("extensions")}
+            <span className="dropdown-caret">▾</span>
+          </button>
+          <div className="sub-menu">
+            <button
+              type="button"
+              className={`sub-link ${mainLocation === "extensions" && subLocation === "manage" ? "active" : ""}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onNavigateMain("extensions");
+                onNavigateSub("manage");
+              }}
+            >
+              {GL("manage")}
+            </button>
+            <button
+              type="button"
+              className={`sub-link ${mainLocation === "extensions" && subLocation === "autoState" ? "active" : ""}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onNavigateMain("extensions");
+                onNavigateSub("autoState");
+              }}
+            >
+              {GL("autoState")}
+            </button>
           </div>
         </div>
-      </div>
 
-      <div
-        className={`nav-link ${mainLocation === "history" ? "active" : ""}`}
-        onClick={() => onNavigateMain("history")}
-      >
-        {GL("history")}
-      </div>
+        <button
+          type="button"
+          className={`nav-link ${mainLocation === "history" ? "active" : ""}`}
+          onClick={() => onNavigateMain("history")}
+        >
+          {GL("history")}
+        </button>
 
-      <div
-        className={`nav-link ${mainLocation === "options" ? "active" : ""}`}
-        onClick={() => onNavigateMain("options")}
-      >
-        {GL("options")}
-      </div>
+        <button
+          type="button"
+          className={`nav-link ${mainLocation === "options" ? "active" : ""}`}
+          onClick={() => onNavigateMain("options")}
+        >
+          {GL("options")}
+        </button>
 
-      <div
-        className={`nav-link ${mainLocation === "about" ? "active" : ""}`}
-        onClick={() => onNavigateMain("about")}
-      >
-        {GL("about")}
+        <button
+          type="button"
+          className={`nav-link ${mainLocation === "about" ? "active" : ""}`}
+          onClick={() => onNavigateMain("about")}
+        >
+          {GL("about")}
+        </button>
       </div>
     </nav>
   );

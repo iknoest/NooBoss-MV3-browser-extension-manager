@@ -185,50 +185,60 @@ export function Selector({
           </div>
 
           {withControl && (
-            <>
-              <button className="nb-btn" onClick={handleBulkEnable}>
+            <div className="action-buttons-group">
+              <button className="btn btn-secondary action-btn" onClick={handleBulkEnable}>
                 {GL("enable")}
               </button>
-              <button className="nb-btn" onClick={handleBulkDisable}>
+              <button className="btn btn-secondary action-btn" onClick={handleBulkDisable}>
                 {GL("disable")}
               </button>
               <button
-                className={`nb-btn ${undoStack.length === 0 ? "inActive" : ""}`}
+                className="btn btn-secondary action-btn"
+                disabled={undoStack.length === 0}
                 onClick={handleUndo}
               >
                 {GL("undo")}
               </button>
               <button
-                className={`nb-btn ${redoStack.length === 0 ? "inActive" : ""}`}
+                className="btn btn-secondary action-btn"
+                disabled={redoStack.length === 0}
                 onClick={handleRedo}
               >
                 {GL("redo")}
               </button>
-              <button className="nb-btn" onClick={onCreateGroup}>
-                {GL("new_group")}
-              </button>
-            </>
+              {onCreateGroup && (
+                <button className="btn btn-primary action-btn" onClick={onCreateGroup}>
+                  + {GL("new_group")}
+                </button>
+              )}
+            </div>
           )}
 
-          <div className="view-switcher" style={{ marginLeft: "auto" }}>
-            <Listy
-              color={themeMainColor}
-              style={{ opacity: viewMode === "list" ? 1 : 0.3 }}
+          <div className="view-mode-switcher">
+            <button
+              type="button"
+              className={`view-mode-btn ${viewMode === "list" ? "active" : ""}`}
               onClick={() => onChangeViewMode?.("list")}
               title="List view"
-            />
-            <BigTiley
-              color={themeMainColor}
-              style={{ opacity: viewMode === "bigTile" ? 1 : 0.3 }}
+            >
+              <Listy color="currentColor" size={18} />
+            </button>
+            <button
+              type="button"
+              className={`view-mode-btn ${viewMode === "bigTile" ? "active" : ""}`}
               onClick={() => onChangeViewMode?.("bigTile")}
               title="Big tile view"
-            />
-            <Tiley
-              color={themeMainColor}
-              style={{ opacity: viewMode === "tile" ? 1 : 0.3 }}
+            >
+              <BigTiley color="currentColor" size={18} />
+            </button>
+            <button
+              type="button"
+              className={`view-mode-btn ${viewMode === "tile" ? "active" : ""}`}
               onClick={() => onChangeViewMode?.("tile")}
               title="Tile view"
-            />
+            >
+              <Tiley color="currentColor" size={18} />
+            </button>
           </div>
         </div>
       )}
@@ -237,21 +247,24 @@ export function Selector({
       {filteredGroups.length > 0 && (
         <div id="groupList" className="extension-container">
           <h2 className="nb-heading">{GL("group")}</h2>
-          {filteredGroups.map((group) => (
-            <GroupBrief
-              key={group.id}
-              group={group}
-              viewMode={viewMode}
-              withControl={withControl}
-              selected={selectedList ? selectedList.includes(group.id) : null}
-              onSelect={onSelect}
-              onToggleGroup={onToggleGroup}
-              onCopyGroup={onCopyGroup}
-              onDeleteGroup={onDeleteGroup}
-              onOpenSubWindow={onOpenSubWindow}
-              themeMainColor={themeMainColor}
-            />
-          ))}
+          <div className={viewMode === "tile" ? "tile-grid" : viewMode === "bigTile" ? "big-tile-grid" : "list-container"}>
+            {filteredGroups.map((group) => (
+              <GroupBrief
+                key={group.id}
+                group={group}
+                allExtensions={extensions}
+                viewMode={viewMode}
+                withControl={withControl}
+                selected={selectedList ? selectedList.includes(group.id) : null}
+                onSelect={onSelect}
+                onToggleGroup={onToggleGroup}
+                onCopyGroup={onCopyGroup}
+                onDeleteGroup={onDeleteGroup}
+                onOpenSubWindow={onOpenSubWindow}
+                themeMainColor={themeMainColor}
+              />
+            ))}
+          </div>
         </div>
       )}
 
@@ -259,22 +272,24 @@ export function Selector({
       {extensionList.length > 0 && (
         <div id="extensionList" className="extension-container">
           <h2 className="nb-heading">{GL("extension")}</h2>
-          {extensionList.map((ext) => (
-            <ExtensionBrief
-              key={ext.id}
-              extension={ext}
-              viewMode={viewMode}
-              withControl={withControl}
-              selected={selectedList ? selectedList.includes(ext.id) : null}
-              onSelect={onSelect}
-              onToggle={onToggleExtension}
-              onOpenOptions={onOpenOptions}
-              onOpenDetails={onOpenDetails}
-              onUninstall={onUninstallExtension}
-              onOpenSubWindow={onOpenSubWindow}
-              themeMainColor={themeMainColor}
-            />
-          ))}
+          <div className={viewMode === "tile" ? "tile-grid" : viewMode === "bigTile" ? "big-tile-grid" : "list-container"}>
+            {extensionList.map((ext) => (
+              <ExtensionBrief
+                key={ext.id}
+                extension={ext}
+                viewMode={viewMode}
+                withControl={withControl}
+                selected={selectedList ? selectedList.includes(ext.id) : null}
+                onSelect={onSelect}
+                onToggle={onToggleExtension}
+                onOpenOptions={onOpenOptions}
+                onOpenDetails={onOpenDetails}
+                onUninstall={onUninstallExtension}
+                onOpenSubWindow={onOpenSubWindow}
+                themeMainColor={themeMainColor}
+              />
+            ))}
+          </div>
         </div>
       )}
 
@@ -282,22 +297,24 @@ export function Selector({
       {appList.length > 0 && (
         <div id="appList" className="extension-container">
           <h2 className="nb-heading">{GL("app")}</h2>
-          {appList.map((app) => (
-            <ExtensionBrief
-              key={app.id}
-              extension={app}
-              viewMode={viewMode}
-              withControl={withControl}
-              selected={selectedList ? selectedList.includes(app.id) : null}
-              onSelect={onSelect}
-              onToggle={onToggleExtension}
-              onOpenOptions={onOpenOptions}
-              onOpenDetails={onOpenDetails}
-              onUninstall={onUninstallExtension}
-              onOpenSubWindow={onOpenSubWindow}
-              themeMainColor={themeMainColor}
-            />
-          ))}
+          <div className={viewMode === "tile" ? "tile-grid" : viewMode === "bigTile" ? "big-tile-grid" : "list-container"}>
+            {appList.map((app) => (
+              <ExtensionBrief
+                key={app.id}
+                extension={app}
+                viewMode={viewMode}
+                withControl={withControl}
+                selected={selectedList ? selectedList.includes(app.id) : null}
+                onSelect={onSelect}
+                onToggle={onToggleExtension}
+                onOpenOptions={onOpenOptions}
+                onOpenDetails={onOpenDetails}
+                onUninstall={onUninstallExtension}
+                onOpenSubWindow={onOpenSubWindow}
+                themeMainColor={themeMainColor}
+              />
+            ))}
+          </div>
         </div>
       )}
 
@@ -305,22 +322,24 @@ export function Selector({
       {themeList.length > 0 && (
         <div id="themeList" className="extension-container">
           <h2 className="nb-heading">{GL("theme")}</h2>
-          {themeList.map((theme) => (
-            <ExtensionBrief
-              key={theme.id}
-              extension={theme}
-              viewMode={viewMode}
-              withControl={withControl}
-              selected={selectedList ? selectedList.includes(theme.id) : null}
-              onSelect={onSelect}
-              onToggle={onToggleExtension}
-              onOpenOptions={onOpenOptions}
-              onOpenDetails={onOpenDetails}
-              onUninstall={onUninstallExtension}
-              onOpenSubWindow={onOpenSubWindow}
-              themeMainColor={themeMainColor}
-            />
-          ))}
+          <div className={viewMode === "tile" ? "tile-grid" : viewMode === "bigTile" ? "big-tile-grid" : "list-container"}>
+            {themeList.map((theme) => (
+              <ExtensionBrief
+                key={theme.id}
+                extension={theme}
+                viewMode={viewMode}
+                withControl={withControl}
+                selected={selectedList ? selectedList.includes(theme.id) : null}
+                onSelect={onSelect}
+                onToggle={onToggleExtension}
+                onOpenOptions={onOpenOptions}
+                onOpenDetails={onOpenDetails}
+                onUninstall={onUninstallExtension}
+                onOpenSubWindow={onOpenSubWindow}
+                themeMainColor={themeMainColor}
+              />
+            ))}
+          </div>
         </div>
       )}
     </div>

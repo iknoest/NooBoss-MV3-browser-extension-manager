@@ -23,6 +23,11 @@ export interface ExtensionInfo {
   hostPermissions: string[];
 }
 
+/** Group Icon descriptor */
+export type GroupIcon =
+  | { type: 'material'; name: string }
+  | { type: 'custom'; dataUrl: string };
+
 /** A user-created group of extensions */
 export interface ExtensionGroup {
   id: string;
@@ -30,6 +35,7 @@ export interface ExtensionGroup {
   extensionIds: string[];
   color: string;
   createdAt: number;
+  icon?: GroupIcon | string;
 }
 
 /** AutoState matching rule */
@@ -102,6 +108,10 @@ export interface AppSettings {
   historyTrackDisable: boolean;
   /** Theme preference */
   theme: 'system' | 'light' | 'dark';
+  /** Accent color preset */
+  accentPreset?: 'default' | 'blue' | 'purple' | 'green' | 'orange' | 'custom';
+  /** Custom/resolved accent color hex */
+  accentColor?: string;
   /** Extension list sort order */
   sortOrder: 'name' | 'name-state' | 'type' | 'recently-updated';
   /** View mode */
@@ -166,6 +176,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   historyTrackEnable: true,
   historyTrackDisable: true,
   theme: 'system',
+  accentPreset: 'default',
+  accentColor: '#1a73e8',
   sortOrder: 'name-state',
   viewMode: 'list',
 };

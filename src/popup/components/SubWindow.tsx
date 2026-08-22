@@ -1,7 +1,11 @@
-import type { ExtensionInfo, ExtensionGroup } from "../../shared/types";
+import { useState } from "preact/hooks";
+import type { ExtensionInfo, ExtensionGroup, GroupIcon } from "../../shared/types";
 import { Selector } from "./Selector";
 import { GL } from "./i18n";
-import { Switchy, Optioney, Removy, Chromey, Closey } from "./icons";
+import { Switchy, Optioney, Removy, Chromey, Closey, Edity } from "./icons";
+import { renderGroupIcon } from "./GroupBrief";
+import { GroupIconPicker } from "./GroupIconPicker";
+import { GroupStateToggle } from "./GroupStateToggle";
 
 export interface SubWindowProps {
   display: "" | "extension" | "group";
@@ -10,6 +14,7 @@ export interface SubWindowProps {
   groups: ExtensionGroup[];
   onClose: () => void;
   onToggleExtension?: (id: string, enabled: boolean) => void;
+  onToggleGroup?: (id: string, enabled: boolean) => void;
   onOpenOptions?: (id: string) => void;
   onOpenDetails?: (id: string) => void;
   onUninstallExtension?: (id: string) => void;
@@ -24,12 +29,15 @@ export function SubWindow({
   groups = [],
   onClose,
   onToggleExtension,
+  onToggleGroup,
   onOpenOptions,
   onOpenDetails,
   onUninstallExtension,
   onUpdateGroup,
-  themeMainColor = "#c393dc",
+  themeMainColor = "#1a73e8",
 }: SubWindowProps) {
+  const [showIconPicker, setShowIconPicker] = useState(false);
+
   if (!display || !targetId) return null;
 
   if (display === "extension") {
@@ -44,42 +52,31 @@ export function SubWindow({
       <div className="subwindow-overlay" onClick={onClose}>
         <div className="subwindow-box" onClick={(e) => e.stopPropagation()}>
           {/* Close button */}
-          <div style={{ position: "absolute", right: "16px", top: "16px", cursor: "pointer" }} onClick={onClose}>
-            <Closey color={themeMainColor} style={{ width: "24px", height: "24px" }} />
-          </div>
+          <button className="subwindow-close-btn" onClick={onClose} aria-label="Close">
+            <Closey color="currentColor" style={{ width: "20px", height: "20px" }} />
+          </button>
 
           {/* Action Header */}
-          <div style={{ display: "flex", alignItems: "center", gap: "20px", marginBottom: "16px" }}>
-            <a href={webstoreUrl} target="_blank" rel="noreferrer">
+          <div className="subwindow-action-header">
+            <a href={webstoreUrl} target="_blank" rel="noreferrer" className="subwindow-icon-link">
               {iconUrl ? (
                 <img
                   src={iconUrl}
                   alt={ext.name}
-                  style={{ width: "72px", height: "72px", objectFit: "contain", borderRadius: "8px" }}
+                  className="subwindow-ext-icon"
                 />
               ) : (
-                <div
-                  style={{
-                    width: "72px",
-                    height: "72px",
-                    background: "#eee",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: "32px",
-                    borderRadius: "8px",
-                  }}
-                >
-                  🧩
+                <div className="subwindow-fallback-icon">
+                  {ext.name.charAt(0).toUpperCase()}
                 </div>
               )}
             </a>
 
-            <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+            <div className="subwindow-controls">
               {ext.type !== "theme" && (
                 <Switchy
                   color={themeMainColor}
-                  style={{ width: "36px", height: "36px", cursor: "pointer" }}
+                  className="subwindow-ctrl-icon"
                   onClick={() => onToggleExtension?.(ext.id, !ext.enabled)}
                   title={ext.enabled ? "Disable" : "Enable"}
                 />
@@ -87,23 +84,20 @@ export function SubWindow({
               {ext.optionsUrl && (
                 <Optioney
                   color={themeMainColor}
-                  style={{ width: "36px", height: "36px", cursor: "pointer" }}
+                  className="subwindow-ctrl-icon"
                   onClick={() => onOpenOptions?.(ext.id)}
                   title="Options"
                 />
               )}
               <Removy
                 color={themeMainColor}
-                style={{ width: "36px", height: "36px", cursor: "pointer" }}
-                onClick={() => {
-                  onUninstallExtension?.(ext.id);
-                  onClose();
-                }}
+                className="subwindow-ctrl-icon"
+                onClick={() => onUninstallExtension?.(ext.id)}
                 title="Uninstall"
               />
               <Chromey
                 color={themeMainColor}
-                style={{ width: "36px", height: "36px", cursor: "pointer" }}
+                className="subwindow-ctrl-icon"
                 onClick={() => onOpenDetails?.(ext.id)}
                 title="Chrome Details"
               />
@@ -115,82 +109,75 @@ export function SubWindow({
             href={webstoreUrl}
             target="_blank"
             rel="noreferrer"
-            style={{
-              fontSize: "24px",
-              fontWeight: "bold",
-              color: themeMainColor,
-              textDecoration: "none",
-              display: "block",
-              borderBottom: `1px solid ${themeMainColor}`,
-              paddingBottom: "6px",
-              marginBottom: "16px",
-            }}
+            className="subwindow-title"
           >
             {ext.name}
           </a>
 
           {/* Brief Table */}
-          <table style={{ width: "100%", fontSize: "13px", lineHeight: "1.8", marginBottom: "20px" }}>
+          <table className="subwindow-table">
             <tbody>
               <tr>
-                <td style={{ width: "140px", fontWeight: "bold", color: "#666" }}>{GL("version")}</td>
-                <td>{ext.version}</td>
+                <td className="table-label">{GL("version")}</td>
+                <td className="table-value">{ext.version}</td>
               </tr>
               <tr>
-                <td style={{ fontWeight: "bold", color: "#666" }}>{GL("state")}</td>
-                <td>{ext.enabled ? GL("enabled") : GL("disabled")}</td>
+                <td className="table-label">{GL("state")}</td>
+                <td className="table-value">
+                  <span className={`status-pill ${ext.enabled ? "enabled" : "disabled"}`}>
+                    {ext.enabled ? GL("enabled") : GL("disabled")}
+                  </span>
+                </td>
               </tr>
               {memberGroups && (
                 <tr>
-                  <td style={{ fontWeight: "bold", color: "#666" }}>{GL("group")}</td>
-                  <td>{memberGroups}</td>
+                  <td className="table-label">{GL("group")}</td>
+                  <td className="table-value">{memberGroups}</td>
                 </tr>
               )}
               <tr>
-                <td style={{ fontWeight: "bold", color: "#666" }}>{GL("description")}</td>
-                <td>{ext.description || "No description provided."}</td>
+                <td className="table-label">{GL("description")}</td>
+                <td className="table-value">{ext.description || "No description provided."}</td>
               </tr>
             </tbody>
           </table>
 
           {/* Details Heading */}
-          <h3 style={{ fontSize: "18px", fontWeight: "bold", margin: "16px 0 8px 0", color: "#333" }}>
-            {GL("detail")}
-          </h3>
+          <h3 className="subwindow-section-heading">{GL("detail")}</h3>
 
-          <table style={{ width: "100%", fontSize: "13px", lineHeight: "1.8" }}>
+          <table className="subwindow-table">
             <tbody>
               <tr>
-                <td style={{ width: "140px", fontWeight: "bold", color: "#666" }}>{GL("id")}</td>
-                <td style={{ fontFamily: "monospace", fontSize: "12px" }}>{ext.id}</td>
+                <td className="table-label">{GL("id")}</td>
+                <td className="table-value monospace">{ext.id}</td>
               </tr>
               <tr>
-                <td style={{ fontWeight: "bold", color: "#666" }}>{GL("type")}</td>
-                <td>{ext.type}</td>
+                <td className="table-label">{GL("type")}</td>
+                <td className="table-value">{ext.type}</td>
               </tr>
               <tr>
-                <td style={{ fontWeight: "bold", color: "#666" }}>{GL("install_type")}</td>
-                <td>{ext.installType}</td>
+                <td className="table-label">{GL("install_type")}</td>
+                <td className="table-value">{ext.installType}</td>
               </tr>
               {ext.homepageUrl && (
                 <tr>
-                  <td style={{ fontWeight: "bold", color: "#666" }}>{GL("homepage_url")}</td>
-                  <td>
-                    <a href={ext.homepageUrl} target="_blank" rel="noreferrer" style={{ color: themeMainColor }}>
+                  <td className="table-label">{GL("homepage_url")}</td>
+                  <td className="table-value">
+                    <a href={ext.homepageUrl} target="_blank" rel="noreferrer" className="accent-link">
                       {ext.homepageUrl}
                     </a>
                   </td>
                 </tr>
               )}
               <tr>
-                <td style={{ fontWeight: "bold", color: "#666" }}>{GL("may_disable")}</td>
-                <td>{ext.mayDisable ? "True" : "False"}</td>
+                <td className="table-label">{GL("may_disable")}</td>
+                <td className="table-value">{ext.mayDisable ? "True" : "False"}</td>
               </tr>
               {ext.permissions && ext.permissions.length > 0 && (
                 <tr>
-                  <td style={{ fontWeight: "bold", color: "#666", verticalAlign: "top" }}>{GL("permissions")}</td>
-                  <td>
-                    <ul style={{ margin: 0, paddingLeft: "16px" }}>
+                  <td className="table-label align-top">{GL("permissions")}</td>
+                  <td className="table-value">
+                    <ul className="subwindow-list">
                       {ext.permissions.map((p) => (
                         <li key={p}>{p}</li>
                       ))}
@@ -200,9 +187,9 @@ export function SubWindow({
               )}
               {ext.hostPermissions && ext.hostPermissions.length > 0 && (
                 <tr>
-                  <td style={{ fontWeight: "bold", color: "#666", verticalAlign: "top" }}>{GL("host_permissions")}</td>
-                  <td>
-                    <ul style={{ margin: 0, paddingLeft: "16px" }}>
+                  <td className="table-label align-top">{GL("host_permissions")}</td>
+                  <td className="table-value">
+                    <ul className="subwindow-list">
                       {ext.hostPermissions.map((hp) => (
                         <li key={hp}>{hp}</li>
                       ))}
@@ -225,6 +212,10 @@ export function SubWindow({
       onUpdateGroup?.({ ...group, name });
     };
 
+    const handleIconChange = (icon: GroupIcon) => {
+      onUpdateGroup?.({ ...group, icon });
+    };
+
     const handleToggleExtensionInGroup = (extId: string) => {
       const isMember = group.extensionIds.includes(extId);
       const nextIds = isMember
@@ -235,35 +226,55 @@ export function SubWindow({
 
     return (
       <div className="subwindow-overlay" onClick={onClose}>
-        <div className="subwindow-box" onClick={(e) => e.stopPropagation()}>
-          <div style={{ position: "absolute", right: "16px", top: "16px", cursor: "pointer" }} onClick={onClose}>
-            <Closey color={themeMainColor} style={{ width: "24px", height: "24px" }} />
+        <div className="subwindow-box group-subwindow" onClick={(e) => e.stopPropagation()}>
+          <button className="subwindow-close-btn" onClick={onClose} aria-label="Close">
+            <Closey color="currentColor" style={{ width: "20px", height: "20px" }} />
+          </button>
+
+          <div className="group-edit-header">
+            <button
+              type="button"
+              className="group-icon-edit-btn"
+              onClick={() => setShowIconPicker(true)}
+              title="Click to change group icon"
+            >
+              <div className="group-icon-display">
+                {renderGroupIcon(group, 36, themeMainColor)}
+              </div>
+              <span className="icon-edit-badge">
+                <Edity color="#ffffff" style={{ width: "12px", height: "12px" }} />
+              </span>
+            </button>
+
+            <div className="group-edit-info">
+              <input
+                className="group-name-input"
+                value={group.name}
+                onInput={(e) => handleNameChange((e.target as HTMLInputElement).value)}
+                placeholder="Group name"
+              />
+              <div className="group-meta-row">
+                <span className="group-count-text">
+                  {group.extensionIds.length} extension(s) in group
+                </span>
+                {onToggleGroup && (
+                  <GroupStateToggle
+                    groupId={group.id}
+                    extensionIds={group.extensionIds}
+                    allExtensions={extensions}
+                    onToggleGroup={onToggleGroup}
+                    size="small"
+                  />
+                )}
+              </div>
+            </div>
           </div>
 
-          <div style={{ marginBottom: "16px" }}>
-            <input
-              style={{
-                fontSize: "24px",
-                fontWeight: "bold",
-                width: "80%",
-                borderBottom: `2px solid ${themeMainColor}`,
-                color: "#222",
-              }}
-              value={group.name}
-              onInput={(e) => handleNameChange((e.target as HTMLInputElement).value)}
-            />
-          </div>
-
-          <div style={{ fontSize: "14px", marginBottom: "16px", color: "#666" }}>
-            {group.extensionIds.length} extension(s) in group
-          </div>
-
-          <h3 style={{ fontSize: "16px", fontWeight: "bold", margin: "16px 0 8px 0" }}>
-            Select extensions for this group
-          </h3>
+          <h3 className="subwindow-section-heading">Select extensions for this group</h3>
 
           <Selector
             extensions={extensions}
+            groups={[]}
             viewMode="tile"
             actionBar={true}
             withControl={false}
@@ -271,6 +282,14 @@ export function SubWindow({
             onSelect={handleToggleExtensionInGroup}
             themeMainColor={themeMainColor}
           />
+
+          {showIconPicker && (
+            <GroupIconPicker
+              currentIcon={group.icon}
+              onSelectIcon={handleIconChange}
+              onClose={() => setShowIconPicker(false)}
+            />
+          )}
         </div>
       </div>
     );

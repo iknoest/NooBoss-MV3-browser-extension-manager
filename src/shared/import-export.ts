@@ -104,6 +104,27 @@ function validateGroup(group: unknown): asserts group is ExtensionGroup {
       throw new Error('Group extensionIds must be strings');
     }
   }
+  if (g.icon !== undefined && g.icon !== null) {
+    if (typeof g.icon === 'string') {
+      if (containsExecutableCode(g.icon)) {
+        throw new Error('Group icon URL contains unsafe content');
+      }
+    } else if (typeof g.icon === 'object') {
+      const iconObj = g.icon as Record<string, unknown>;
+      if (iconObj.type !== 'material' && iconObj.type !== 'custom') {
+        throw new Error('Group icon type must be "material" or "custom"');
+      }
+      if (iconObj.type === 'material' && typeof iconObj.name !== 'string') {
+        throw new Error('Material group icon must have a string name');
+      }
+      if (iconObj.type === 'custom' && typeof iconObj.dataUrl !== 'string') {
+        throw new Error('Custom group icon must have a string dataUrl');
+      }
+      if (typeof iconObj.dataUrl === 'string' && !iconObj.dataUrl.startsWith('data:image/')) {
+        throw new Error('Custom group icon dataUrl must be a valid image data URI');
+      }
+    }
+  }
 }
 
 function validateRule(rule: unknown): asserts rule is AutoStateRule {
@@ -166,6 +187,19 @@ function validateSettings(settings: Record<string, unknown>): AppSettings {
     result.historyTrackDisable = settings.historyTrackDisable;
   if (settings.theme === 'system' || settings.theme === 'light' || settings.theme === 'dark')
     result.theme = settings.theme;
+  if (
+    settings.accentPreset === 'default' ||
+    settings.accentPreset === 'blue' ||
+    settings.accentPreset === 'purple' ||
+    settings.accentPreset === 'green' ||
+    settings.accentPreset === 'orange' ||
+    settings.accentPreset === 'custom'
+  ) {
+    result.accentPreset = settings.accentPreset;
+  }
+  if (typeof settings.accentColor === 'string' && /^#[0-9a-fA-F]{3,8}$/.test(settings.accentColor)) {
+    result.accentColor = settings.accentColor;
+  }
   if (
     settings.sortOrder === 'name' ||
     settings.sortOrder === 'name-state' ||
