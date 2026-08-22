@@ -3,6 +3,8 @@ dist/
 reference/
 .DS_Store
 *.log
+.artifacts/
+test-results/
 
 /private/
 /yarn.lock
@@ -21,3 +23,4 @@ dist.zip
 *.7z
 /attachments/
 /archives/
+tests/fixtures/legacy-0.1.9/
