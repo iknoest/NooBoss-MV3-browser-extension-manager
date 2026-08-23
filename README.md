@@ -150,3 +150,9 @@ npm run build
 - **Original Project**: [NooBoss](https://github.com/AInoob/NooBoss) by [AInoob](https://github.com/AInoob)
 - **License**: [GNU General Public License v3.0 (GPL-3.0)](LICENSE)
 - **Icons**: [Google Material Symbols Rounded](https://fonts.google.com/icons) (Apache License 2.0)
+---
+
+## Branch Structure
+
+- **`main`** (Default): Active development and modern Manifest V3 continuation of NooBoss.
+- **`master`**: Preserves the original legacy Manifest V2 upstream lineage and history.
