@@ -8,13 +8,12 @@ import type {
   PendingAutoStateChange,
 } from "../../shared/types";
 import { DEFAULT_SETTINGS } from "../../shared/types";
-import { Navigator, type MainLocation, type SubLocation } from "./Navigator";
+import { Navigator, type MainLocation } from "./Navigator";
 import { Selector } from "./Selector";
 import { AutoStateView } from "./AutoStateView";
 import { HistoryView } from "./HistoryView";
 import { OptionsView } from "./OptionsView";
 import { AboutView } from "./AboutView";
-import { OverviewView } from "./OverviewView";
 import { SubWindow } from "./SubWindow";
 import "./nooboss.css";
 
@@ -23,9 +22,8 @@ export interface NooBossAppProps {
 }
 
 export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
-  // Default startup landing page is Extensions / Manage (not Overview)
+  // Default startup landing page is Extensions
   const [mainLocation, setMainLocation] = useState<MainLocation>("extensions");
-  const [subLocation, setSubLocation] = useState<SubLocation>("manage");
 
   const [extensions, setExtensions] = useState<ExtensionInfo[]>([]);
   const [groups, setGroups] = useState<ExtensionGroup[]>([]);
@@ -116,22 +114,23 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
       } else if (resolvedSetts.viewMode === "list") {
         setViewMode("list");
       }
-    } catch (e) {
+    } catch {
       console.warn("[NooBoss] Failed to load data:", e);
     }
   }, []);
 
   useEffect(() => {
-    // Check URL parameters for direct subpage linking (e.g. ?page=options or ?page=extensions)
+    // Check URL parameters for direct subpage linking (e.g. ?page=options or ?page=autostate)
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
-      const pageParam = params.get("page") as MainLocation | null;
-      if (pageParam && ["overview", "extensions", "history", "options", "about"].includes(pageParam)) {
-        setMainLocation(pageParam);
-      }
-      const subParam = params.get("sub") as SubLocation | null;
-      if (subParam && ["manage", "autoState"].includes(subParam)) {
-        setSubLocation(subParam);
+      const pageParam = params.get("page");
+      if (pageParam === "overview") {
+        // Overview redirects to extensions
+        setMainLocation("extensions");
+      } else if (pageParam === "autoState" || pageParam === "autostate") {
+        setMainLocation("autostate");
+      } else if (pageParam && ["extensions", "history", "options", "about"].includes(pageParam)) {
+        setMainLocation(pageParam as MainLocation);
       }
     }
 
@@ -192,7 +191,7 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
     }
   };
 
-  // Group actions: synchronously dispatch all member operations in click gesture
+  // Group actions: one-shot command directly dispatched to eligible members
   const handleToggleGroup = async (id: string, enabled: boolean) => {
     const group = groups.find((g) => g.id === id);
     if (!group || group.extensionIds.length === 0) return;
@@ -212,13 +211,13 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
         const results = await Promise.all(operations);
         const failed = results.filter((r) => !r.success);
         if (failed.length > 0) {
-          console.warn(`[NooBoss] Group toggle: ${eligibleIds.length - failed.length} changed, ${failed.length} failed`);
+          console.warn(`[NooBoss] Group command: ${eligibleIds.length - failed.length} changed, ${failed.length} failed`);
         }
       } else if (typeof chrome !== "undefined" && chrome.runtime?.sendMessage) {
         await chrome.runtime.sendMessage({ type: "TOGGLE_GROUP", id, enabled });
       }
     } catch (err) {
-      console.error("[NooBoss] Group toggle error:", err);
+      console.error("[NooBoss] Group command error:", err);
     } finally {
       await loadData();
     }
@@ -240,109 +239,99 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
     await loadData();
   };
 
-  const handleDeleteGroup = async (id: string) => {
-    if (!window.confirm("Are you sure you want to delete this group?")) return;
-    setGroups((prev) => prev.filter((g) => g.id !== id));
-    await chrome.runtime?.sendMessage?.({ type: "DELETE_GROUP", id });
-    await loadData();
-  };
-
   const handleCopyGroup = async (id: string) => {
-    const original = groups.find((g) => g.id === id);
-    if (!original) return;
-    const newName = original.name + " (Copy)";
-    const res = await chrome.runtime?.sendMessage?.({ type: "CREATE_GROUP", name: newName });
-    if (res?.group && original.extensionIds.length > 0) {
-      await chrome.runtime?.sendMessage?.({
-        type: "UPDATE_GROUP",
-        group: {
-          ...res.group,
-          extensionIds: [...original.extensionIds],
-          color: original.color,
-          icon: original.icon,
-        },
-      });
-    }
+    const group = groups.find((g) => g.id === id);
+    if (!group) return;
+    const newGroup: ExtensionGroup = {
+      ...group,
+      id: "group_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7),
+      name: group.name + " (Copy)",
+      createdAt: Date.now(),
+    };
+    await chrome.runtime?.sendMessage?.({ type: "CREATE_GROUP", name: newGroup.name, group: newGroup });
     await loadData();
   };
 
-  // AutoState rules
+  const handleDeleteGroup = async (id: string) => {
+    const group = groups.find((g) => g.id === id);
+    if (!group) return;
+    if (window.confirm(`Are you sure you want to delete group "${group.name}"?`)) {
+      setGroups((prev) => prev.filter((g) => g.id !== id));
+      await chrome.runtime?.sendMessage?.({ type: "DELETE_GROUP", id });
+      await loadData();
+    }
+  };
+
+  // AutoState actions
   const handleSaveRules = async (newRules: AutoStateRule[]) => {
     setRules(newRules);
     await chrome.runtime?.sendMessage?.({ type: "SAVE_AUTOSTATE_RULES", rules: newRules });
     await loadData();
   };
 
-  const handleApplyPending = async (extensionId: string, enabled: boolean) => {
-    await chrome.runtime?.sendMessage?.({ type: "APPLY_PENDING_CHANGE", extensionId, enabled });
+  const handleApplyPending = async (changeId: string) => {
+    await chrome.runtime?.sendMessage?.({ type: "APPLY_PENDING_CHANGE", changeId });
     await loadData();
   };
 
-  const handleDismissPending = async (extensionId: string) => {
-    await chrome.runtime?.sendMessage?.({ type: "DISMISS_PENDING_CHANGE", extensionId });
+  const handleDismissPending = async (changeId: string) => {
+    await chrome.runtime?.sendMessage?.({ type: "DISMISS_PENDING_CHANGE", changeId });
     await loadData();
   };
 
-  // History actions
+  // Options & Settings
+  const handleSaveSettings = async (newSettings: Partial<AppSettings>) => {
+    const updated = { ...settings, ...newSettings };
+    setSettings(updated);
+    await chrome.runtime?.sendMessage?.({ type: "SAVE_SETTINGS", settings: updated });
+    await loadData();
+  };
+
   const handleClearHistory = async () => {
     setHistoryRecords([]);
     await chrome.runtime?.sendMessage?.({ type: "CLEAR_HISTORY" });
     await loadData();
   };
 
-  // Settings
-  const handleSaveSettings = async (newSettings: AppSettings) => {
-    setSettings(newSettings);
-    await chrome.runtime?.sendMessage?.({ type: "SAVE_SETTINGS", settings: newSettings });
-    await loadData();
-  };
-
-  // Export / Import
   const handleExportData = async () => {
     const res = await chrome.runtime?.sendMessage?.({ type: "EXPORT_DATA" });
-    const exportObj = res?.data || res;
-    if (exportObj && (exportObj.version || exportObj.groups)) {
-      const json = JSON.stringify(exportObj, null, 2);
-      const blob = new Blob([json], { type: "application/json" });
+    if (res?.data) {
+      const blob = new Blob([JSON.stringify(res.data, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `NooBoss_backup_${new Date().toISOString().slice(0, 10)}.json`;
+      a.download = `nooboss-export-${new Date().toISOString().slice(0, 10)}.json`;
       a.click();
       URL.revokeObjectURL(url);
     }
   };
 
-  const handleImportData = (file: File) => {
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      try {
-        const data = JSON.parse(e.target?.result as string);
-        const res = await chrome.runtime?.sendMessage?.({ type: "IMPORT_DATA", data });
-        if (res?.success) {
-          alert("Settings and groups imported successfully!");
-          await loadData();
-        } else {
-          alert("Failed to import: " + (res?.error || "Invalid file format"));
-        }
-      } catch {
-        alert("Invalid JSON file");
+  const handleImportData = async (file: File) => {
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      const res = await chrome.runtime?.sendMessage?.({ type: "IMPORT_DATA", data });
+      if (res?.success) {
+        alert("Configuration imported successfully!");
+        await loadData();
+      } else {
+        alert("Import failed: " + (res?.error || "Invalid format"));
       }
-    };
-    reader.readAsText(file);
+    } catch {
+      alert("Failed to parse JSON file.");
+    }
   };
 
-  const handleChangeViewMode = (mode: "tile" | "bigTile" | "list") => {
+  // View Mode Change
+  const handleChangeViewMode = async (mode: "tile" | "bigTile" | "list") => {
     setViewMode(mode);
-    const updatedSettings: AppSettings = {
-      ...settings,
-      viewMode: mode,
-    };
-    handleSaveSettings(updatedSettings);
+    const updated = { ...settings, viewMode: mode };
+    setSettings(updated);
+    await chrome.runtime?.sendMessage?.({ type: "SAVE_SETTINGS", settings: updated });
   };
 
-  const handleOpenSubWindow = (display: "extension" | "group", targetId: string) => {
-    setSubWindow({ display, targetId });
+  const handleOpenSubWindow = (type: "extension" | "group", id: string) => {
+    setSubWindow({ display: type, targetId: id });
   };
 
   const handleCloseSubWindow = () => {
@@ -357,26 +346,14 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
       {/* Top Navigator */}
       <Navigator
         mainLocation={mainLocation}
-        subLocation={subLocation}
         onNavigateMain={setMainLocation}
-        onNavigateSub={setSubLocation}
         themeMainColor={resolvedAccent}
       />
 
       {/* Main Content Area */}
       <div className="main-content">
-        {/* Overview View */}
-        {mainLocation === "overview" && (
-          <OverviewView
-            extensions={extensions}
-            groups={groups}
-            rules={rules}
-            themeMainColor={resolvedAccent}
-          />
-        )}
-
-        {/* Extensions -> Manage View */}
-        {mainLocation === "extensions" && subLocation === "manage" && (
+        {/* Extensions View */}
+        {mainLocation === "extensions" && (
           <div className="nb-page">
             <Selector
               extensions={extensions}
@@ -399,8 +376,8 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
           </div>
         )}
 
-        {/* Extensions -> AutoState View */}
-        {mainLocation === "extensions" && subLocation === "autoState" && (
+        {/* AutoState View */}
+        {mainLocation === "autostate" && (
           <AutoStateView
             extensions={extensions}
             groups={groups}
@@ -420,6 +397,7 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
         {mainLocation === "history" && (
           <HistoryView
             records={historyRecords}
+            extensions={extensions}
             onClearHistory={handleClearHistory}
             onOpenSubWindow={handleOpenSubWindow}
             themeMainColor={resolvedAccent}

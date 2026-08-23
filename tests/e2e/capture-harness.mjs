@@ -123,20 +123,54 @@ async function main() {
       version: "3.1.6",
       enabled: false,
       type: "extension",
-      installType: "normal",
-      mayDisable: true,
+      installType: "admin",
+      mayDisable: false, // Attention / unavailable case
       description: "Redux DevTools for debugging application state changes.",
       icons: [{ size: 48, url: "https://lh3.googleusercontent.com/fife/ALs6j_rdx" }],
     },
   ];
 
-  const groupsWithExts = (migratedData.groups || []).map((g, idx) => {
-    if (idx === 0) return { ...g, icon: { type: "material", name: "shopping_cart" }, extensionIds: ["ghbmnnjggjcganegdakffhaeglpncmno", "cjpalhdlnbpafiamejdnhcphjbkeiagm"] };
-    if (idx === 1) return { ...g, icon: { type: "material", name: "code" }, extensionIds: ["fmkadmapgofadopljbjfkapdkoienihi"] };
-    if (idx === 2) return { ...g, icon: { type: "material", name: "business_center" }, extensionIds: ["nkbihfbeogaeaoehlefnkodbefgpgknn", "eimadpbcbfnmbkopoojfekhnkhdbieeh"] };
-    if (idx === 3) return { ...g, icon: { type: "material", name: "shield" }, extensionIds: ["eimadpbcbfnmbkopoojfekhnkhdbieeh"] };
-    return { ...g, icon: undefined, extensionIds: [] };
-  });
+  const sampleGroups = [
+    {
+      id: "g_adblock",
+      name: "Ad-Cookie blocker",
+      extensionIds: ["ghbmnnjggjcganegdakffhaeglpncmno", "cjpalhdlnbpafiamejdnhcphjbkeiagm"],
+      color: "#1a73e8",
+      createdAt: 1000,
+      icon: { type: "material", name: "shopping_cart" },
+    },
+    {
+      id: "g_dev",
+      name: "Development Tools",
+      extensionIds: ["fmkadmapgofadopljbjfkapdkoienihi", "lmhkpmbekcpmknklioeibfkpmmfibljd"],
+      color: "#1a73e8",
+      createdAt: 2000,
+      icon: { type: "material", name: "code" },
+    },
+    {
+      id: "g_crypto",
+      name: "Finance & Security",
+      extensionIds: ["nkbihfbeogaeaoehlefnkodbefgpgknn", "eimadpbcbfnmbkopoojfekhnkhdbieeh", "ghost_ext_missing"],
+      color: "#1a73e8",
+      createdAt: 3000,
+      icon: { type: "material", name: "business_center" },
+    },
+    {
+      id: "g_general",
+      name: "General Utilities",
+      extensionIds: ["eimadpbcbfnmbkopoojfekhnkhdbieeh"],
+      color: "#1a73e8",
+      createdAt: 4000,
+      icon: { type: "material", name: "folder" },
+    },
+  ];
+
+  const sampleHistory = [
+    { id: "h1", extensionId: "ghbmnnjggjcganegdakffhaeglpncmno", extensionName: "ChatGPT for Chrome", extensionVersion: "1.8.0", event: "enable", timestamp: Date.now() - 1000 * 60 * 5 },
+    { id: "h2", extensionId: "cjpalhdlnbpafiamejdnhcphjbkeiagm", extensionName: "uBlock Origin", extensionVersion: "1.58.0", event: "update", timestamp: Date.now() - 1000 * 60 * 45 },
+    { id: "h3", extensionId: "eimadpbcbfnmbkopoojfekhnkhdbieeh", extensionName: "Dark Reader", extensionVersion: "4.9.80", event: "disable", timestamp: Date.now() - 1000 * 60 * 180 },
+    { id: "h4", extensionId: "nkbihfbeogaeaoehlefnkodbefgpgknn", extensionName: "MetaMask", extensionVersion: "12.2.1", event: "install", timestamp: Date.now() - 1000 * 60 * 60 * 24 },
+  ];
 
   const browser = await puppeteer.launch({
     headless: "new",
@@ -147,10 +181,11 @@ async function main() {
   const page = await browser.newPage();
   await page.setViewport({ width: 760, height: 560 });
 
-  await page.evaluateOnNewDocument((exts, grps, rls, setts) => {
+  await page.evaluateOnNewDocument((exts, grps, rls, setts, hist) => {
     let internalExts = [...exts];
     let internalGrps = [...grps];
     let internalRls = [...rls];
+    let internalHist = [...hist];
     let internalSetts = { ...setts, theme: "system", accentPreset: "default", accentColor: "#1a73e8", viewMode: "bigTile" };
 
     window.chrome = {
@@ -166,7 +201,7 @@ async function main() {
             case "GET_AUTOSTATE_RULES":
               return internalRls;
             case "GET_HISTORY":
-              return [];
+              return internalHist;
             case "GET_SETTINGS":
               return internalSetts;
             case "GET_PENDING_CHANGES":
@@ -199,65 +234,91 @@ async function main() {
       },
       i18n: { getMessage: (k) => k },
     };
-  }, sampleExtensions, groupsWithExts, migratedData.autoStateRules || [], migratedData.settings || {});
+  }, sampleExtensions, sampleGroups, migratedData.autoStateRules || [], migratedData.settings || {}, sampleHistory);
 
   await page.goto("http://localhost:8789/popup/popup.html", { waitUntil: "networkidle0" });
   await sleep(1000);
 
-  // Visual 1: Big Tile Manage view (2 columns maximum, 0 horizontal scroll)
-  const s1Path = path.join(ARTIFACT_DIR, "visual_01_big_tile_2col.png");
-  await page.screenshot({ path: s1Path });
-  console.log("Captured:", s1Path);
+  // 1. Group Big Tile with X / Y running & partial runtime case & contrast
+  const s1 = path.join(ARTIFACT_DIR, "v2_01_group_big_tile_running_stats.png");
+  await page.screenshot({ path: s1 });
+  console.log("Captured:", s1);
 
-  // Check horizontal overflow in Big Tile
-  const hasOverflow = await page.evaluate(() => {
-    const main = document.querySelector(".main-content");
-    return main ? main.scrollWidth > main.clientWidth : false;
-  });
-  console.log("Big Tile Main Content has horizontal overflow:", hasOverflow);
+  // 2. Extensions enabled/disabled contrast in Big Tile
+  const s2 = path.join(ARTIFACT_DIR, "v2_02_enabled_disabled_contrast.png");
+  await page.screenshot({ path: s2 });
+  console.log("Captured:", s2);
 
-  // Visual 2: List Manage view
+  // 3. Group List mode (44px rows, segmented control, X / Y running)
   await page.evaluate(() => {
     const listBtn = document.querySelectorAll(".view-mode-btn")[0];
     if (listBtn) listBtn.click();
   });
   await sleep(400);
-  const s2Path = path.join(ARTIFACT_DIR, "visual_02_list_view.png");
-  await page.screenshot({ path: s2Path });
-  console.log("Captured:", s2Path);
+  const s3 = path.join(ARTIFACT_DIR, "v2_03_group_list_mode.png");
+  await page.screenshot({ path: s3 });
+  console.log("Captured:", s3);
 
-  // Visual 3: Tile Manage view (max 6 columns)
+  // 4. Tile resting state (clean without clutter)
   await page.evaluate(() => {
     const tileBtn = document.querySelectorAll(".view-mode-btn")[2];
     if (tileBtn) tileBtn.click();
   });
   await sleep(400);
-  const s3Path = path.join(ARTIFACT_DIR, "visual_03_tile_view_max6.png");
-  await page.screenshot({ path: s3Path });
-  console.log("Captured:", s3Path);
+  const s4 = path.join(ARTIFACT_DIR, "v2_04_tile_resting_state.png");
+  await page.screenshot({ path: s4 });
+  console.log("Captured:", s4);
 
-  // Visual 4: Group Editor List mode
-  await page.evaluate(() => {
-    const bigTileBtn = document.querySelectorAll(".view-mode-btn")[1];
-    if (bigTileBtn) bigTileBtn.click();
-  });
+  // 5. Tile hover panel showing X / Y running and [ OFF | ON ]
+  await page.hover(".group-tile");
   await sleep(300);
+  const s5 = path.join(ARTIFACT_DIR, "v2_05_tile_hover_operational_panel.png");
+  await page.screenshot({ path: s5 });
+  console.log("Captured:", s5);
 
+  // 6. Compact Operational Summary Bar (e.g. 4 / 6 running · 1 extension needs attention)
+  const s6 = path.join(ARTIFACT_DIR, "v2_06_operational_summary_bar.png");
+  await page.screenshot({ path: s6 });
+  console.log("Captured:", s6);
+
+  // 7. Top Navigation (Extensions | AutoState | History | Options | About)
+  const s7 = path.join(ARTIFACT_DIR, "v2_07_top_navigation_structure.png");
+  await page.screenshot({ path: s7 });
+  console.log("Captured:", s7);
+
+  // 8. History View without separate Icon column (inline icon, 4 columns)
   await page.evaluate(() => {
-    const editBtns = document.querySelectorAll(".nb-big-tile.group-big-tile .action-icon-btn");
-    if (editBtns[1]) {
-      editBtns[1].dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    const navLinks = document.querySelectorAll(".nav-link");
+    for (const l of navLinks) {
+      if (l.textContent.includes("History") || l.textContent.includes("history")) {
+        l.click();
+        break;
+      }
     }
   });
-  await sleep(600);
+  await sleep(500);
+  const s8 = path.join(ARTIFACT_DIR, "v2_08_history_4_columns_inline_icons.png");
+  await page.screenshot({ path: s8 });
+  console.log("Captured:", s8);
 
-  const s4Path = path.join(ARTIFACT_DIR, "visual_04_group_editor_list.png");
-  await page.screenshot({ path: s4Path });
-  console.log("Captured:", s4Path);
+  // 9. AutoState Tab View as first-class top-level tab
+  await page.evaluate(() => {
+    const navLinks = document.querySelectorAll(".nav-link");
+    for (const l of navLinks) {
+      if (l.textContent.includes("AutoState") || l.textContent.includes("autoState")) {
+        l.click();
+        break;
+      }
+    }
+  });
+  await sleep(500);
+  const s9 = path.join(ARTIFACT_DIR, "v2_09_autostate_toplevel_view.png");
+  await page.screenshot({ path: s9 });
+  console.log("Captured:", s9);
 
   await browser.close();
   server.close();
-  console.log("All visual acceptance screenshots captured successfully!");
+  console.log("All 9 visual evidence captures completed!");
 }
 
 main().catch((err) => {

@@ -1,9 +1,11 @@
 import { useState } from "preact/hooks";
-import type { HistoryRecord } from "../../shared/types";
+import type { HistoryRecord, ExtensionInfo } from "../../shared/types";
 import { GL, timeAgo } from "./i18n";
+import { MaterialSymbol } from "./MaterialSymbols";
 
 export interface HistoryViewProps {
   records: HistoryRecord[];
+  extensions?: ExtensionInfo[];
   onClearHistory: () => void;
   onOpenSubWindow?: (type: "extension", id: string) => void;
   themeMainColor?: string;
@@ -11,9 +13,10 @@ export interface HistoryViewProps {
 
 export function HistoryView({
   records = [],
+  extensions = [],
   onClearHistory,
   onOpenSubWindow,
-  themeMainColor,
+  _themeMainColor,
 }: HistoryViewProps) {
   const [showConfirm, setShowConfirm] = useState(false);
   const [maxDisplay, setMaxDisplay] = useState(40);
@@ -26,78 +29,82 @@ export function HistoryView({
   const sortedRecords = [...records].sort((a, b) => b.timestamp - a.timestamp);
   const displayed = sortedRecords.slice(0, maxDisplay);
 
+  const getExtensionIcon = (extId: string, name: string) => {
+    const ext = extensions.find((e) => e.id === extId);
+    if (ext && ext.icons && ext.icons.length > 0) {
+      return (
+        <img
+          src={ext.icons[ext.icons.length - 1].url}
+          alt={name}
+          className="history-inline-icon"
+          onError={(e) => {
+            (e.currentTarget as HTMLElement).style.display = "none";
+          }}
+        />
+      );
+    }
+    return (
+      <span className="history-inline-fallback">
+        <MaterialSymbol name="extension" size={16} color="var(--text-muted)" />
+      </span>
+    );
+  };
+
   return (
     <div className="nb-page">
       <div style={{ marginBottom: "14px" }}>
-        <button className="nb-btn" onClick={() => setShowConfirm(true)}>
+        <button className="btn btn-secondary action-btn" onClick={() => setShowConfirm(true)}>
           {GL("empty_history")}
         </button>
       </div>
 
-      <table
-        style={{
-          width: "100%",
-          borderCollapse: "collapse",
-          fontSize: "13px",
-          textAlign: "left",
-        }}
-      >
-        <thead>
-          <tr style={{ borderBottom: `1px solid ${themeMainColor || "#c393dc"}`, height: "30px" }}>
-            <th style={{ width: "130px" }}>{GL("when")}</th>
-            <th style={{ width: "90px" }}>{GL("event")}</th>
-            <th style={{ width: "40px" }}>{GL("icon")}</th>
-            <th style={{ width: "320px" }}>{GL("name")}</th>
-            <th>{GL("version")}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {displayed.map((rec) => (
-            <tr
-              key={rec.id}
-              style={{
-                borderBottom: "1px solid #f0f0f0",
-                height: "36px",
-                transition: "background 0.15s",
-              }}
-            >
-              <td style={{ color: "#666" }}>{timeAgo(rec.timestamp)}</td>
-              <td style={{ fontWeight: 500 }}>
-                {rec.event.charAt(0).toUpperCase() + rec.event.slice(1)}
-              </td>
-              <td>
-                <span style={{ fontSize: "16px", verticalAlign: "middle" }}>🧩</span>
-              </td>
-              <td>
-                <span
-                  style={{
-                    color: themeMainColor || "#c393dc",
-                    cursor: "pointer",
-                    fontWeight: 500,
-                  }}
-                  onClick={() => onOpenSubWindow?.("extension", rec.extensionId)}
-                  title={rec.extensionName}
-                >
-                  {rec.extensionName}
-                </span>
-              </td>
-              <td style={{ color: "#777" }}>{rec.extensionVersion}</td>
-            </tr>
-          ))}
-          {displayed.length === 0 && (
+      <div className="history-table-wrapper">
+        <table className="nb-table history-table">
+          <thead>
             <tr>
-              <td colSpan={5} style={{ padding: "20px", textAlign: "center", color: "#888" }}>
-                No history records yet.
-              </td>
+              <th style={{ width: "130px" }}>{GL("when")}</th>
+              <th style={{ width: "100px" }}>{GL("event")}</th>
+              <th>{GL("name")}</th>
+              <th style={{ width: "100px" }}>{GL("version")}</th>
             </tr>
-          )}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {displayed.map((rec) => (
+              <tr key={rec.id} className="history-row">
+                <td className="history-when">{timeAgo(rec.timestamp)}</td>
+                <td className="history-event">
+                  <span className={`history-badge event-${rec.event}`}>
+                    {rec.event.charAt(0).toUpperCase() + rec.event.slice(1)}
+                  </span>
+                </td>
+                <td className="history-name-cell">
+                  <div
+                    className="history-name-wrap clickable"
+                    onClick={() => onOpenSubWindow?.("extension", rec.extensionId)}
+                    title={rec.extensionName}
+                  >
+                    {getExtensionIcon(rec.extensionId, rec.extensionName)}
+                    <span className="history-ext-name">{rec.extensionName}</span>
+                  </div>
+                </td>
+                <td className="history-version">{rec.extensionVersion}</td>
+              </tr>
+            ))}
+            {displayed.length === 0 && (
+              <tr>
+                <td colSpan={4} className="history-empty-cell">
+                  No history records yet.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
 
       {sortedRecords.length > maxDisplay && (
         <div style={{ textAlign: "center", marginTop: "16px" }}>
           <button
-            className="nb-btn"
+            className="btn btn-secondary action-btn"
             style={{ fontSize: "12px", minWidth: "120px" }}
             onClick={() => setMaxDisplay((m) => m + 30)}
           >
@@ -110,21 +117,15 @@ export function HistoryView({
       {showConfirm && (
         <div className="subwindow-overlay" onClick={() => setShowConfirm(false)}>
           <div
-            style={{
-              width: "300px",
-              padding: "20px",
-              background: "#fff",
-              textAlign: "center",
-              boxShadow: "0 0 16px rgba(0,0,0,0.3)",
-            }}
+            className="confirm-modal-box"
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ fontSize: "16px", marginBottom: "16px" }}>{GL("are_you_sure")}</div>
-            <div style={{ display: "flex", justifyContent: "center", gap: "16px" }}>
-              <button className="nb-btn" onClick={handleEmpty}>
+            <div className="confirm-modal-title">{GL("are_you_sure")}</div>
+            <div className="confirm-modal-actions">
+              <button className="btn btn-primary" onClick={handleEmpty}>
                 {GL("confirm")}
               </button>
-              <button className="nb-btn inActive" onClick={() => setShowConfirm(false)}>
+              <button className="btn btn-secondary" onClick={() => setShowConfirm(false)}>
                 {GL("cancel")}
               </button>
             </div>

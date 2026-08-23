@@ -1,7 +1,8 @@
 import type { ExtensionGroup, ExtensionInfo } from "../../shared/types";
 import { Optioney, Removy, Copyy } from "./icons";
 import { MaterialSymbol } from "./MaterialSymbols";
-import { GroupStateToggle } from "./GroupStateToggle";
+import { GroupCommandControl } from "./GroupCommandControl";
+import { computeGroupRuntimeSummary } from "./group-summary";
 
 export interface GroupBriefProps {
   group: ExtensionGroup;
@@ -47,7 +48,6 @@ export function renderGroupIcon(group: ExtensionGroup, size: number = 32, color?
   if (typeof group.icon === "string" && group.icon.trim()) {
     return <MaterialSymbol name={group.icon} size={size} color={color || "currentColor"} fallback="folder" />;
   }
-  // Default robust fallback
   return <MaterialSymbol name="folder" size={size} color={color || "currentColor"} fallback="folder" />;
 }
 
@@ -66,6 +66,7 @@ export function GroupBrief({
 }: GroupBriefProps) {
   const isSelectable = selected !== null;
   const isSelected = selected === true;
+  const summary = computeGroupRuntimeSummary(group, allExtensions);
 
   const handleOpenDetail = (e: MouseEvent) => {
     e.stopPropagation();
@@ -94,16 +95,16 @@ export function GroupBrief({
             {group.name}
           </span>
           <span className="item-version">
-            {group.extensionIds.length} extension(s)
+            {summary.summaryText}
+            {summary.exceptionText && <span className="exception-text"> · {summary.exceptionText}</span>}
           </span>
         </div>
 
         {withControl && (
           <div className="item-controls-strip">
             {onToggleGroup && (
-              <GroupStateToggle
-                groupId={group.id}
-                extensionIds={group.extensionIds}
+              <GroupCommandControl
+                group={group}
                 allExtensions={allExtensions}
                 onToggleGroup={onToggleGroup}
                 size="medium"
@@ -151,18 +152,19 @@ export function GroupBrief({
     );
   }
 
-  // --- List View (44px Row Height with Clear Action Strip) ---
+  // --- List View (44px Row Height) ---
   if (viewMode === "list" && !isSelectable) {
     return (
       <div className="nb-list-row group-list-row">
         {withControl && onToggleGroup && (
-          <GroupStateToggle
-            groupId={group.id}
-            extensionIds={group.extensionIds}
-            allExtensions={allExtensions}
-            onToggleGroup={onToggleGroup}
-            size="medium"
-          />
+          <div className="list-group-toggle-wrap">
+            <GroupCommandControl
+              group={group}
+              allExtensions={allExtensions}
+              onToggleGroup={onToggleGroup}
+              size="small"
+            />
+          </div>
         )}
         <div className="list-icon-wrap clickable" onClick={handleOpenDetail}>
           {renderGroupIcon(group, 26, themeMainColor)}
@@ -174,7 +176,10 @@ export function GroupBrief({
         >
           {group.name}
         </span>
-        <span className="list-version">{group.extensionIds.length} extension(s)</span>
+        <span className="list-version">
+          {summary.summaryText}
+          {summary.exceptionText && <span className="exception-text"> · {summary.exceptionText}</span>}
+        </span>
         {withControl && (
           <div className="list-actions">
             <button
@@ -219,11 +224,12 @@ export function GroupBrief({
     );
   }
 
-  // --- Normal Tile View (~104x104px, Max 6 Columns) ---
+  // --- Tile View (Max 6 Columns) ---
   return (
     <div
       className={`nb-tile group-tile ${isSelectable ? "selectable " + (isSelected ? "is-selected" : "not-selected") : ""}`}
       onClick={isSelectable ? handleCardClick : handleOpenDetail}
+      tabIndex={0}
     >
       <div className="tile-body">
         <div className="group-icon-center">
@@ -235,40 +241,59 @@ export function GroupBrief({
       </div>
 
       {!isSelectable && withControl && (
-        <div className="tile-hover-bar" onClick={(e) => e.stopPropagation()}>
+        <div className="group-tile-hover-panel" onClick={(e) => e.stopPropagation()}>
+          <div className="group-tile-hover-stats">
+            <span className="group-stats-running">{summary.summaryText}</span>
+            {summary.exceptionText && (
+              <span className="group-stats-exceptions">{summary.exceptionText}</span>
+            )}
+          </div>
           {onToggleGroup && (
-            <GroupStateToggle
-              groupId={group.id}
-              extensionIds={group.extensionIds}
+            <GroupCommandControl
+              group={group}
               allExtensions={allExtensions}
               onToggleGroup={onToggleGroup}
               size="small"
             />
           )}
-          <button
-            type="button"
-            className="action-icon-btn"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleOpenDetail(e as unknown as MouseEvent);
-            }}
-            title="Edit Group"
-            aria-label="Edit Group"
-          >
-            <Optioney color={themeMainColor} size={14} />
-          </button>
-          <button
-            type="button"
-            className="action-icon-btn"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDeleteGroup?.(group.id);
-            }}
-            title="Delete Group"
-            aria-label="Delete Group"
-          >
-            <Removy color={themeMainColor} size={14} />
-          </button>
+          <div className="group-tile-hover-actions">
+            <button
+              type="button"
+              className="tile-action-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                onCopyGroup?.(group.id);
+              }}
+              title="Duplicate Group"
+              aria-label="Duplicate Group"
+            >
+              <Copyy color={themeMainColor} size={14} />
+            </button>
+            <button
+              type="button"
+              className="tile-action-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleOpenDetail(e as unknown as MouseEvent);
+              }}
+              title="Edit Group"
+              aria-label="Edit Group"
+            >
+              <Optioney color={themeMainColor} size={14} />
+            </button>
+            <button
+              type="button"
+              className="tile-action-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDeleteGroup?.(group.id);
+              }}
+              title="Delete Group"
+              aria-label="Delete Group"
+            >
+              <Removy color={themeMainColor} size={14} />
+            </button>
+          </div>
         </div>
       )}
     </div>

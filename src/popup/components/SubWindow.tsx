@@ -2,10 +2,12 @@ import { useState } from "preact/hooks";
 import type { ExtensionInfo, ExtensionGroup, GroupIcon } from "../../shared/types";
 import { Selector } from "./Selector";
 import { GL } from "./i18n";
-import { Switchy, Optioney, Removy, Chromey, Closey, Edity } from "./icons";
+import { Optioney, Removy, Chromey, Closey, Edity } from "./icons";
 import { renderGroupIcon } from "./GroupBrief";
 import { GroupIconPicker } from "./GroupIconPicker";
-import { GroupStateToggle } from "./GroupStateToggle";
+import { GroupCommandControl } from "./GroupCommandControl";
+import { computeGroupRuntimeSummary } from "./group-summary";
+import { ExtensionSwitch } from "./ExtensionBrief";
 
 export interface SubWindowProps {
   display: "" | "extension" | "group";
@@ -75,11 +77,11 @@ export function SubWindow({
 
             <div className="subwindow-controls">
               {ext.type !== "theme" && (
-                <Switchy
-                  color={themeMainColor}
-                  className="subwindow-ctrl-icon"
-                  onClick={() => onToggleExtension?.(ext.id, !ext.enabled)}
-                  title={ext.enabled ? "Disable" : "Enable"}
+                <ExtensionSwitch
+                  id={ext.id}
+                  enabled={ext.enabled}
+                  onToggle={onToggleExtension}
+                  size="medium"
                 />
               )}
               {ext.optionsUrl && (
@@ -256,12 +258,14 @@ export function SubWindow({
               />
               <div className="group-meta-row">
                 <span className="group-count-text">
-                  {group.extensionIds.length} extension(s) in group
+                  {computeGroupRuntimeSummary(group, extensions).summaryText}
+                  {computeGroupRuntimeSummary(group, extensions).exceptionText && (
+                    <span className="exception-text"> · {computeGroupRuntimeSummary(group, extensions).exceptionText}</span>
+                  )}
                 </span>
                 {onToggleGroup && (
-                  <GroupStateToggle
-                    groupId={group.id}
-                    extensionIds={group.extensionIds}
+                  <GroupCommandControl
+                    group={group}
                     allExtensions={extensions}
                     onToggleGroup={onToggleGroup}
                     size="small"
