@@ -172,4 +172,27 @@ describe("Material Symbols & Usability Refinements", () => {
       expect(failed[0].id).toBe("ext2");
     });
   });
+
+  describe("Toolbar Bulk Action Icons & AutoState Alignment", () => {
+    it("validates visibility and visibility_off in bundled catalog", () => {
+      expect(isValidSymbolName("visibility")).toBe(true);
+      expect(isValidSymbolName("visibility_off")).toBe(true);
+    });
+
+    it("verifies toolbar bulk action buttons use visibility and visibility_off", () => {
+      const selectorCode = fs.readFileSync("src/popup/components/Selector.tsx", "utf8");
+      expect(selectorCode).toContain("<MaterialSymbol name=\"visibility\"");
+      expect(selectorCode).toContain("<MaterialSymbol name=\"visibility_off\"");
+      expect(selectorCode).toContain("title=\"Enable all filtered extensions\"");
+      expect(selectorCode).toContain("title=\"Disable all filtered extensions\"");
+    });
+
+    it("verifies AutoState embeds unified Selector component with shared view modes", () => {
+      const autoStateCode = fs.readFileSync("src/popup/components/AutoStateView.tsx", "utf8");
+      expect(autoStateCode).toContain("<Selector");
+      expect(autoStateCode).toContain("selectedList={ruleTargets}");
+      expect(autoStateCode).toContain("onSelect={handleToggleTarget}");
+    });
+  });
+
 });

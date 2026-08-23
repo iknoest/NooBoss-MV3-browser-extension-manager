@@ -83,8 +83,105 @@ export function GroupBrief({
     }
   };
 
-  // --- Big Tile View (2 Columns Layout) ---
-  if (viewMode === "bigTile" && !isSelectable) {
+  // --- Selectable Mode (Target selection in AutoState / Group management) ---
+  if (isSelectable) {
+    if (viewMode === "bigTile") {
+      return (
+        <div
+          className={`nb-big-tile group-big-tile selectable-big-tile ${isSelected ? "is-selected" : "not-selected"}`}
+          onClick={handleCardClick}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === " " || e.key === "Enter") {
+              e.preventDefault();
+              onSelect?.(group.id);
+            }
+          }}
+        >
+          <div className="select-indicator">
+            <span className={`select-box ${isSelected ? "checked" : ""}`}>
+              {isSelected ? "✓" : ""}
+            </span>
+          </div>
+          <div className="group-icon-center">
+            {renderGroupIcon(group, 36, themeMainColor)}
+          </div>
+          <div className="big-tile-content">
+            <span className="item-name" title={group.name}>{group.name}</span>
+            <span className="item-version">
+              {summary.summaryText}
+              {summary.exceptionText && <span className="exception-text"> · {summary.exceptionText}</span>}
+            </span>
+          </div>
+        </div>
+      );
+    }
+
+    if (viewMode === "tile") {
+      return (
+        <div
+          className={`nb-tile group-tile selectable-tile ${isSelected ? "is-selected" : "not-selected"}`}
+          onClick={handleCardClick}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === " " || e.key === "Enter") {
+              e.preventDefault();
+              onSelect?.(group.id);
+            }
+          }}
+        >
+          <div className="tile-select-badge">
+            <span className={`select-box ${isSelected ? "checked" : ""}`}>
+              {isSelected ? "✓" : ""}
+            </span>
+          </div>
+          <div className="tile-body">
+            <div className="group-icon-center">
+              {renderGroupIcon(group, 36, themeMainColor)}
+            </div>
+            <span className="tile-item-name" title={group.name}>
+              {group.name}
+            </span>
+          </div>
+        </div>
+      );
+    }
+
+    // Default Selectable: List View
+    return (
+      <div
+        className={`nb-list-row group-list-row selectable-row ${isSelected ? "is-selected" : "not-selected"}`}
+        onClick={handleCardClick}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === " " || e.key === "Enter") {
+            e.preventDefault();
+            onSelect?.(group.id);
+          }
+        }}
+      >
+        <div className="select-indicator">
+          <span className={`select-box ${isSelected ? "checked" : ""}`}>
+            {isSelected ? "✓" : ""}
+          </span>
+        </div>
+        <div className="list-icon-wrap">
+          {renderGroupIcon(group, 26, themeMainColor)}
+        </div>
+        <span className="list-name" title={group.name}>{group.name}</span>
+        <span className="list-version">
+          {summary.summaryText}
+          {summary.exceptionText && <span className="exception-text"> · {summary.exceptionText}</span>}
+        </span>
+      </div>
+    );
+  }
+
+  // --- Normal Big Tile View (2 Columns Layout) ---
+  if (viewMode === "bigTile") {
     return (
       <div className="nb-big-tile group-big-tile">
         <div className="group-icon-center clickable" onClick={handleOpenDetail}>
@@ -152,8 +249,8 @@ export function GroupBrief({
     );
   }
 
-  // --- List View (44px Row Height) ---
-  if (viewMode === "list" && !isSelectable) {
+  // --- Normal List View (44px Row Height) ---
+  if (viewMode === "list") {
     return (
       <div className="nb-list-row group-list-row">
         {withControl && onToggleGroup && (
@@ -224,11 +321,11 @@ export function GroupBrief({
     );
   }
 
-  // --- Tile View (Max 6 Columns) ---
+  // --- Normal Tile View (Max 6 Columns) ---
   return (
     <div
-      className={`nb-tile group-tile ${isSelectable ? "selectable " + (isSelected ? "is-selected" : "not-selected") : ""}`}
-      onClick={isSelectable ? handleCardClick : handleOpenDetail}
+      className="nb-tile group-tile"
+      onClick={handleOpenDetail}
       tabIndex={0}
     >
       <div className="tile-body">
@@ -240,7 +337,7 @@ export function GroupBrief({
         </span>
       </div>
 
-      {!isSelectable && withControl && (
+      {withControl && (
         <div className="group-tile-hover-panel" onClick={(e) => e.stopPropagation()}>
           <div className="group-tile-hover-stats">
             <span className="group-stats-running">{summary.summaryText}</span>

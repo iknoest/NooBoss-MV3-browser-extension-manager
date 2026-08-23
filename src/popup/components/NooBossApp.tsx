@@ -114,7 +114,7 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
       } else if (resolvedSetts.viewMode === "list") {
         setViewMode("list");
       }
-    } catch {
+    } catch (e) {
       console.warn("[NooBoss] Failed to load data:", e);
     }
   }, []);

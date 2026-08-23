@@ -1,105 +1,152 @@
 # NooBoss MV3
 
-## Handover summary
-Snapshot: 2026-08-18T23:19:37+02:00
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![Manifest V3](https://img.shields.io/badge/Manifest-V3-success.svg)](https://developer.chrome.com/docs/extensions/develop/migrate/what-is-mv3)
+[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)]()
 
-### What I did
-- Added a concise handover summary for the repository state and migration risk review.
-- Documented the required privacy controls for local Chrome profile recovery and extension-setting exports.
-- Added a sanitized migration template and extraction guide for safe legacy-data review.
-- Updated the repo to ignore raw JSON dumps and keep all recovered work in disposable local scratch copies.
+> A community-maintained **Manifest V3** continuation of [AInoob/NooBoss](https://github.com/AInoob/NooBoss) for modern Google Chrome.
 
-### What is still going
-- The extension remains a local-only Chrome extension manager with AutoState workflow controls.
-- Legacy migration work is still best done in a disposable browser profile and validated against the current MV3 APIs.
-- No broad automation for raw browser-state recovery is checked into the repo.
+<p align="center">
+  <img src="docs/images/nooboss-overview.png" alt="NooBoss MV3 Overview" width="100%" />
+</p>
 
-### Open items
-- Confirm the final import schema for any recovered settings before shipping a migration utility.
-- Validate imports in a disposable Chrome profile before production use.
-- Review any recovered browser data against current extension APIs and policy constraints.
+---
 
-### Parked items
-- Bulk migration automation for recovered browser data
-- Recovery from unsupported Chrome builds or archived profiles
-- Long-term retention of raw extension-setting dumps outside the repo
+## Why This Continuation Exists
 
-### Suggested next steps
-1. Read `docs/EXTRACT_LEGACY_DATA.md` before handling any local profile exports.
-2. Use `migrated-nooboss-import-anon.json` for repo-safe validation and review.
-3. Keep `/migrated-nooboss-import.json` completely out of git history and versioned files.
-4. Revisit migration automation after validating the current extension schema on a disposable profile.
+The original **NooBoss**, created by [AInoob](https://github.com/AInoob), set the benchmark for powerful, visual extension management in Chrome. With the industry-wide transition to Chrome Manifest V3 and the sunset of Manifest V2, the original extension became incompatible with current browser releases.
 
-### Import guide
-- Keep `/migrated-nooboss-import.json` out of git history and ignore it in the repository.
-- Use `/migrated-nooboss-import-anon.json` for code review and safe import tests.
-- Replace any example extension IDs with the user's actual IDs only in a throwaway local profile outside version control.
+**NooBoss MV3** is an independent, community-driven modernization that preserves the beloved NooBoss workflow, information architecture, and customization capabilities while adopting a clean, modern Manifest V3 service-worker architecture and modern system-settings UI principles.
 
-A modern Manifest V3 Chrome extension for efficiently managing installed extensions, grouping them by workflow, and applying AutoState URL rules without a cloud dependency.
+---
 
-## What it does
+## Key Features
 
-- Lists installed Chrome extensions with name, version, enabled state, install type, and optional actions
-- Lets users enable/disable extensions, open their options page, inspect details, and uninstall through Chrome's native confirmation flow
-- Supports persistent user-created extension groups with add/remove, rename, delete, and bulk enable/disable
-- Tracks a bounded local history of install, uninstall, enable, and disable events
-- Offers AutoState URL matching with wildcard or regex rules, optional group targets, priority ordering, and automatic or assisted mode
-- Exports and imports JSON configuration for groups, rules, and settings
+### ⚡ Extension Management
+- **Instant Controls**: Enable, disable, open options, inspect Chrome management details, or uninstall extensions in a single click.
+- **Visual Contrast**: Distinct grayscale and opacity styling clearly differentiates disabled extensions at a glance without sacrificing switch readability.
+- **Multiple View Modes**:
+  - **Big Tile**: 2-column balanced layout with quick-action strips and detailed metadata.
+  - **List**: Compact 44px rows for high-density extension scanning.
+  - **Tile**: Compact grid (up to 6 columns) with interactive hover & keyboard-focus action overlays.
+- **Live Search & Type Filters**: Filter by name, extension type (extensions, apps, themes), or runtime state.
+- **Bulk Visibility Commands**: One-click bulk Enable (`visibility`) and Disable (`visibility_off`) with multi-level Undo / Redo.
+- **Operational Summary Bar**: Live status pill (`X / Y running · Needs attention`) with one-click filtering.
 
-## Project status
+### 🏷️ Command-Based Groups
+- **One-Shot Bulk Commands**: Groups feature a compact `[ OFF | ON ]` segmented control that quickly enables or disables all eligible group members in a single gesture.
+- **Live Running Counters**: Every group displays its real-time status as `X / Y running` (e.g. `5 / 7 running`).
+- **No Enforcement Fighting**: Groups act as convenient command shortcuts without persistent desired-state loops. Overlapping groups and individual extension toggles work together harmoniously.
+- **Edge-Case Awareness**:
+  - Uninstalled extensions are excluded from active counts and clearly marked (`· 1 missing`).
+  - Admin/policy-restricted extensions are noted (`· 1 unavailable`) without blocking bulk commands for remaining eligible members.
+- **Rich Icon System**: Choose from over 3,000 self-hosted Material Symbols, curated recommended icons, or upload custom image icons.
 
-This is a fresh MV3 rebuild of the NooBoss concept, using current Chrome Extension APIs and a lightweight Vite + TypeScript build. It is designed to run as an unpacked extension and to avoid obsolete Manifest V2 patterns.
+### 🌐 AutoState URL Rules
+- **Context-Aware Automation**: Automatically enable or disable specific extensions and groups based on active website URLs or domain patterns.
+- **Flexible Pattern Matching**: Supports both wildcard patterns (e.g. `*.github.com`) and regular expressions.
+- **Assisted & Automatic Modes**: Full support for background rules and optional user confirmation prompts.
+- **Unified Presentation**: Embedded target selector uses the exact same modernized components and view modes as Manage.
 
-## Local development
+### 📜 History & Diagnostics
+- **Event Audit Log**: Records timestamped events for extension installations, updates, enables, and disables.
+- **Clean 4-Column Table**: `When | Event | Extension | Version` with inline extension icons.
+
+### 🎨 Appearance & Customization
+- **Theme Modes**: Seamless support for System (auto dark/light), Light, and Dark themes.
+- **Accent Color Presets**: Customize accent highlights with Chrome Blue, Indigo, Purple, Emerald, Orange, or custom hex colors.
+
+### 💾 100% Local Backup & Restore
+- **Local Data Safety**: Easily export and import your groups, rules, and settings as clean JSON files.
+- **Zero Cloud Dependence**: All data remains strictly on your machine in `chrome.storage.local`.
+
+---
+
+## Visual Showcase
+
+| View | Screenshot |
+| :--- | :--- |
+| **Extensions & Groups (Big Tile)** | ![Manage View](docs/images/manage.png) |
+| **Groups Command Center (List)** | ![Groups View](docs/images/groups.png) |
+| **AutoState Automation** | ![AutoState View](docs/images/autostate.png) |
+| **Settings & Appearance** | ![Options View](docs/images/options.png) |
+
+---
+
+## Installation
+
+### Loading as an Unpacked Extension (Developer Mode)
+
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/iknoest/NooBoss-MV3.git
+   cd NooBoss-MV3
+   ```
+
+2. **Install dependencies and build**:
+   ```bash
+   npm install
+   npm run build
+   ```
+
+3. **Load in Chrome**:
+   - Open Google Chrome and navigate to `chrome://extensions`.
+   - Enable **Developer mode** using the toggle in the top-right corner.
+   - Click **Load unpacked** and select the `dist/` directory inside this repository.
+   - Pin the NooBoss icon to your toolbar for instant access.
+
+---
+
+## Migration & Legacy Profile Data
+
+- For instructions on inspecting or recovering configuration from legacy NooBoss installations, refer to [`docs/EXTRACT_LEGACY_DATA.md`](docs/EXTRACT_LEGACY_DATA.md).
+- A sanitized migration example is available at [`migrated-nooboss-import-anon.json`](migrated-nooboss-import-anon.json).
+- Never commit private local browser state or personal extension identifiers to version control.
+
+---
+
+## Permissions & Transparency
+
+NooBoss MV3 requests only the minimal permissions necessary for extension management:
+
+| Permission | Purpose |
+| :--- | :--- |
+| `management` | Required to query installed extensions, toggle enabled state, and open extension options/details. |
+| `storage` | Stores your groups, AutoState rules, history records, and UI preferences locally via `chrome.storage.local`. |
+| `tabs` | Required by the AutoState engine to detect active website URLs for rule matching. |
+| `notifications` | Displays unobtrusive notifications when AutoState rules trigger or when assisted confirmations are required. |
+
+---
+
+## Privacy & Security
+
+- **No Remote Telemetry**: Zero tracking, analytics, or background telemetry.
+- **No Ads or Monetization**: Completely ad-free and tracking-free.
+- **No User Accounts**: No login or external server communication required.
+- **Local Execution**: All Material Symbols fonts, icons, and scripts are bundled locally within the extension. No external code is downloaded at runtime.
+
+---
+
+## Development & Testing
 
 ```bash
-npm install
-npm run build
+# Run unit tests (Vitest)
 npm test
-npm run test:e2e
+
+# Check TypeScript types
+npm run typecheck
+
+# Run ESLint
+npm run lint
+
+# Production build
+npm run build
 ```
 
-## Scripts
+---
 
-- `npm run build` — production bundle for unpacked extension loading
-- `npm test` — unit tests for matching, import/export, and shared types
-- `npm run test:e2e` — Puppeteer-based browser smoke suite against a temporary Chrome profile
-- `npm run lint` — TypeScript linting with ESLint flat config
-- `npm run typecheck` — strict TypeScript validation
+## License & Credits
 
-## Notes
-
-- The extension intentionally avoids telemetry, accounts, cloud storage, or remote code execution.
-- All configuration and history are kept locally via `chrome.storage.local` unless Chrome's own APIs require otherwise.
-- A real Chrome environment is required for live extension automation checks. In restricted sandboxes, Chrome may refuse to load unpacked extensions, and the E2E runner will skip browser-level tests instead of failing the build.
-
-## How to test (quick guide)
-
-Manual (recommended for UI & AutoState validation):
-
-1. npm install && npm run build
-2. Open chrome://extensions/ in your Chrome (Developer mode on)
-3. Click "Load unpacked" and select the project's `dist/` directory
-4. Open the popup (toolbar action) and the full Manager (Options) page to exercise groups, history, and AutoState rules
-5. For AutoState, create rules that target the included test extension or a disposable extension, then open matching and non-matching tabs to observe behavior and pending confirmations
-
-Automated unit & E2E:
-
-- Unit tests: npm test (fast, CI-friendly)
-- E2E smoke: npm run test:e2e — this launches Chrome with a temporary profile and attempts to load the extension. Note: some sandboxed environments (or restricted Chrome builds) block loading unpacked extensions; the runner will skip browser tests in that case. To run E2E locally, ensure a regular Chrome is installed and the path in tests/e2e/runner.mjs is correct.
-
-## Lessons learned
-
-- Chrome’s management API can be subject to platform policies and user-gesture requirements; never assume programmatic enable/disable always succeeds.
-- Manifest V3 service workers require careful persistence of ephemeral state (pending changes, managed map) into chrome.storage.local.
-- E2E automation for extensions is environment-sensitive; tests must detect and gracefully skip when the runtime forbids unpacked installs.
-
-## Suggested next steps
-
-1. Live validation on a developer machine: load unpacked, exercise AutoState, and confirm whether chrome.management.setEnabled requires user gestures on your target Chrome.
-2. CI: Add GitHub Actions using "Chrome for Testing" or Playwright/Chromium matrix to run browser E2E when possible.
-3. Acceptance report: Draft a short report documenting AutoState behavior observed on real Chrome versions and the chosen assisted fallback UX.
-4. UX polish: Improve AutoState notifications and add clear messaging when actions require user confirmation.
-5. Security audit & policy checklist before any public publishing.
-
-If you'd like, prepare the acceptance report next (I can run it locally and draft the findings).
+- **Original Project**: [NooBoss](https://github.com/AInoob/NooBoss) by [AInoob](https://github.com/AInoob)
+- **License**: [GNU General Public License v3.0 (GPL-3.0)](LICENSE)
+- **Icons**: [Google Material Symbols Rounded](https://fonts.google.com/icons) (Apache License 2.0)

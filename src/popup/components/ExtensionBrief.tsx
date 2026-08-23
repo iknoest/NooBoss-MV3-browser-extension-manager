@@ -106,7 +106,7 @@ export function ExtensionBrief({
     }
   };
 
-  // --- Selectable Mode (Used inside Group Editor Member Selector) ---
+  // --- Selectable Mode (Used in AutoState & Group Editor Target Selector) ---
   if (isSelectable) {
     if (viewMode === "bigTile") {
       return (
@@ -139,7 +139,44 @@ export function ExtensionBrief({
       );
     }
 
-    // Default Selectable: List View (Whole Row Clickable)
+    if (viewMode === "tile") {
+      return (
+        <div
+          className={`nb-tile selectable-tile ${disabled ? "disabled" : ""} ${isSelected ? "is-selected" : "not-selected"}`}
+          onClick={handleCardClick}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === " " || e.key === "Enter") {
+              e.preventDefault();
+              onSelect?.(extension.id);
+            }
+          }}
+        >
+          <div className="tile-select-badge">
+            <span className={`select-box ${isSelected ? "checked" : ""}`}>
+              {isSelected ? "✓" : ""}
+            </span>
+          </div>
+          <div className="tile-body">
+            <img
+              className="extension-icon"
+              src={displayIcon}
+              alt={extension.name}
+              title={extension.name}
+            />
+            <span className="tile-item-name" title={extension.name}>
+              {extension.name}
+            </span>
+          </div>
+          <span className={`tile-status-tag ${extension.enabled ? "enabled" : "disabled"}`}>
+            {extension.enabled ? "ON" : "OFF"}
+          </span>
+        </div>
+      );
+    }
+
+    // Default Selectable: List View
     return (
       <div
         className={`nb-list-row selectable-row ${disabled ? "disabled" : ""} ${isSelected ? "is-selected" : "not-selected"}`}
@@ -168,7 +205,7 @@ export function ExtensionBrief({
     );
   }
 
-  // --- Normal Big Tile View (2 Columns Layout, Verified Switch Control) ---
+  // --- Normal Big Tile View (2 Columns Layout) ---
   if (viewMode === "bigTile") {
     return (
       <div className={`nb-big-tile ${disabled ? "disabled" : ""}`}>

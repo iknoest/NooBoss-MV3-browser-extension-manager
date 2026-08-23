@@ -208,7 +208,7 @@ export function Selector({
                   title="Enable all filtered extensions"
                   aria-label="Enable all filtered extensions"
                 >
-                  <MaterialSymbol name="toggle_on" size={20} color="currentColor" />
+                  <MaterialSymbol name="visibility" size={20} color="currentColor" />
                 </button>
                 <button
                   type="button"
@@ -217,7 +217,7 @@ export function Selector({
                   title="Disable all filtered extensions"
                   aria-label="Disable all filtered extensions"
                 >
-                  <MaterialSymbol name="toggle_off" size={20} color="currentColor" />
+                  <MaterialSymbol name="visibility_off" size={20} color="currentColor" />
                 </button>
                 <button
                   type="button"
@@ -320,7 +320,7 @@ export function Selector({
       {filteredGroups.length > 0 && (
         <div id="groupList" className="extension-container">
           <h2 className="nb-heading">{GL("group")}</h2>
-          <div className={viewMode === "tile" ? "tile-grid" : viewMode === "bigTile" ? (selectedList !== undefined ? "modal-big-tile-grid" : "big-tile-grid") : "list-container"}>
+          <div className={viewMode === "tile" ? "tile-grid" : viewMode === "bigTile" ? "big-tile-grid" : "list-container"}>
             {filteredGroups.map((group) => (
               <GroupBrief
                 key={group.id}
@@ -345,7 +345,7 @@ export function Selector({
       {extensionList.length > 0 && (
         <div id="extList" className="extension-container">
           <h2 className="nb-heading">{GL("extension")}</h2>
-          <div className={viewMode === "tile" ? "tile-grid" : viewMode === "bigTile" ? (selectedList !== undefined ? "modal-big-tile-grid" : "big-tile-grid") : "list-container"}>
+          <div className={viewMode === "tile" ? "tile-grid" : viewMode === "bigTile" ? "big-tile-grid" : "list-container"}>
             {extensionList.map((ext) => (
               <ExtensionBrief
                 key={ext.id}
@@ -370,7 +370,7 @@ export function Selector({
       {appList.length > 0 && (
         <div id="appList" className="extension-container">
           <h2 className="nb-heading">{GL("app")}</h2>
-          <div className={viewMode === "tile" ? "tile-grid" : viewMode === "bigTile" ? (selectedList !== undefined ? "modal-big-tile-grid" : "big-tile-grid") : "list-container"}>
+          <div className={viewMode === "tile" ? "tile-grid" : viewMode === "bigTile" ? "big-tile-grid" : "list-container"}>
             {appList.map((app) => (
               <ExtensionBrief
                 key={app.id}
@@ -395,7 +395,7 @@ export function Selector({
       {themeList.length > 0 && (
         <div id="themeList" className="extension-container">
           <h2 className="nb-heading">{GL("theme")}</h2>
-          <div className={viewMode === "tile" ? "tile-grid" : viewMode === "bigTile" ? (selectedList !== undefined ? "modal-big-tile-grid" : "big-tile-grid") : "list-container"}>
+          <div className={viewMode === "tile" ? "tile-grid" : viewMode === "bigTile" ? "big-tile-grid" : "list-container"}>
             {themeList.map((theme) => (
               <ExtensionBrief
                 key={theme.id}

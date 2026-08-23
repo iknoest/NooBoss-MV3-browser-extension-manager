@@ -16,7 +16,7 @@ export function HistoryView({
   extensions = [],
   onClearHistory,
   onOpenSubWindow,
-  _themeMainColor,
+  themeMainColor: _themeMainColor,
 }: HistoryViewProps) {
   const [showConfirm, setShowConfirm] = useState(false);
   const [maxDisplay, setMaxDisplay] = useState(40);
