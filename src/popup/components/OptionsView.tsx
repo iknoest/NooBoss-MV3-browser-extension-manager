@@ -96,7 +96,7 @@ ${extensions.map((e) => `<li><a href="https://chrome.google.com/webstore/detail/
           <div className="settings-row">
             <div className="settings-row-text">
               <span className="settings-label">Theme Mode</span>
-              <span className="settings-description">Choose how NooBoss appears</span>
+              <span className="settings-description">Choose how Extension Drawer appears</span>
             </div>
             <div className="settings-control">
               <select

@@ -1,22 +1,25 @@
-# NooBoss MV3
+# Extension Drawer
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-success.svg)](https://developer.chrome.com/docs/extensions/develop/migrate/what-is-mv3)
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)]()
 
-> A community-maintained **Manifest V3** continuation of [AInoob/NooBoss](https://github.com/AInoob/NooBoss) for modern Google Chrome.
+> **Extension Drawer** is an independent Manifest V3 browser extension manager built from and inspired by the open-source **NooBoss** project originally created by [AInoob](https://github.com/AInoob).
 
 <p align="center">
-  <img src="docs/images/nooboss-overview.png" alt="NooBoss MV3 Overview" width="100%" />
+  <img src="docs/images/nooboss-overview.png" alt="Extension Drawer Overview" width="100%" />
 </p>
 
 ---
 
-## Why This Continuation Exists
+## Lineage & Motivation
 
-The original **NooBoss**, created by [AInoob](https://github.com/AInoob), set the benchmark for powerful, visual extension management in Chrome. With the industry-wide transition to Chrome Manifest V3 and the sunset of Manifest V2, the original extension became incompatible with current browser releases.
+The original **NooBoss**, created by [AInoob](https://github.com/AInoob) ([Original NooBoss Repository](https://github.com/AInoob/NooBoss)), set the benchmark for powerful, visual extension management in Chrome. With the industry-wide transition to Chrome Manifest V3 and the deprecation of Manifest V2, the original extension became incompatible with modern browser releases.
 
-**NooBoss MV3** is an independent, community-driven modernization that preserves the beloved NooBoss workflow, information architecture, and customization capabilities while adopting a clean, modern Manifest V3 service-worker architecture and modern system-settings UI principles.
+**Extension Drawer** is an independently maintained Manifest V3 continuation. It preserves the classic NooBoss workflow, information architecture, and customization capabilities while adopting a modern Manifest V3 service-worker architecture and clean system-settings UI principles.
+
+- **Current Project Repository**: [Extension Drawer on GitHub](https://github.com/iknoest/NooBoss-MV3-browser-extension-manager)
+- **Original Upstream Project**: [NooBoss on GitHub](https://github.com/AInoob/NooBoss)
 
 ---
 
@@ -79,8 +82,8 @@ The original **NooBoss**, created by [AInoob](https://github.com/AInoob), set th
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/iknoest/NooBoss-MV3.git
-   cd NooBoss-MV3
+   git clone https://github.com/iknoest/NooBoss-MV3-browser-extension-manager.git
+   cd NooBoss-MV3-browser-extension-manager
    ```
 
 2. **Install dependencies and build**:
@@ -93,7 +96,7 @@ The original **NooBoss**, created by [AInoob](https://github.com/AInoob), set th
    - Open Google Chrome and navigate to `chrome://extensions`.
    - Enable **Developer mode** using the toggle in the top-right corner.
    - Click **Load unpacked** and select the `dist/` directory inside this repository.
-   - Pin the NooBoss icon to your toolbar for instant access.
+   - Pin the Extension Drawer icon to your toolbar for instant access.
 
 ---
 
@@ -107,7 +110,7 @@ The original **NooBoss**, created by [AInoob](https://github.com/AInoob), set th
 
 ## Permissions & Transparency
 
-NooBoss MV3 requests only the minimal permissions necessary for extension management:
+Extension Drawer requests only the minimal permissions necessary for extension management:
 
 | Permission | Purpose |
 | :--- | :--- |
@@ -124,6 +127,8 @@ NooBoss MV3 requests only the minimal permissions necessary for extension manage
 - **No Ads or Monetization**: Completely ad-free and tracking-free.
 - **No User Accounts**: No login or external server communication required.
 - **Local Execution**: All Material Symbols fonts, icons, and scripts are bundled locally within the extension. No external code is downloaded at runtime.
+
+For comprehensive information regarding data handling, please see our full [Privacy Policy](PRIVACY.md).
 
 ---
 
@@ -147,12 +152,13 @@ npm run build
 
 ## License & Credits
 
-- **Original Project**: [NooBoss](https://github.com/AInoob/NooBoss) by [AInoob](https://github.com/AInoob)
+- **Inspiration & Lineage**: Based on [NooBoss](https://github.com/AInoob/NooBoss) originally created by [AInoob](https://github.com/AInoob).
 - **License**: [GNU General Public License v3.0 (GPL-3.0)](LICENSE)
 - **Icons**: [Google Material Symbols Rounded](https://fonts.google.com/icons) (Apache License 2.0)
+
 ---
 
 ## Branch Structure
 
-- **`main`** (Default): Active development and modern Manifest V3 continuation of NooBoss.
-- **`master`**: Preserves the original legacy Manifest V2 upstream lineage and history.
+- **`main`** (Default): Active development and modern Manifest V3 continuation (Extension Drawer).
+- **`master`**: Preserves the original legacy Manifest V2 upstream lineage and history from AInoob/NooBoss.

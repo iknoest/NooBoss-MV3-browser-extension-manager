@@ -12,7 +12,8 @@
     "test:e2e": "node tests/e2e/runner.mjs",
     "lint": "eslint src/ --ext .ts,.tsx",
     "typecheck": "tsc --noEmit",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "package": "node scripts/build-release-zip.mjs"
   },
   "devDependencies": {
     "@anthropic-ai/sdk": "^0.39.0",

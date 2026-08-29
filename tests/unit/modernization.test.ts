@@ -195,4 +195,22 @@ describe("Material Symbols & Usability Refinements", () => {
     });
   });
 
+
+  describe("Product Identity & Attribution", () => {
+    it("has Extension Drawer as manifest product name", () => {
+      const manifest = JSON.parse(fs.readFileSync("src/manifest.json", "utf8"));
+      expect(manifest.name).toBe("Extension Drawer: Extension Manager & Organizer");
+      expect(manifest.short_name).toBe("Ext Drawer");
+      expect(manifest.action.default_title).toBe("Extension Drawer");
+      expect(manifest.description).toContain("Organize, group, enable and disable extensions");
+    });
+
+    it("verifies AboutView references Extension Drawer and both GitHub repositories", () => {
+      const aboutCode = fs.readFileSync("src/popup/components/AboutView.tsx", "utf8");
+      expect(aboutCode).toContain("Extension Drawer");
+      expect(aboutCode).toContain("https://github.com/AInoob/NooBoss");
+      expect(aboutCode).toContain("https://github.com/iknoest/NooBoss-MV3-browser-extension-manager");
+    });
+  });
+
 });

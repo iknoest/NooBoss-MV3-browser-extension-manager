@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "NooBoss - Extension Manager",
+  "name": "Extension Drawer: Extension Manager & Organizer",
   "version": "1.0.0",
-  "description": "Manage Chrome extensions with groups, AutoState URL rules, and history tracking.",
+  "description": "Organize, group, enable and disable extensions, with AutoState rules, history and local backup.",
   "permissions": [
     "management",
     "storage",
@@ -20,7 +20,7 @@
       "48": "icons/icon48.png",
       "128": "icons/icon128.png"
     },
-    "default_title": "NooBoss - Extension Manager"
+    "default_title": "Extension Drawer"
   },
   "icons": {
     "16": "icons/icon16.png",
@@ -32,5 +32,6 @@
     "page": "manager/manager.html",
     "open_in_tab": true
   },
-  "minimum_chrome_version": "116"
+  "minimum_chrome_version": "116",
+  "short_name": "Ext Drawer"
 }

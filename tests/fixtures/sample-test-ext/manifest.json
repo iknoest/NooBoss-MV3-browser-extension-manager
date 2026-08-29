@@ -1,0 +1,9 @@
+{
+  "manifest_version": 3,
+  "name": "Disposable Test Helper",
+  "version": "1.0.0",
+  "description": "A temporary disposable extension used strictly for runtime validation.",
+  "action": {
+    "default_title": "Test Helper"
+  }
+}
