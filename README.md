@@ -2,6 +2,7 @@
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-success.svg)](https://developer.chrome.com/docs/extensions/develop/migrate/what-is-mv3)
+[![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-Install-4285F4?logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/onkcjpfgllpfbimnchjehboikhippnka?utm_source=item-share-cb)
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)]()
 
 > **Extension Drawer** is an independent Manifest V3 browser extension manager built from and inspired by the open-source **NooBoss** project originally created by [AInoob](https://github.com/AInoob).
@@ -77,6 +78,12 @@ The original **NooBoss**, created by [AInoob](https://github.com/AInoob) ([Origi
 ---
 
 ## Installation
+
+### Install from the Chrome Web Store
+
+**Extension Drawer: Extension Manager & Organizer** is now available on the Chrome Web Store.
+
+[**Install Extension Drawer from the Chrome Web Store →**](https://chromewebstore.google.com/detail/onkcjpfgllpfbimnchjehboikhippnka?utm_source=item-share-cb)
 
 ### Loading as an Unpacked Extension (Developer Mode)
 
