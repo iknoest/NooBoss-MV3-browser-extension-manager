@@ -5,7 +5,9 @@ import { execSync } from "child_process";
 import puppeteer from "puppeteer";
 
 const ROOT = path.resolve(".");
-const ZIP_PATH = path.join(ROOT, "release/extension-drawer-1.0.0.zip");
+const srcManifest = JSON.parse(fs.readFileSync(path.join(ROOT, "src/manifest.json"), "utf8"));
+const version = srcManifest.version || "1.0.1";
+const ZIP_PATH = path.join(ROOT, `release/extension-drawer-${version}.zip`);
 const FIXTURE_EXT_PATH = path.join(ROOT, "tests/fixtures/sample-test-ext");
 
 async function sleep(ms) {

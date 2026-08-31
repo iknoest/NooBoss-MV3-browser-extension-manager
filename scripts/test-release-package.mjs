@@ -6,7 +6,9 @@ import puppeteer from "puppeteer";
 import http from "http";
 
 const ROOT = path.resolve(".");
-const ZIP_PATH = path.join(ROOT, "release/extension-drawer-1.0.0.zip");
+const srcManifest = JSON.parse(fs.readFileSync(path.join(ROOT, "src/manifest.json"), "utf8"));
+const version = srcManifest.version || "1.0.1";
+const ZIP_PATH = path.join(ROOT, `release/extension-drawer-${version}.zip`);
 
 async function smokeTestPackage() {
   console.log("=== Starting Exact-Package Smoke Test ===");

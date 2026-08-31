@@ -294,15 +294,26 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
   };
 
   const handleExportData = async () => {
-    const res = await chrome.runtime?.sendMessage?.({ type: "EXPORT_DATA" });
-    if (res?.data) {
-      const blob = new Blob([JSON.stringify(res.data, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `nooboss-export-${new Date().toISOString().slice(0, 10)}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
+    try {
+      const res = await chrome.runtime?.sendMessage?.({ type: "EXPORT_DATA" });
+      const exportObj =
+        res && typeof res === "object" && !("error" in res)
+          ? ("data" in res && res.data && typeof res.data === "object" ? res.data : res)
+          : null;
+
+      if (exportObj && typeof exportObj === "object" && "version" in exportObj) {
+        const blob = new Blob([JSON.stringify(exportObj, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `extension-drawer-backup-${new Date().toISOString().slice(0, 10)}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+      } else {
+        console.error("[Extension Drawer] Export failed or returned invalid data:", res);
+      }
+    } catch (err) {
+      console.error("[Extension Drawer] Export error:", err);
     }
   };
 

@@ -9,6 +9,7 @@ import type {
   ExportData,
 } from "../../src/shared/types";
 import { DEFAULT_SETTINGS } from "../../src/shared/types";
+import { validateImportData } from "../../src/shared/import-export";
 
 describe("Frontend/Backend Service Worker Message Contract Regression Tests", () => {
   // Simulates the exact response resolution logic from NooBossApp
@@ -148,8 +149,8 @@ describe("Frontend/Backend Service Worker Message Contract Regression Tests", ()
       expect(resolved[0].targetEnabled).toBe(true);
     });
 
-    it("resolves EXPORT_DATA from direct ExportData object", () => {
-      const swResponse: ExportData = {
+    it("resolves EXPORT_DATA from direct ExportData object and catches bug where res.data was required", () => {
+      const rawSwResponse: ExportData = {
         version: 1,
         exportedAt: 123456789,
         generator: "NooBoss-MV3",
@@ -166,10 +167,58 @@ describe("Frontend/Backend Service Worker Message Contract Regression Tests", ()
         settings: DEFAULT_SETTINGS,
       };
 
-      const exportObj = (swResponse as { data?: ExportData })?.data || swResponse;
-      expect(exportObj.version).toBe(1);
-      expect(exportObj.generator).toBe("NooBoss-MV3");
-      expect(exportObj.groups).toHaveLength(1);
+      // 1. Demonstrate why the previous buggy code failed:
+      const buggyExtract = (rawSwResponse as { data?: ExportData })?.data;
+      expect(buggyExtract).toBeUndefined(); // Buggy code got undefined because response is raw ExportData
+
+      // 2. Test fixed consumer extract logic:
+      const resolved =
+        rawSwResponse && typeof rawSwResponse === "object" && !("error" in rawSwResponse)
+          ? ("data" in rawSwResponse && (rawSwResponse as { data: ExportData }).data ? (rawSwResponse as { data: ExportData }).data : rawSwResponse)
+          : null;
+
+      expect(resolved).not.toBeNull();
+      expect(resolved?.version).toBe(1);
+      expect(resolved?.generator).toBe("NooBoss-MV3");
+      expect(resolved?.groups).toHaveLength(1);
+
+      // 3. Verify JSON serialization structure:
+      const jsonString = JSON.stringify(resolved, null, 2);
+      const parsed = JSON.parse(jsonString);
+      expect(parsed.version).toBe(1);
+      expect(parsed.groups).toBeDefined();
+      expect(parsed.autoStateRules).toBeDefined();
+      expect(parsed.settings).toBeDefined();
+
+      // 4. Verify filename format:
+      const filename = `extension-drawer-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      expect(filename).toMatch(/^extension-drawer-backup-\d{4}-\d{2}-\d{2}\.json$/);
+
+      // 5. Verify import validator accepts newly exported object:
+      const validated = validateImportData(parsed);
+      expect(validated.version).toBe(1);
+      expect(validated.groups[0].name).toBe("Dev");
+    });
+
+    it("rejects error or empty response without creating download payload", () => {
+      const errorResponse = { error: "Storage error" };
+      const nullResponse = null;
+      const undefinedResponse = undefined;
+
+      const extractPayload = (res: unknown) => {
+        const exportObj =
+          res && typeof res === "object" && !("error" in res)
+            ? ("data" in res && (res as { data: unknown }).data ? (res as { data: unknown }).data : res)
+            : null;
+        if (exportObj && typeof exportObj === "object" && "version" in exportObj) {
+          return exportObj;
+        }
+        return null;
+      };
+
+      expect(extractPayload(errorResponse)).toBeNull();
+      expect(extractPayload(nullResponse)).toBeNull();
+      expect(extractPayload(undefinedResponse)).toBeNull();
     });
   });
 
