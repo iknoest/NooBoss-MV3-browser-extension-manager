@@ -214,6 +214,9 @@ async function handleMessage(message: Message): Promise<unknown> {
     case 'TOGGLE_EXTENSION':
       return toggleExtension(message.id, message.enabled);
 
+    case 'RELOAD_EXTENSION':
+      return reloadExtension(message.id);
+
     case 'UNINSTALL_EXTENSION':
       return uninstallExtension(message.id);
 
@@ -335,6 +338,39 @@ async function toggleExtension(
     }
     await chrome.management.setEnabled(id, enabled);
     return { success: true };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Unknown error',
+    };
+  }
+}
+
+async function reloadExtension(
+  id: string
+): Promise<{ success: boolean; error?: string }> {
+  if (id === SELF_ID) {
+    return { success: false, error: 'Cannot reload self' };
+  }
+  try {
+    const ext = await chrome.management.get(id);
+    if (!ext.enabled || ext.installType !== 'development') {
+      return { success: false, error: 'Target is not an enabled development extension' };
+    }
+    await chrome.management.setEnabled(id, false);
+    try {
+      await chrome.management.setEnabled(id, true);
+      return { success: true };
+    } catch (enableErr) {
+      console.error(`[NooBoss] Re-enable failed for ${id}, attempting recovery:`, enableErr);
+      try {
+        await chrome.management.setEnabled(id, true);
+        return { success: true };
+      } catch (recoveryErr) {
+        console.error(`[NooBoss] Recovery enable attempt failed for ${id}:`, recoveryErr);
+        return { success: false, error: 'Recovery enable attempt failed' };
+      }
+    }
   } catch (err) {
     return {
       success: false,

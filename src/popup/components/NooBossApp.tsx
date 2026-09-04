@@ -37,6 +37,7 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
     display: "",
     targetId: "",
   });
+  const [reloadingId, setReloadingId] = useState<string | null>(null);
 
   const resolvedAccent = settings.accentColor || "#1a73e8";
 
@@ -165,6 +166,39 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
     } catch (err) {
       console.error("[NooBoss] Direct setEnabled failed:", err);
     } finally {
+      await loadData();
+    }
+  };
+
+  const handleReloadExtension = async (id: string) => {
+    if (typeof chrome !== "undefined" && chrome.runtime?.id && id === chrome.runtime.id) {
+      return;
+    }
+    const ext = extensions.find((e) => e.id === id);
+    if (!ext || !ext.enabled || ext.installType !== "development") {
+      return;
+    }
+    setReloadingId(id);
+    try {
+      if (typeof chrome !== "undefined" && chrome.management?.setEnabled) {
+        await chrome.management.setEnabled(id, false);
+        try {
+          await chrome.management.setEnabled(id, true);
+        } catch (enableErr) {
+          console.error(`[NooBoss] Re-enable failed for ${id}, attempting recovery:`, enableErr);
+          try {
+            await chrome.management.setEnabled(id, true);
+          } catch (recErr) {
+            console.error(`[NooBoss] Recovery enable attempt failed for ${id}:`, recErr);
+          }
+        }
+      } else if (typeof chrome !== "undefined" && chrome.runtime?.sendMessage) {
+        await chrome.runtime.sendMessage({ type: "RELOAD_EXTENSION", id });
+      }
+    } catch (err) {
+      console.error("[NooBoss] Reload extension failed:", err);
+    } finally {
+      setReloadingId(null);
       await loadData();
     }
   };
@@ -374,6 +408,8 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
               actionBar={true}
               withControl={true}
               onToggleExtension={handleToggleExtension}
+              onReloadExtension={handleReloadExtension}
+              reloadingId={reloadingId}
               onOpenOptions={handleOpenOptions}
               onOpenDetails={handleOpenDetails}
               onUninstallExtension={handleUninstall}

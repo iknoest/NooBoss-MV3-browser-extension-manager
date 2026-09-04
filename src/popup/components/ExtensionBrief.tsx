@@ -1,6 +1,7 @@
 import type { JSX } from "preact";
 import type { ExtensionInfo } from "../../shared/types";
 import { Optioney, Removy, Chromey, Launchy } from "./icons";
+import { MaterialSymbol } from "./MaterialSymbols";
 
 export interface ExtensionBriefProps {
   extension: ExtensionInfo;
@@ -12,6 +13,8 @@ export interface ExtensionBriefProps {
   onOpenOptions?: (id: string) => void;
   onOpenDetails?: (id: string) => void;
   onUninstall?: (id: string) => void;
+  onReload?: (id: string) => void;
+  isReloading?: boolean;
   onSelect?: (id: string) => void;
   onOpenSubWindow?: (type: "extension", id: string) => void;
   themeMainColor?: string;
@@ -75,6 +78,8 @@ export function ExtensionBrief({
   onOpenOptions,
   onOpenDetails,
   onUninstall,
+  onReload,
+  isReloading = false,
   onSelect,
   onOpenSubWindow,
   themeMainColor = "#1a73e8",
@@ -82,6 +87,7 @@ export function ExtensionBrief({
   const isSelectable = selected !== null;
   const isSelected = selected === true;
   const disabled = !extension.enabled;
+  const isDevelopment = extension.installType === "development";
 
   let displayIcon = iconUrl;
   if (!displayIcon && extension.icons && extension.icons.length > 0) {
@@ -127,7 +133,16 @@ export function ExtensionBrief({
               {isSelected ? "✓" : ""}
             </span>
           </div>
-          <img className="extension-icon" src={displayIcon} alt={extension.name} />
+          <div className="extension-icon-slot slot-big-tile big-tile-icon-wrapper">
+            <img className="extension-icon" src={displayIcon} alt={extension.name} />
+            {isDevelopment && (
+              <span
+                className="unpacked-badge-dot"
+                title="Unpacked extension"
+                aria-label="Unpacked extension"
+              />
+            )}
+          </div>
           <div className="big-tile-content">
             <span className="item-name" title={extension.name}>{extension.name}</span>
             <span className="item-version">{extension.version}</span>
@@ -159,12 +174,21 @@ export function ExtensionBrief({
             </span>
           </div>
           <div className="tile-body">
-            <img
-              className="extension-icon"
-              src={displayIcon}
-              alt={extension.name}
-              title={extension.name}
-            />
+            <div className="extension-icon-slot slot-tile tile-icon-wrapper">
+              <img
+                className="extension-icon"
+                src={displayIcon}
+                alt={extension.name}
+                title={extension.name}
+              />
+              {isDevelopment && (
+                <span
+                  className="unpacked-badge-dot"
+                  title="Unpacked extension"
+                  aria-label="Unpacked extension"
+                />
+              )}
+            </div>
             <span className="tile-item-name" title={extension.name}>
               {extension.name}
             </span>
@@ -195,7 +219,16 @@ export function ExtensionBrief({
             {isSelected ? "✓" : ""}
           </span>
         </div>
-        <img className="list-icon" src={displayIcon} alt={extension.name} />
+        <div className="extension-icon-slot slot-list list-icon-wrapper">
+          <img className="list-icon" src={displayIcon} alt={extension.name} />
+          {isDevelopment && (
+            <span
+              className="unpacked-badge-dot"
+              title="Unpacked extension"
+              aria-label="Unpacked extension"
+            />
+          )}
+        </div>
         <span className="list-name" title={extension.name}>{extension.name}</span>
         <span className="list-version">{extension.version}</span>
         <span className={`status-pill-badge ${extension.enabled ? "enabled" : "disabled"}`}>
@@ -209,13 +242,21 @@ export function ExtensionBrief({
   if (viewMode === "bigTile") {
     return (
       <div className={`nb-big-tile ${disabled ? "disabled" : ""}`}>
-        <img
-          className="extension-icon clickable"
-          src={displayIcon}
-          alt={extension.name}
-          onClick={handleOpenDetail}
-          title={extension.name}
-        />
+        <div className="extension-icon-slot slot-big-tile big-tile-icon-wrapper" onClick={handleOpenDetail}>
+          <img
+            className="extension-icon clickable"
+            src={displayIcon}
+            alt={extension.name}
+            title={extension.name}
+          />
+          {isDevelopment && (
+            <span
+              className="unpacked-badge-dot"
+              title="Unpacked extension"
+              aria-label="Unpacked extension"
+            />
+          )}
+        </div>
         <div className="big-tile-content" onClick={handleOpenDetail}>
           <span className="item-name" title={extension.name}>
             {extension.name}
@@ -232,6 +273,23 @@ export function ExtensionBrief({
                 onToggle={onToggle}
                 size="medium"
               />
+            )}
+            {isDevelopment && (
+              <button
+                type="button"
+                className={`action-icon-btn reload-btn ${!extension.enabled ? "disabled" : ""} ${isReloading ? "is-reloading" : ""}`}
+                disabled={!extension.enabled || isReloading}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (extension.enabled && !isReloading) {
+                    onReload?.(extension.id);
+                  }
+                }}
+                title={extension.enabled ? "Reload extension code" : "Enable this unpacked extension before reloading"}
+                aria-label={extension.enabled ? "Reload extension code. Manifest changes require Chrome's extension page." : "Enable this unpacked extension before reloading"}
+              >
+                <MaterialSymbol name="refresh" size={16} color={extension.enabled ? themeMainColor : "var(--text-muted, #888)"} />
+              </button>
             )}
             {extension.optionsUrl && (
               <button
@@ -289,12 +347,20 @@ export function ExtensionBrief({
             size="medium"
           />
         )}
-        <img
-          className="list-icon clickable"
-          src={displayIcon}
-          alt={extension.name}
-          onClick={handleOpenDetail}
-        />
+        <div className="extension-icon-slot slot-list list-icon-wrapper" onClick={handleOpenDetail}>
+          <img
+            className="list-icon clickable"
+            src={displayIcon}
+            alt={extension.name}
+          />
+          {isDevelopment && (
+            <span
+              className="unpacked-badge-dot"
+              title="Unpacked extension"
+              aria-label="Unpacked extension"
+            />
+          )}
+        </div>
         <span
           className="list-name clickable"
           onClick={handleOpenDetail}
@@ -305,6 +371,23 @@ export function ExtensionBrief({
         <span className="list-version">{extension.version}</span>
         {withControl && (
           <div className="list-actions">
+            {isDevelopment && (
+              <button
+                type="button"
+                className={`action-icon-btn reload-btn ${!extension.enabled ? "disabled" : ""} ${isReloading ? "is-reloading" : ""}`}
+                disabled={!extension.enabled || isReloading}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (extension.enabled && !isReloading) {
+                    onReload?.(extension.id);
+                  }
+                }}
+                title={extension.enabled ? "Reload extension code" : "Enable this unpacked extension before reloading"}
+                aria-label={extension.enabled ? "Reload extension code. Manifest changes require Chrome's extension page." : "Enable this unpacked extension before reloading"}
+              >
+                <MaterialSymbol name="refresh" size={16} color={extension.enabled ? themeMainColor : "var(--text-muted, #888)"} />
+              </button>
+            )}
             {extension.type === "app" && (
               <button
                 type="button"
@@ -352,15 +435,28 @@ export function ExtensionBrief({
   }
 
   // --- Normal Tile View (Max 6 Columns) ---
+  const cleanVersion = (extension.version || "0.0.0").replace(/^v/i, "");
+  const versionDisplay = `v${cleanVersion}`;
+  const tileHoverMeta = isDevelopment ? `DEV · ${versionDisplay}` : versionDisplay;
+
   return (
-    <div className={`nb-tile ${disabled ? "disabled" : ""}`} onClick={handleOpenDetail}>
+    <div className={`nb-tile ${withControl ? "has-hover-controls" : ""} ${disabled ? "disabled" : ""}`} onClick={handleOpenDetail}>
       <div className="tile-body">
-        <img
-          className="extension-icon"
-          src={displayIcon}
-          alt={extension.name}
-          title={extension.name}
-        />
+        <div className="extension-icon-slot slot-tile tile-icon-wrapper">
+          <img
+            className="extension-icon"
+            src={displayIcon}
+            alt={extension.name}
+            title={extension.name}
+          />
+          {isDevelopment && (
+            <span
+              className="unpacked-badge-dot"
+              title="Unpacked extension"
+              aria-label="Unpacked extension"
+            />
+          )}
+        </div>
         <span className="tile-item-name" title={extension.name}>
           {extension.name}
         </span>
@@ -368,34 +464,56 @@ export function ExtensionBrief({
 
       {withControl && (
         <div className="tile-hover-bar" onClick={(e) => e.stopPropagation()}>
-          {extension.type !== "theme" && (
-            <ExtensionSwitch
-              id={extension.id}
-              enabled={extension.enabled}
-              onToggle={onToggle}
-              size="small"
-            />
-          )}
-          {extension.optionsUrl && (
+          <div className="tile-hover-meta" title={tileHoverMeta}>
+            {tileHoverMeta}
+          </div>
+          <div className="tile-hover-controls">
+            {extension.type !== "theme" && (
+              <ExtensionSwitch
+                id={extension.id}
+                enabled={extension.enabled}
+                onToggle={onToggle}
+                size="small"
+              />
+            )}
+            {isDevelopment && (
+              <button
+                type="button"
+                className={`action-icon-btn reload-btn ${!extension.enabled ? "disabled" : ""} ${isReloading ? "is-reloading" : ""}`}
+                disabled={!extension.enabled || isReloading}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (extension.enabled && !isReloading) {
+                    onReload?.(extension.id);
+                  }
+                }}
+                title={extension.enabled ? "Reload extension code" : "Enable this unpacked extension before reloading"}
+                aria-label={extension.enabled ? "Reload extension code. Manifest changes require Chrome's extension page." : "Enable this unpacked extension before reloading"}
+              >
+                <MaterialSymbol name="refresh" size={14} color={extension.enabled ? themeMainColor : "var(--text-muted, #888)"} />
+              </button>
+            )}
+            {extension.optionsUrl && (
+              <button
+                type="button"
+                className="action-icon-btn"
+                onClick={() => onOpenOptions?.(extension.id)}
+                title="Options"
+                aria-label="Options"
+              >
+                <Optioney color={themeMainColor} size={14} />
+              </button>
+            )}
             <button
               type="button"
               className="action-icon-btn"
-              onClick={() => onOpenOptions?.(extension.id)}
-              title="Options"
-              aria-label="Options"
+              onClick={() => onUninstall?.(extension.id)}
+              title="Uninstall"
+              aria-label="Uninstall"
             >
-              <Optioney color={themeMainColor} size={14} />
+              <Removy color={themeMainColor} size={14} />
             </button>
-          )}
-          <button
-            type="button"
-            className="action-icon-btn"
-            onClick={() => onUninstall?.(extension.id)}
-            title="Uninstall"
-            aria-label="Uninstall"
-          >
-            <Removy color={themeMainColor} size={14} />
-          </button>
+          </div>
         </div>
       )}
     </div>

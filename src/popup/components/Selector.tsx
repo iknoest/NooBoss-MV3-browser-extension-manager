@@ -17,6 +17,8 @@ export interface SelectorProps {
   selectedList?: string[];
   onSelect?: (id: string) => void;
   onToggleExtension?: (id: string, enabled: boolean) => void;
+  onReloadExtension?: (id: string) => Promise<void> | void;
+  reloadingId?: string | null;
   onOpenOptions?: (id: string) => void;
   onOpenDetails?: (id: string) => void;
   onUninstallExtension?: (id: string) => void;
@@ -40,6 +42,8 @@ export function Selector({
   selectedList,
   onSelect,
   onToggleExtension,
+  onReloadExtension,
+  reloadingId,
   onOpenOptions,
   onOpenDetails,
   onUninstallExtension,
@@ -281,36 +285,70 @@ export function Selector({
             </div>
           </div>
 
-          {/* Compact Operational Summary Bar */}
+          {/* Compact Operational Summary Bar with Fast Destinations */}
           {totalExtensionsCount > 0 && (
             <div className="operational-summary-bar">
-              <button
-                type="button"
-                className={`summary-pill-btn ${filterRunningState === "enabled" ? "active" : ""}`}
-                onClick={() =>
-                  setFilterRunningState((curr) => (curr === "enabled" ? "all" : "enabled"))
-                }
-                title="Click to filter running extensions"
-              >
-                <span className="summary-dot running-dot" />
-                {runningExtensionsCount} / {totalExtensionsCount} running
-              </button>
-              {attentionExtensionsCount > 0 && (
-                <>
-                  <span className="summary-separator">·</span>
-                  <button
-                    type="button"
-                    className={`summary-pill-btn attention ${filterRunningState === "attention" ? "active" : ""}`}
-                    onClick={() =>
-                      setFilterRunningState((curr) => (curr === "attention" ? "all" : "attention"))
+              <div className="summary-pills-group">
+                <button
+                  type="button"
+                  className={`summary-pill-btn ${filterRunningState === "enabled" ? "active" : ""}`}
+                  onClick={() =>
+                    setFilterRunningState((curr) => (curr === "enabled" ? "all" : "enabled"))
+                  }
+                  title="Click to filter running extensions"
+                >
+                  <span className="summary-dot running-dot" />
+                  {runningExtensionsCount} / {totalExtensionsCount} running
+                </button>
+                {attentionExtensionsCount > 0 && (
+                  <>
+                    <span className="summary-separator">·</span>
+                    <button
+                      type="button"
+                      className={`summary-pill-btn attention ${filterRunningState === "attention" ? "active" : ""}`}
+                      onClick={() =>
+                        setFilterRunningState((curr) => (curr === "attention" ? "all" : "attention"))
+                      }
+                      title="Click to filter extensions needing attention"
+                    >
+                      <span className="summary-dot attention-dot" />
+                      {attentionExtensionsCount} extension{attentionExtensionsCount > 1 ? "s" : ""} needs attention
+                    </button>
+                  </>
+                )}
+              </div>
+              <div className="summary-destination-actions">
+                <button
+                  type="button"
+                  className="destination-icon-btn"
+                  onClick={() => {
+                    if (typeof chrome !== "undefined" && chrome.tabs?.create) {
+                      chrome.tabs.create({ url: "chrome://extensions/" });
+                    } else if (typeof window !== "undefined") {
+                      window.open("chrome://extensions/", "_blank");
                     }
-                    title="Click to filter extensions needing attention"
-                  >
-                    <span className="summary-dot attention-dot" />
-                    {attentionExtensionsCount} extension{attentionExtensionsCount > 1 ? "s" : ""} needs attention
-                  </button>
-                </>
-              )}
+                  }}
+                  title="Open Chrome extensions"
+                  aria-label="Open Chrome extensions"
+                >
+                  <MaterialSymbol name="extension" size={18} />
+                </button>
+                <button
+                  type="button"
+                  className="destination-icon-btn"
+                  onClick={() => {
+                    if (typeof chrome !== "undefined" && chrome.tabs?.create) {
+                      chrome.tabs.create({ url: "https://chromewebstore.google.com/" });
+                    } else if (typeof window !== "undefined") {
+                      window.open("https://chromewebstore.google.com/", "_blank");
+                    }
+                  }}
+                  title="Open Chrome Web Store"
+                  aria-label="Open Chrome Web Store"
+                >
+                  <MaterialSymbol name="storefront" size={18} />
+                </button>
+              </div>
             </div>
           )}
         </>
@@ -355,6 +393,8 @@ export function Selector({
                 selected={selectedList ? selectedList.includes(ext.id) : null}
                 onSelect={onSelect}
                 onToggle={onToggleExtension}
+                onReload={onReloadExtension}
+                isReloading={reloadingId === ext.id}
                 onOpenOptions={onOpenOptions}
                 onOpenDetails={onOpenDetails}
                 onUninstall={onUninstallExtension}
@@ -380,6 +420,8 @@ export function Selector({
                 selected={selectedList ? selectedList.includes(app.id) : null}
                 onSelect={onSelect}
                 onToggle={onToggleExtension}
+                onReload={onReloadExtension}
+                isReloading={reloadingId === app.id}
                 onOpenOptions={onOpenOptions}
                 onOpenDetails={onOpenDetails}
                 onUninstall={onUninstallExtension}
@@ -405,6 +447,8 @@ export function Selector({
                 selected={selectedList ? selectedList.includes(theme.id) : null}
                 onSelect={onSelect}
                 onToggle={onToggleExtension}
+                onReload={onReloadExtension}
+                isReloading={reloadingId === theme.id}
                 onOpenOptions={onOpenOptions}
                 onOpenDetails={onOpenDetails}
                 onUninstall={onUninstallExtension}

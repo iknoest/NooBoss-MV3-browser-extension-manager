@@ -133,6 +133,7 @@ export type Message =
   | { type: 'GET_EXTENSIONS' }
   | { type: 'EXTENSIONS_LIST'; extensions: ExtensionInfo[] }
   | { type: 'TOGGLE_EXTENSION'; id: string; enabled: boolean }
+  | { type: 'RELOAD_EXTENSION'; id: string }
   | { type: 'UNINSTALL_EXTENSION'; id: string }
   | { type: 'OPEN_OPTIONS'; id: string }
   | { type: 'OPEN_CHROME_DETAILS'; id: string }

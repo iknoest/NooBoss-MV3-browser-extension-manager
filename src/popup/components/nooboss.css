@@ -499,35 +499,48 @@ input[type="search"]:focus,
 
 
 
-.nb-tile.disabled {
-  opacity: 0.65;
-  filter: grayscale(85%);
-}
-
-.nb-tile.disabled:hover {
-  filter: none;
-  opacity: 1;
-}
-
-
-
-
-
-
-
-
-
-
-
-.extension-icon,
-.group-icon-center {
-  width: 36px;
-  height: 36px;
+/* Standardized Extension Icon Slot (Normalized anchor footprint for badges) */
+.extension-icon-slot {
+  position: relative;
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-sizing: border-box;
+}
+
+.extension-icon-slot.slot-big-tile,
+.extension-icon-slot.slot-tile,
+.big-tile-icon-wrapper,
+.tile-icon-wrapper {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  max-width: 36px;
+  max-height: 36px;
+  flex: 0 0 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.extension-icon,
+.group-icon-center,
+.extension-icon-slot.slot-big-tile .extension-icon,
+.extension-icon-slot.slot-tile .extension-icon,
+.big-tile-icon-wrapper .extension-icon,
+.tile-icon-wrapper .extension-icon {
+  width: 36px;
+  height: 36px;
+  max-width: 36px;
+  max-height: 36px;
   object-fit: contain;
-  margin-bottom: 4px;
+  display: block;
+  margin: 0;
+  border-radius: 4px;
 }
 
 .item-name-front,
@@ -564,20 +577,36 @@ input[type="search"]:focus,
   color: var(--text-muted);
 }
 
-
-
-
-
-.list-icon-wrapper,
-.nb-list-row img.list-icon {
-  width: 22px;
-  height: 22px;
-  object-fit: contain;
-  margin-right: 10px;
-  cursor: pointer;
+.extension-icon-slot.slot-list,
+.list-icon-wrapper {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  min-width: 26px;
+  min-height: 26px;
+  max-width: 26px;
+  max-height: 26px;
+  flex: 0 0 26px;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-sizing: border-box;
+  margin: 0;
+  cursor: pointer;
+}
+
+.extension-icon-slot.slot-list .list-icon,
+.list-icon-wrapper .list-icon,
+.list-icon-wrapper img.list-icon,
+.nb-list-row > img.list-icon {
+  width: 26px;
+  height: 26px;
+  max-width: 26px;
+  max-height: 26px;
+  object-fit: contain;
+  display: block;
+  margin: 0;
+  border-radius: 4px;
 }
 
 .list-name {
@@ -1537,10 +1566,6 @@ input[type="search"]:focus,
   box-shadow: var(--shadow-sm);
 }
 
-.nb-big-tile.disabled {
-  opacity: 0.7;
-}
-
 .big-tile-content {
   display: flex;
   flex-direction: column;
@@ -1596,10 +1621,6 @@ input[type="search"]:focus,
   background-color: var(--bg-hover);
 }
 
-.nb-list-row.disabled {
-  opacity: 0.7;
-}
-
 .list-icon {
   width: 26px;
   height: 26px;
@@ -1634,7 +1655,7 @@ input[type="search"]:focus,
   flex-shrink: 0;
 }
 
-/* Normal Tile Card: ~104x104px */
+/* Normal Tile Card: ~104x104px (Standardized top-aligned icon slot) */
 .nb-tile {
   width: 100%;
   min-width: 0;
@@ -1646,8 +1667,8 @@ input[type="search"]:focus,
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 8px 6px;
+  justify-content: flex-start;
+  padding: 10px 6px 8px;
   position: relative;
   cursor: pointer;
   transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
@@ -1660,18 +1681,31 @@ input[type="search"]:focus,
   box-shadow: var(--shadow-sm);
 }
 
-.nb-tile.disabled {
-  opacity: 0.7;
-}
-
 .tile-body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 6px;
   width: 100%;
+  height: 100%;
   text-align: center;
+  transition: opacity 0.15s ease;
+}
+
+.nb-tile.has-hover-controls:hover .tile-body,
+.nb-tile.has-hover-controls:focus-within .tile-body,
+.nb-tile:has(.tile-hover-bar):hover .tile-body,
+.nb-tile:has(.tile-hover-bar):focus-within .tile-body {
+  opacity: 0;
+}
+
+/* Ensure unpacked indicator is hidden when hover overlay is active */
+.nb-tile.has-hover-controls:hover .slot-tile .unpacked-badge-dot,
+.nb-tile.has-hover-controls:focus-within .slot-tile .unpacked-badge-dot,
+.nb-tile:has(.tile-hover-bar):hover .slot-tile .unpacked-badge-dot,
+.nb-tile:has(.tile-hover-bar):focus-within .slot-tile .unpacked-badge-dot {
+  opacity: 0 !important;
 }
 
 .tile-item-name {
@@ -1695,17 +1729,45 @@ input[type="search"]:focus,
   background: var(--bg-card);
   border-radius: var(--radius-md);
   display: flex;
+  flex-direction: column;
+  justify-content: space-between;
   align-items: center;
-  justify-content: center;
-  gap: 4px;
+  padding: 12px 6px 10px;
+  box-sizing: border-box;
   opacity: 0;
   pointer-events: none;
+  z-index: 5;
   transition: opacity 0.15s ease;
 }
 
-.nb-tile:hover .tile-hover-bar {
+.nb-tile:hover .tile-hover-bar,
+.nb-tile:focus-within .tile-hover-bar {
   opacity: 1;
   pointer-events: auto;
+}
+
+.tile-hover-meta {
+  width: 100%;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: 0.2px;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 4px;
+  box-sizing: border-box;
+  user-select: none;
+}
+
+.tile-hover-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 100%;
 }
 
 /* Universal Switch Controls: >= 40x34px hit target */
@@ -1813,6 +1875,31 @@ input[type="search"]:focus,
 .action-icon-btn:focus-visible {
   outline: 2px solid var(--theme-main);
   outline-offset: 1px;
+}
+
+.action-icon-btn:disabled,
+.action-icon-btn.disabled {
+  opacity: 0.45;
+  cursor: not-allowed !important;
+  pointer-events: auto !important;
+}
+
+.action-icon-btn:disabled:hover,
+.action-icon-btn.disabled:hover {
+  background-color: transparent !important;
+}
+
+.action-icon-btn.reload-btn.is-reloading .material-symbols-rounded {
+  animation: nb-spin 0.8s linear infinite;
+}
+
+@keyframes nb-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Selectable Rows & Big Tiles in Group Editor */
@@ -2079,14 +2166,61 @@ input[type="search"]:focus,
   color: var(--text-primary);
 }
 
-/* Compact Operational Summary Bar */
+/* Compact Operational Summary Bar with Fast Destinations */
 .operational-summary-bar {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
   margin-top: 8px;
   margin-bottom: 12px;
   font-size: 12px;
+  min-height: 28px;
+}
+
+.summary-pills-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.summary-destination-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.destination-icon-btn {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  min-height: 28px;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background-color: transparent;
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  box-sizing: border-box;
+}
+
+.destination-icon-btn:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+  border-color: var(--border-subtle);
+}
+
+.destination-icon-btn:focus-visible {
+  outline: 2px solid var(--theme-main);
+  outline-offset: 1px;
 }
 
 .summary-pill-btn {
@@ -2146,19 +2280,24 @@ input[type="search"]:focus,
   color: var(--text-muted);
 }
 
-/* Disabled Extension Visual Contrast */
+/* Disabled Extension Visual Contrast (Scoped to artwork and text, preserving dot saturation) */
 .nb-big-tile.disabled,
 .nb-list-row.disabled,
-.nb-tile.disabled {
+.nb-tile.disabled,
+.selectable-big-tile.disabled,
+.selectable-row.disabled,
+.selectable-tile.disabled {
   background-color: var(--bg-secondary);
-  opacity: 0.92;
 }
 
 .nb-big-tile.disabled .extension-icon,
 .nb-list-row.disabled .list-icon,
-.nb-tile.disabled .extension-icon {
+.nb-tile.disabled .extension-icon,
+.selectable-big-tile.disabled .extension-icon,
+.selectable-row.disabled .list-icon,
+.selectable-tile.disabled .extension-icon {
   filter: grayscale(100%);
-  opacity: 0.5;
+  opacity: 0.45;
 }
 
 .nb-big-tile.disabled .item-name,
@@ -2329,4 +2468,43 @@ input[type="search"]:focus,
 .tile-status-tag.disabled {
   background-color: var(--bg-secondary);
   color: var(--text-muted);
+}
+
+/* Unpacked / Development Extension Indicator Dot */
+.unpacked-badge-dot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #f97316;
+  border: 1.5px solid var(--bg-card, #fff);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  z-index: 2;
+  pointer-events: none;
+  box-sizing: content-box;
+}
+
+[data-theme="dark"] .unpacked-badge-dot {
+  border-color: var(--bg-card, #202124);
+}
+
+/* Ensure unpacked indicator is never grayed out on disabled extension cards */
+.nb-big-tile.disabled .unpacked-badge-dot,
+.nb-list-row.disabled .unpacked-badge-dot,
+.nb-tile.disabled .unpacked-badge-dot,
+.selectable-big-tile.disabled .unpacked-badge-dot,
+.selectable-row.disabled .unpacked-badge-dot,
+.selectable-tile.disabled .unpacked-badge-dot {
+  filter: none !important;
+  opacity: 1 !important;
+}
+
+/* When Tile hover/focus overlay is active, hide the unpacked indicator even on disabled tiles */
+.nb-tile.has-hover-controls:hover .unpacked-badge-dot,
+.nb-tile.has-hover-controls:focus-within .unpacked-badge-dot,
+.nb-tile:has(.tile-hover-bar):hover .unpacked-badge-dot,
+.nb-tile:has(.tile-hover-bar):focus-within .unpacked-badge-dot {
+  opacity: 0 !important;
 }
