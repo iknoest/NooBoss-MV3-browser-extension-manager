@@ -356,6 +356,10 @@ input[type="search"]:focus,
   box-shadow: 0 0 0 2px var(--theme-main-subtle);
 }
 
+#nameFilter {
+  width: 205px;
+}
+
 .clear-btn {
   position: absolute;
   right: 6px;
