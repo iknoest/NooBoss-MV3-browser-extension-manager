@@ -290,6 +290,7 @@ export function SubWindow({
             actionBar={true}
             withControl={false}
             selectedList={group.extensionIds}
+            selectionNoun="assigned"
             onSelect={handleToggleExtensionInGroup}
             themeMainColor={themeMainColor}
           />

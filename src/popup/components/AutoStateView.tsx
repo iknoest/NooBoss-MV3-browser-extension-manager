@@ -4,6 +4,13 @@ import { Selector } from "./Selector";
 import { GL } from "./i18n";
 import { Edity, Removy, Groupy } from "./icons";
 import { ExtensionSwitch } from "./ExtensionBrief";
+import {
+  AUTOSTATE_ACTION_LABELS,
+  AUTOSTATE_ACTION_HELPERS,
+  MATCH_TYPE_LABELS,
+  MATCH_TYPE_HELPERS,
+  generatePatternForUrl,
+} from "./autostate-helpers";
 
 export interface AutoStateViewProps {
   extensions: ExtensionInfo[];
@@ -35,8 +42,9 @@ export function AutoStateView({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [ruleAction, setRuleAction] = useState<AutoStateRule["action"]>("enableOnlyWhileMatched");
   const [rulePattern, setRulePattern] = useState<string>("");
-  const [ruleIsWildcard, setRuleIsWildcard] = useState<boolean>(false);
+  const [ruleIsWildcard, setRuleIsWildcard] = useState<boolean>(true);
   const [ruleTargets, setRuleTargets] = useState<string[]>([]);
+  const [websiteWarning, setWebsiteWarning] = useState<string | null>(null);
 
   const handleToggleTarget = (id: string) => {
     setRuleTargets((prev) =>
@@ -49,8 +57,14 @@ export function AutoStateView({
       if (typeof chrome !== "undefined" && chrome.tabs && chrome.tabs.query) {
         const tabs = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
         if (tabs && tabs[0] && tabs[0].url) {
-          const u = new URL(tabs[0].url);
-          setRulePattern(u.origin);
+          const result = generatePatternForUrl(tabs[0].url, ruleIsWildcard);
+          if (result.success && result.pattern) {
+            setRulePattern(result.pattern);
+            setWebsiteWarning(null);
+          } else if (result.error) {
+            setWebsiteWarning(result.error);
+            setTimeout(() => setWebsiteWarning(null), 4000);
+          }
         }
       }
     } catch {
@@ -96,7 +110,8 @@ export function AutoStateView({
     setRuleTargets([]);
     setRulePattern("");
     setRuleAction("enableOnlyWhileMatched");
-    setRuleIsWildcard(false);
+    setRuleIsWildcard(true);
+    setWebsiteWarning(null);
   };
 
   const handleEditRule = (rule: AutoStateRule) => {
@@ -105,6 +120,7 @@ export function AutoStateView({
     setRulePattern(rule.pattern);
     setRuleIsWildcard(rule.isWildcard);
     setRuleTargets([...rule.targets]);
+    setWebsiteWarning(null);
   };
 
   const handleDeleteRule = (ruleId: string) => {
@@ -219,9 +235,9 @@ export function AutoStateView({
             <tr>
               <th style={{ width: "40px" }}>#</th>
               <th style={{ width: "160px" }}>{GL("target_s")}</th>
-              <th style={{ width: "130px" }}>{GL("action")}</th>
+              <th style={{ width: "240px" }}>{GL("action")}</th>
               <th>{GL("match")}</th>
-              <th style={{ width: "90px" }}>{GL("pattern")}</th>
+              <th style={{ width: "170px" }}>{GL("pattern")}</th>
               <th style={{ width: "50px", textAlign: "center" }}>State</th>
               <th style={{ width: "40px", textAlign: "center" }}></th>
               <th style={{ width: "40px", textAlign: "center" }}></th>
@@ -229,22 +245,21 @@ export function AutoStateView({
           </thead>
           <tbody>
             {rules.map((rule, idx) => {
-              const actionKey = rule.action.replace("WhileMatched", "").replace("Matched", "");
               return (
                 <tr key={rule.id} className="history-row">
                   <td>{idx + 1}</td>
                   <td style={{ overflow: "hidden", whiteSpace: "nowrap" }}>
                     {renderTargetIcons(rule.targets)}
                   </td>
-                  <td style={{ fontWeight: 500 }}>
-                    {GL(actionKey)}
+                  <td style={{ fontWeight: 500, fontSize: "12px", lineHeight: "1.3" }}>
+                    {AUTOSTATE_ACTION_LABELS[rule.action] || rule.action}
                   </td>
                   <td style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     <code>{rule.pattern}</code>
                   </td>
                   <td>
                     <span className="history-badge event-update">
-                      {GL(rule.isWildcard ? "wildcard" : "RegExp")}
+                      {rule.isWildcard ? MATCH_TYPE_LABELS.wildcard : MATCH_TYPE_LABELS.regex}
                     </span>
                   </td>
                   <td style={{ textAlign: "center" }}>
@@ -296,9 +311,9 @@ export function AutoStateView({
         {editingId ? "Edit Rule" : GL("new_rule")}
       </h2>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "20px", background: "var(--bg-secondary)", padding: "16px", borderRadius: "var(--radius-md)", border: "1px solid var(--border-subtle)" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "14px", marginBottom: "20px", background: "var(--bg-secondary)", padding: "16px", borderRadius: "var(--radius-md)", border: "1px solid var(--border-subtle)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <div style={{ width: "100px", fontWeight: 600, color: "var(--text-secondary)" }}>{GL("target_s")}</div>
+          <div style={{ width: "110px", fontWeight: 600, color: "var(--text-secondary)" }}>{GL("target_s")}</div>
           <div style={{ flex: 1, minHeight: "32px", display: "flex", alignItems: "center", flexWrap: "wrap", gap: "4px" }}>
             {ruleTargets.length > 0 ? (
               renderTargetIcons(ruleTargets)
@@ -308,45 +323,67 @@ export function AutoStateView({
           </div>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <div style={{ width: "100px", fontWeight: 600, color: "var(--text-secondary)" }}>{GL("action")}</div>
-          <select
-            value={ruleAction}
-            onChange={(e) => setRuleAction((e.target as HTMLSelectElement).value as AutoStateRule["action"])}
-          >
-            <option value="enableOnlyWhileMatched">{GL("enableOnly")}</option>
-            <option value="disableOnlyWhileMatched">{GL("disableOnly")}</option>
-            <option value="enableWhenMatched">{GL("enableWhen")}</option>
-            <option value="disableWhenMatched">{GL("disableWhen")}</option>
-          </select>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
+          <div style={{ width: "110px", fontWeight: 600, color: "var(--text-secondary)", paddingTop: "6px" }}>{GL("action")}</div>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "4px" }}>
+            <select
+              value={ruleAction}
+              onChange={(e) => setRuleAction((e.target as HTMLSelectElement).value as AutoStateRule["action"])}
+              style={{ maxWidth: "360px" }}
+            >
+              <option value="enableOnlyWhileMatched">{AUTOSTATE_ACTION_LABELS.enableOnlyWhileMatched}</option>
+              <option value="disableOnlyWhileMatched">{AUTOSTATE_ACTION_LABELS.disableOnlyWhileMatched}</option>
+              <option value="enableWhenMatched">{AUTOSTATE_ACTION_LABELS.enableWhenMatched}</option>
+              <option value="disableWhenMatched">{AUTOSTATE_ACTION_LABELS.disableWhenMatched}</option>
+            </select>
+            <div className="autostate-inline-helper" style={{ fontSize: "11px", color: "var(--text-muted)", lineHeight: "1.4" }}>
+              {AUTOSTATE_ACTION_HELPERS[ruleAction]}
+            </div>
+          </div>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <div style={{ width: "100px", fontWeight: 600, color: "var(--text-secondary)" }}>{GL("match")}</div>
-          <input
-            style={{ width: "320px" }}
-            placeholder="URL or regex (e.g. github.com)"
-            value={rulePattern}
-            onInput={(e) => setRulePattern((e.target as HTMLInputElement).value)}
-          />
-          <button
-            className="btn btn-secondary action-btn"
-            style={{ fontSize: "12px" }}
-            onClick={handleSetCurrentWebsite}
-          >
-            {GL("set_as_current_website")}
-          </button>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
+          <div style={{ width: "110px", fontWeight: 600, color: "var(--text-secondary)", paddingTop: "6px" }}>{GL("match")}</div>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "4px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+              <input
+                style={{ width: "340px" }}
+                placeholder={ruleIsWildcard ? "e.g. https://www.linkedin.com/*" : "e.g. ^https://.*\\.linkedin\\.com/.*"}
+                value={rulePattern}
+                onInput={(e) => setRulePattern((e.target as HTMLInputElement).value)}
+              />
+              <button
+                type="button"
+                className="btn btn-secondary action-btn"
+                style={{ fontSize: "12px", whiteSpace: "nowrap" }}
+                onClick={handleSetCurrentWebsite}
+              >
+                {GL("set_as_current_website")}
+              </button>
+            </div>
+            {websiteWarning && (
+              <div style={{ color: "var(--danger, #ea4335)", fontSize: "11px" }}>
+                {websiteWarning}
+              </div>
+            )}
+          </div>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <div style={{ width: "100px", fontWeight: 600, color: "var(--text-secondary)" }}>{GL("pattern")}</div>
-          <select
-            value={ruleIsWildcard ? "wildcard" : "RegExp"}
-            onChange={(e) => setRuleIsWildcard((e.target as HTMLSelectElement).value === "wildcard")}
-          >
-            <option value="RegExp">{GL("RegExp")}</option>
-            <option value="wildcard">{GL("wildcard")}</option>
-          </select>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
+          <div style={{ width: "110px", fontWeight: 600, color: "var(--text-secondary)", paddingTop: "6px" }}>{GL("pattern")}</div>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "4px" }}>
+            <select
+              value={ruleIsWildcard ? "wildcard" : "RegExp"}
+              onChange={(e) => setRuleIsWildcard((e.target as HTMLSelectElement).value === "wildcard")}
+              style={{ maxWidth: "360px" }}
+            >
+              <option value="wildcard">{MATCH_TYPE_LABELS.wildcard}</option>
+              <option value="RegExp">{MATCH_TYPE_LABELS.regex}</option>
+            </select>
+            <div className="autostate-inline-helper" style={{ fontSize: "11px", color: "var(--text-muted)", lineHeight: "1.4", whiteSpace: "pre-line" }}>
+              {ruleIsWildcard ? MATCH_TYPE_HELPERS.wildcard : MATCH_TYPE_HELPERS.regex}
+            </div>
+          </div>
         </div>
 
         <div style={{ display: "flex", gap: "10px", marginTop: "8px" }}>
@@ -360,6 +397,7 @@ export function AutoStateView({
                 setEditingId(null);
                 setRuleTargets([]);
                 setRulePattern("");
+                setWebsiteWarning(null);
               }}
             >
               {GL("cancel")}
@@ -378,6 +416,7 @@ export function AutoStateView({
         actionBar={true}
         withControl={false}
         selectedList={ruleTargets}
+        selectionNoun="selected"
         onSelect={handleToggleTarget}
         themeMainColor={themeMainColor}
       />

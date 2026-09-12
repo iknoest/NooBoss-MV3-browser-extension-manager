@@ -1,10 +1,12 @@
-import { useState, useMemo } from "preact/hooks";
+import { useState, useMemo, useEffect } from "preact/hooks";
 import type { ExtensionInfo, ExtensionGroup } from "../../shared/types";
 import { ExtensionBrief } from "./ExtensionBrief";
-import { GroupBrief } from "./GroupBrief";
+import { GroupBrief, renderGroupIcon } from "./GroupBrief";
 import { GL } from "./i18n";
-import { Listy, Tiley, BigTiley, Cleary } from "./icons";
+import { Listy, Tiley, BigTiley, Cleary, Closey, Optioney } from "./icons";
 import { MaterialSymbol } from "./MaterialSymbols";
+import { sortGroupMemberExtensions } from "./group-member-utils";
+import { computeGroupRuntimeSummary } from "./group-summary";
 
 export interface SelectorProps {
   allowedViewModes?: Array<"list" | "bigTile" | "tile">;
@@ -15,6 +17,9 @@ export interface SelectorProps {
   actionBar?: boolean;
   withControl?: boolean;
   selectedList?: string[];
+  selectionNoun?: "assigned" | "selected";
+  focusedGroupId?: string | null;
+  onFocusGroup?: (id: string | null) => void;
   onSelect?: (id: string) => void;
   onToggleExtension?: (id: string, enabled: boolean) => void;
   onReloadExtension?: (id: string) => Promise<void> | void;
@@ -40,6 +45,9 @@ export function Selector({
   actionBar = true,
   withControl = true,
   selectedList,
+  selectionNoun = "assigned",
+  focusedGroupId,
+  onFocusGroup,
   onSelect,
   onToggleExtension,
   onReloadExtension,
@@ -55,11 +63,44 @@ export function Selector({
   themeMainColor,
   filterTypeOnly,
 }: SelectorProps) {
+  const [internalFocusedGroupId, setInternalFocusedGroupId] = useState<string | null>(null);
+  const activeFocusedGroupId = focusedGroupId !== undefined ? focusedGroupId : internalFocusedGroupId;
+  const setActiveFocusedGroupId = onFocusGroup || setInternalFocusedGroupId;
+  const [filterAssignedOnly, setFilterAssignedOnly] = useState<boolean>(false);
+
   const [filterType, setFilterType] = useState<string>("all");
   const [filterName, setFilterName] = useState<string>("");
   const [filterRunningState, setFilterRunningState] = useState<"all" | "enabled" | "attention">("all");
   const [undoStack, setUndoStack] = useState<Array<Record<string, boolean>>>([]);
   const [redoStack, setRedoStack] = useState<Array<Record<string, boolean>>>([]);
+
+  // Keyboard shortcut: Escape clears active group focus
+  useEffect(() => {
+    if (!activeFocusedGroupId) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setActiveFocusedGroupId(null);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [activeFocusedGroupId, setActiveFocusedGroupId]);
+
+  const focusedGroup = useMemo(() => {
+    return activeFocusedGroupId ? groups.find((g) => g.id === activeFocusedGroupId) || null : null;
+  }, [activeFocusedGroupId, groups]);
+
+  const hasApps = useMemo(
+    () => extensions.some((e) => e.type === "app" || e.type === "hosted_app" || e.type === "packaged_app"),
+    [extensions]
+  );
+  const hasThemes = useMemo(() => extensions.some((e) => e.type === "theme"), [extensions]);
+
+  const searchPlaceholder = useMemo(() => {
+    if (focusedGroup) return GL("search_extensions_in_group");
+    if (groups.length > 0) return GL("search_extensions_and_groups");
+    return GL("search_extensions");
+  }, [focusedGroup, groups.length]);
 
   const totalExtensionsCount = extensions.length;
   const runningExtensionsCount = extensions.filter((e) => e.enabled).length;
@@ -67,7 +108,15 @@ export function Selector({
 
   // Filtered extensions
   const filteredExtensions = useMemo(() => {
-    return extensions.filter((ext) => {
+    const list = extensions.filter((ext) => {
+      // If focused on a group, strictly limit to that group's members
+      if (focusedGroup && !focusedGroup.extensionIds.includes(ext.id)) {
+        return false;
+      }
+      // If Assigned Only filter active, only include items present in selectedList
+      if (filterAssignedOnly && selectedList && !selectedList.includes(ext.id)) {
+        return false;
+      }
       if (filterTypeOnly && ext.installType !== filterTypeOnly) {
         if (filterTypeOnly === "chromeWebStoreExtensionOnly" && ext.installType === "development") {
           return false;
@@ -89,10 +138,27 @@ export function Selector({
       if (filterType === "theme") return ext.type === "theme";
       return true;
     });
-  }, [extensions, filterType, filterName, filterTypeOnly, filterRunningState]);
+
+    // Default ordering:
+    // When editing group membership or picking targets, sort assigned first, running first, alphabetical.
+    if (selectedList) {
+      return sortGroupMemberExtensions(list, selectedList);
+    }
+    return list;
+  }, [
+    extensions,
+    focusedGroup,
+    filterAssignedOnly,
+    selectedList,
+    filterTypeOnly,
+    filterName,
+    filterRunningState,
+    filterType,
+  ]);
 
   // Filtered groups
   const filteredGroups = useMemo(() => {
+    if (focusedGroup) return [];
     if (filterType !== "all" && filterType !== "group") return [];
     if (filterRunningState === "attention") return [];
     return groups.filter((g) => {
@@ -101,7 +167,7 @@ export function Selector({
       }
       return true;
     });
-  }, [groups, filterType, filterName, filterRunningState]);
+  }, [groups, focusedGroup, filterType, filterName, filterRunningState]);
 
   // Split into categories
   const extensionList = filteredExtensions.filter((e) => e.type === "extension");
@@ -182,17 +248,17 @@ export function Selector({
               value={filterType}
               onChange={(e) => setFilterType((e.target as HTMLSelectElement).value)}
             >
-              <option value="all">{GL("all")}</option>
-              {groups.length > 0 && <option value="group">{GL("group")}</option>}
-              <option value="app">{GL("app")}</option>
-              <option value="extension">{GL("extension")}</option>
-              <option value="theme">{GL("theme")}</option>
+              <option value="all">{GL("everything")}</option>
+              {groups.length > 0 && <option value="group">{GL("groups")}</option>}
+              <option value="extension">{GL("extensions")}</option>
+              {hasApps && <option value="app">{GL("apps")}</option>}
+              {hasThemes && <option value="theme">{GL("themes")}</option>}
             </select>
 
             <div className="name-filter-wrapper">
               <input
                 id="nameFilter"
-                placeholder={GL("name")}
+                placeholder={searchPlaceholder}
                 value={filterName}
                 onInput={(e) => setFilterName((e.target as HTMLInputElement).value)}
               />
@@ -285,6 +351,28 @@ export function Selector({
             </div>
           </div>
 
+          {/* Selection Status Bar in Group Editor / AutoState */}
+          {selectedList && (
+            <div className="selection-status-bar">
+              <span className="assigned-count-badge">
+                <strong>{selectedList.length}</strong> {selectionNoun === "selected" ? "selected" : "assigned"}
+              </span>
+              <button
+                type="button"
+                className={`assigned-only-toggle-btn ${filterAssignedOnly ? "active" : ""}`}
+                onClick={() => setFilterAssignedOnly((prev) => !prev)}
+                aria-pressed={filterAssignedOnly}
+                title={filterAssignedOnly ? "Show all extensions" : `Show ${selectionNoun === "selected" ? "selected" : "assigned"} only`}
+              >
+                <MaterialSymbol
+                  name={filterAssignedOnly ? "check_box" : "check_box_outline_blank"}
+                  size={16}
+                />
+                <span>{selectionNoun === "selected" ? "Selected only" : GL("assigned_only")}</span>
+              </button>
+            </div>
+          )}
+
           {/* Compact Operational Summary Bar with Fast Destinations */}
           {totalExtensionsCount > 0 && (
             <div className="operational-summary-bar">
@@ -354,6 +442,61 @@ export function Selector({
         </>
       )}
 
+      {/* Group Focus Removable Context Banner (Outcome C) */}
+      {focusedGroup && (
+        <div className="group-focus-banner" role="status" aria-label={`Filtered by group: ${focusedGroup.name}`}>
+          <div className="group-focus-info">
+            <span className="group-focus-icon">
+              {renderGroupIcon(focusedGroup, 22, themeMainColor)}
+            </span>
+            <span className="group-focus-label">Group:</span>
+            <span className="group-focus-name">{focusedGroup.name}</span>
+            <span className="group-focus-separator">·</span>
+            <span className="group-focus-stats">
+              {computeGroupRuntimeSummary(focusedGroup, extensions).summaryText}
+              {computeGroupRuntimeSummary(focusedGroup, extensions).exceptionText && (
+                <span className="exception-text"> · {computeGroupRuntimeSummary(focusedGroup, extensions).exceptionText}</span>
+              )}
+            </span>
+          </div>
+          <div className="group-focus-actions">
+            <button
+              type="button"
+              className="group-focus-edit-btn"
+              onClick={() => onOpenSubWindow?.("group", focusedGroup.id)}
+              title="Edit group definition and membership"
+              aria-label="Edit group"
+            >
+              <Optioney color={themeMainColor} size={15} />
+              <span>Edit group</span>
+            </button>
+            <button
+              type="button"
+              className="group-focus-clear-btn"
+              onClick={() => setActiveFocusedGroupId(null)}
+              title="Clear group filter (show all extensions)"
+              aria-label="Clear group filter"
+            >
+              <Closey color="currentColor" style={{ width: "16px", height: "16px" }} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Group Focus Empty State */}
+      {focusedGroup && extensionList.length === 0 && appList.length === 0 && themeList.length === 0 && (
+        <div className="group-focus-empty-state">
+          <p>No extensions are assigned to this group yet.</p>
+          <button
+            type="button"
+            className="btn btn-secondary action-btn"
+            onClick={() => onOpenSubWindow?.("group", focusedGroup.id)}
+          >
+            Edit group membership
+          </button>
+        </div>
+      )}
+
       {/* Groups Section */}
       {filteredGroups.length > 0 && (
         <div id="groupList" className="extension-container">
@@ -372,6 +515,7 @@ export function Selector({
                 onCopyGroup={onCopyGroup}
                 onDeleteGroup={onDeleteGroup}
                 onOpenSubWindow={onOpenSubWindow}
+                onFocusGroup={(id) => setActiveFocusedGroupId(id)}
                 themeMainColor={themeMainColor}
               />
             ))}

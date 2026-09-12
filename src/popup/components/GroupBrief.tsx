@@ -15,6 +15,7 @@ export interface GroupBriefProps {
   onDeleteGroup?: (id: string) => void;
   onSelect?: (id: string) => void;
   onOpenSubWindow?: (type: "group", id: string) => void;
+  onFocusGroup?: (id: string) => void;
   themeMainColor?: string;
 }
 
@@ -62,24 +63,23 @@ export function GroupBrief({
   onDeleteGroup,
   onSelect,
   onOpenSubWindow,
+  onFocusGroup,
   themeMainColor = "#1a73e8",
 }: GroupBriefProps) {
   const isSelectable = selected !== null;
   const isSelected = selected === true;
   const summary = computeGroupRuntimeSummary(group, allExtensions);
 
-  const handleOpenDetail = (e: MouseEvent) => {
+  const handleEditGroup = (e: MouseEvent) => {
     e.stopPropagation();
-    if (isSelectable) {
-      onSelect?.(group.id);
-    } else {
-      onOpenSubWindow?.("group", group.id);
-    }
+    onOpenSubWindow?.("group", group.id);
   };
 
   const handleCardClick = () => {
     if (isSelectable) {
       onSelect?.(group.id);
+    } else {
+      onFocusGroup?.(group.id);
     }
   };
 
@@ -183,11 +183,23 @@ export function GroupBrief({
   // --- Normal Big Tile View (2 Columns Layout) ---
   if (viewMode === "bigTile") {
     return (
-      <div className="nb-big-tile group-big-tile">
-        <div className="group-icon-center clickable" onClick={handleOpenDetail}>
+      <div
+        className="nb-big-tile group-big-tile"
+        onClick={handleCardClick}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === " " || e.key === "Enter") {
+            e.preventDefault();
+            handleCardClick();
+          }
+        }}
+        title={`Click to show ${group.name} members`}
+      >
+        <div className="group-icon-center clickable">
           {renderGroupIcon(group, 36, themeMainColor)}
         </div>
-        <div className="big-tile-content" onClick={handleOpenDetail}>
+        <div className="big-tile-content">
           <span className="item-name" title={group.name}>
             {group.name}
           </span>
@@ -198,7 +210,7 @@ export function GroupBrief({
         </div>
 
         {withControl && (
-          <div className="item-controls-strip">
+          <div className="item-controls-strip" onClick={(e) => e.stopPropagation()}>
             {onToggleGroup && (
               <GroupCommandControl
                 group={group}
@@ -222,10 +234,7 @@ export function GroupBrief({
             <button
               type="button"
               className="action-icon-btn"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleOpenDetail(e as unknown as MouseEvent);
-              }}
+              onClick={handleEditGroup}
               title="Edit Group"
               aria-label="Edit Group"
             >
@@ -252,9 +261,21 @@ export function GroupBrief({
   // --- Normal List View (44px Row Height) ---
   if (viewMode === "list") {
     return (
-      <div className="nb-list-row group-list-row">
+      <div
+        className="nb-list-row group-list-row"
+        onClick={handleCardClick}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === " " || e.key === "Enter") {
+            e.preventDefault();
+            handleCardClick();
+          }
+        }}
+        title={`Click to show ${group.name} members`}
+      >
         {withControl && onToggleGroup && (
-          <div className="list-group-toggle-wrap">
+          <div className="list-group-toggle-wrap" onClick={(e) => e.stopPropagation()}>
             <GroupCommandControl
               group={group}
               allExtensions={allExtensions}
@@ -263,12 +284,11 @@ export function GroupBrief({
             />
           </div>
         )}
-        <div className="list-icon-wrap clickable" onClick={handleOpenDetail}>
+        <div className="list-icon-wrap clickable">
           {renderGroupIcon(group, 26, themeMainColor)}
         </div>
         <span
           className="list-name clickable"
-          onClick={handleOpenDetail}
           title={group.name}
         >
           {group.name}
@@ -278,7 +298,7 @@ export function GroupBrief({
           {summary.exceptionText && <span className="exception-text"> · {summary.exceptionText}</span>}
         </span>
         {withControl && (
-          <div className="list-actions">
+          <div className="list-actions" onClick={(e) => e.stopPropagation()}>
             <button
               type="button"
               className="action-icon-btn"
@@ -294,10 +314,7 @@ export function GroupBrief({
             <button
               type="button"
               className="action-icon-btn"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleOpenDetail(e as unknown as MouseEvent);
-              }}
+              onClick={handleEditGroup}
               title="Edit Group"
               aria-label="Edit Group"
             >
@@ -325,8 +342,16 @@ export function GroupBrief({
   return (
     <div
       className="nb-tile group-tile"
-      onClick={handleOpenDetail}
+      onClick={handleCardClick}
+      role="button"
       tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === " " || e.key === "Enter") {
+          e.preventDefault();
+          handleCardClick();
+        }
+      }}
+      title={`Click to show ${group.name} members`}
     >
       <div className="tile-body">
         <div className="group-icon-center">
@@ -369,10 +394,7 @@ export function GroupBrief({
             <button
               type="button"
               className="tile-action-btn"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleOpenDetail(e as unknown as MouseEvent);
-              }}
+              onClick={handleEditGroup}
               title="Edit Group"
               aria-label="Edit Group"
             >

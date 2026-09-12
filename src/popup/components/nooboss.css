@@ -2508,3 +2508,178 @@ input[type="search"]:focus,
 .nb-tile:has(.tile-hover-bar):focus-within .unpacked-badge-dot {
   opacity: 0 !important;
 }
+
+/* ── Group Focus Removable Context Banner (Outcome C) ────────────────────── */
+.group-focus-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: var(--bg-card, #ffffff);
+  border: 1px solid var(--theme-main, #1a73e8);
+  border-left: 4px solid var(--theme-main, #1a73e8);
+  border-radius: var(--radius-md, 8px);
+  padding: 8px 14px;
+  margin: 6px 0 12px 0;
+  gap: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="dark"] .group-focus-banner {
+  background-color: var(--bg-card, #202124);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.group-focus-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.group-focus-icon {
+  display: flex;
+  align-items: center;
+}
+
+.group-focus-label {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.group-focus-name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.group-focus-separator {
+  color: var(--text-muted);
+}
+
+.group-focus-stats {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.group-focus-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.group-focus-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg-secondary, #f8f9fa);
+  border: 1px solid var(--border-subtle, #dadce0);
+  border-radius: var(--radius-sm, 6px);
+  padding: 4px 8px;
+  font-size: 12px;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.group-focus-edit-btn:hover {
+  background: var(--bg-hover, rgba(0, 0, 0, 0.05));
+  border-color: var(--theme-main, #1a73e8);
+}
+
+.group-focus-clear-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.group-focus-clear-btn:hover {
+  background: var(--bg-hover, rgba(0, 0, 0, 0.08));
+  color: var(--text-primary);
+}
+
+.group-focus-empty-state {
+  text-align: center;
+  padding: 28px 16px;
+  color: var(--text-muted);
+  background: var(--bg-secondary, #f8f9fa);
+  border: 1px dashed var(--border-subtle, #dadce0);
+  border-radius: var(--radius-md, 8px);
+  margin: 12px 0;
+}
+
+.group-focus-empty-state p {
+  margin: 0 0 10px 0;
+  font-size: 13px;
+}
+
+/* ── Selection Status Bar in Group Editor / AutoState (Outcome B) ────────── */
+.selection-status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 12px;
+  margin-top: 6px;
+  background: var(--bg-secondary, #f8f9fa);
+  border: 1px solid var(--border-subtle, #dadce0);
+  border-radius: var(--radius-sm, 6px);
+  font-size: 12px;
+}
+
+.assigned-count-badge {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.assigned-count-badge strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.assigned-only-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-primary, #ffffff);
+  border: 1px solid var(--border-subtle, #dadce0);
+  border-radius: 14px;
+  padding: 3px 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+[data-theme="dark"] .assigned-only-toggle-btn {
+  background: var(--bg-card, #202124);
+}
+
+.assigned-only-toggle-btn:hover {
+  border-color: var(--theme-main, #1a73e8);
+  color: var(--text-primary);
+}
+
+.assigned-only-toggle-btn.active {
+  background: var(--theme-main-subtle, rgba(26, 115, 232, 0.12));
+  border-color: var(--theme-main, #1a73e8);
+  color: var(--theme-main, #1a73e8);
+  font-weight: 500;
+}
+
+/* ── AutoState Inline Helpers (Outcome A) ─────────────────────────────────── */
+.autostate-inline-helper {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
