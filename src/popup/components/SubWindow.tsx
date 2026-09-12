@@ -41,6 +41,9 @@ export function SubWindow({
   const [editorViewMode, setEditorViewMode] = useState<"list" | "bigTile">("list");
   const [showIconPicker, setShowIconPicker] = useState(false);
 
+  const [membershipUndoStack, setMembershipUndoStack] = useState<string[][]>([]);
+  const [membershipRedoStack, setMembershipRedoStack] = useState<string[][]>([]);
+
   if (!display || !targetId) return null;
 
   if (display === "extension") {
@@ -224,6 +227,26 @@ export function SubWindow({
       const nextIds = isMember
         ? group.extensionIds.filter((id) => id !== extId)
         : [...group.extensionIds, extId];
+      setMembershipUndoStack((prev) => [...prev, [...group.extensionIds]]);
+      setMembershipRedoStack([]);
+      onUpdateGroup?.({ ...group, extensionIds: nextIds });
+    };
+
+    const handleUndoMembership = () => {
+      if (membershipUndoStack.length === 0) return;
+      const nextUndo = [...membershipUndoStack];
+      const prevIds = nextUndo.pop()!;
+      setMembershipRedoStack((prev) => [...prev, [...group.extensionIds]]);
+      setMembershipUndoStack(nextUndo);
+      onUpdateGroup?.({ ...group, extensionIds: prevIds });
+    };
+
+    const handleRedoMembership = () => {
+      if (membershipRedoStack.length === 0) return;
+      const nextRedo = [...membershipRedoStack];
+      const nextIds = nextRedo.pop()!;
+      setMembershipUndoStack((prev) => [...prev, [...group.extensionIds]]);
+      setMembershipRedoStack(nextRedo);
       onUpdateGroup?.({ ...group, extensionIds: nextIds });
     };
 
@@ -292,6 +315,10 @@ export function SubWindow({
             selectedList={group.extensionIds}
             selectionNoun="assigned"
             onSelect={handleToggleExtensionInGroup}
+            onUndoMembership={handleUndoMembership}
+            onRedoMembership={handleRedoMembership}
+            canUndoMembership={membershipUndoStack.length > 0}
+            canRedoMembership={membershipRedoStack.length > 0}
             themeMainColor={themeMainColor}
           />
 

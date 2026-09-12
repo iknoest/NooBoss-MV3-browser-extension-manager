@@ -1,6 +1,6 @@
 # Handover
 
-Snapshot: 2026-09-12T21:30:00+02:00
+Snapshot: 2026-09-12T22:15:00+02:00
 
 ## Current release state (1.1.0 continuity)
 - `f87404a02534d704e00b281a38411f8c204d0cb9` is the frozen accepted 1.1.0 source and release baseline.
@@ -11,6 +11,28 @@ Snapshot: 2026-09-12T21:30:00+02:00
 - Current UX work (at `4fbdbcb` and follow-up commits) is post-1.1.0 local work and must not silently become part of the frozen 1.1.0 release artifact.
 
 ## Work completed
+- **Site Rules Mental-Model Correction & Group Control Usability Milestone**:
+  - Renamed user-facing "AutoState" to **"Site Rules"** across top navigation tab, descriptive header banners, options view, and help copy ("Site Rules automatically control extensions based on which websites are open."), while cleanly preserving underlying schema compatibility (`auto_state` storage keys, `auto_state` enum action values).
+  - Implemented **Intent-Based URL Matching without raw wildcards**:
+    - "Where should this rule apply?" dropdown offers four distinct, human-understandable scopes:
+      1. *This website (recommended)*: Users enter a clean domain like `linkedin.com` without needing `*` wildcards (automatically translated to `*linkedin.com*` under the hood for engine compatibility);
+      2. *Exact page*: Matches full URL strictly (e.g. `https://www.linkedin.com/jobs/view/123`);
+      3. *Custom URL pattern*: Explicit wildcard syntax (`*`, `?`) for pattern power-users;
+      4. *Regular expression · Advanced*: Full RegExp pattern matching.
+    - Added clean domain extraction to *"Set as current website"* button, auto-stripping protocol and paths when in *This website* scope, with clear warnings for internal browser URLs.
+    - Updated rules table with colored scope badges (*This Website*, *Exact Page*, *Pattern*, *RegExp*) and cleaned display patterns.
+  - Implemented **Two-Decision Action Mental Model + Dynamic Behavior Preview**:
+    - Replaced cryptic combined action strings with two clear questions:
+      - *"When should this rule act?"* (`While this site is open (Temporary: reverts when tab closes)` vs `When this site opens (One-time trigger: stays changed)`);
+      - *"What should happen?"* (`Turn extension ON` vs `Turn extension OFF`).
+    - Added a live, dynamic behavior preview box with brand/domain-aware naming (e.g. `linkedin.com` -> `LinkedIn`), spelling out the exact tab open and tab close lifecycle effects before saving.
+  - Implemented **Group Membership Editor Undo / Redo**:
+    - Added dedicated, scoped undo and redo stacks in `SubWindow.tsx` for membership checkbox changes.
+    - Mounted accessible Undo (`↩`) and Redo (`↪`) buttons in `Selector.tsx` alongside the assigned count, with live disabled states and informative tooltips.
+  - Implemented **Group-Focused Member Direct Controls**:
+    - Ensured every visible extension card in a focused group displays a persistent, directly clickable ON/OFF switch without requiring hover, including in tile view mode via `.tile-persistent-switch`.
+    - Maintained live counter synchronization in the group focus banner (`X / Y running`).
+    - Mounted whole-group `[OFF | ON]` batch commands directly in the `.group-focus-actions` bar for immediate full-group management alongside `[Edit members]`.
 - **AutoState Clarity UX Milestone**:
   - Replaced ambiguous AutoState terminology with user-friendly lifecycle labels: *"Keep on while matching site is open"*, *"Keep off while matching site is open"*, *"Turn on when a matching site opens"*, and *"Turn off when a matching site opens"*, accompanied by inline explanatory guidance.
   - Renamed pattern matching modes: default is now *"Website pattern"* (`wildcard`), with *"Regular expression (advanced)"* (`RegExp`) as the secondary option; provided inline helper explanations and pattern examples.
@@ -29,10 +51,10 @@ Snapshot: 2026-09-12T21:30:00+02:00
   - Created a sanitized migration template at `migrated-nooboss-import-anon.json` and excluded raw migration files via `.gitignore`.
 
 ## Tests and verification
-- **Unit test suite**: 10 test files, 132 tests passing (`npm test` via Vitest), including dedicated test suites `tests/unit/autostate-clarity.test.ts` (12 tests) and `tests/unit/group-usability.test.ts` (9 tests).
+- **Unit test suite**: 10 test files, 143 tests passing (`npm test` via Vitest), including dedicated test suites `tests/unit/autostate-clarity.test.ts` (21 tests) and `tests/unit/group-usability.test.ts` (11 tests).
 - **Static verification**: `npm run typecheck` (`tsc --noEmit`) and `npm run lint` (`eslint src/`) pass with 0 errors and 0 warnings.
 - **Production build**: `npm run build` generates production assets cleanly (`dist/`) in ~150ms.
-- **Visual inspection**: 9 high-fidelity screenshots captured via Puppeteer harness and visually inspected at 840px viewport (`01_autostate_new_website_pattern.png` through `09_top_filter_with_app_theme.png`); all compact search placeholders verified fully visible without truncation or clipping.
+- **Visual inspection**: 5 high-fidelity screenshots captured via Puppeteer harness and visually inspected at 860x780 viewport (`01_site_rules_this_website_default.png` through `05_group_focused_individual_toggles_visible.png`), verifying clean Site Rules UI, scope dropdown, dynamic behavior preview, group editor undo/redo, and persistent individual switches in group-focused tile view.
 - **Real-Chrome smoke**: Verified environment capability boundary via `tests/e2e/runner.mjs` and `tests/e2e/real-chrome-test.mjs`. Chrome unpacked extension CLI loading (`--load-extension`) in this headless macOS environment does not register target IDs; this is an environment capability limitation, not an extension bundle defect.
 - **Baseline safety**: Release baseline `f87404a02534d704e00b281a38411f8c204d0cb9` and `release/extension-drawer-1.1.0.zip` preserved frozen; zero permission additions; no version bumps.
 

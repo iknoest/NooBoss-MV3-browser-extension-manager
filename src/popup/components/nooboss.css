@@ -2687,3 +2687,21 @@ input[type="search"]:focus,
   line-height: 1.4;
 }
 
+/* ── Group Focus Persistent Switch & Membership Undo/Redo ─────────────────── */
+.tile-persistent-switch {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.membership-history-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+

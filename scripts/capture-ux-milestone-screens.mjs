@@ -155,7 +155,7 @@ async function main() {
 
   try {
     const page = await browser.newPage();
-    await page.setViewport({ width: 840, height: 620 });
+    await page.setViewport({ width: 860, height: 780 });
 
     await page.evaluateOnNewDocument((exts, grps, rls) => {
       window.__INTERNAL_EXTS = JSON.parse(JSON.stringify(exts));
@@ -229,92 +229,101 @@ async function main() {
     }, sampleExtensions, sampleGroups, sampleRules);
 
     // =========================================================================
-    // 1. Top Filter Baseline (No App / Theme) - Screenshot 08
+    // 1. Site Rules: Default "This website" Scope & While+ON Preview - Screenshot 01
+    // =========================================================================
+    await page.goto("http://localhost:8798/manager/manager.html?page=autostate", {
+      waitUntil: "networkidle0",
+    });
+    await sleep(600);
+
+    // Populate LinkedIn via "Set as current website"
+    await page.evaluate(() => {
+      const setSiteBtn = Array.from(document.querySelectorAll("button")).find((b) =>
+        b.textContent.includes("Set as current website")
+      );
+      if (setSiteBtn) setSiteBtn.click();
+    });
+    await sleep(400);
+
+    const s1Path = path.join(ARTIFACT_DIR, "01_site_rules_this_website_default.png");
+    await page.screenshot({ path: s1Path });
+    console.log("Captured:", s1Path);
+
+    // =========================================================================
+    // 2. Site Rules: Scope Dropdown Showing All 4 Options - Screenshot 02
+    // =========================================================================
+    await page.evaluate(() => {
+      const scopeSel = document.getElementById("ruleScopeSelector");
+      if (scopeSel) {
+        scopeSel.size = 4;
+        scopeSel.style.height = "auto";
+        scopeSel.style.minHeight = "95px";
+        scopeSel.style.background = "#ffffff";
+        scopeSel.style.zIndex = "100";
+        scopeSel.style.padding = "4px";
+      }
+    });
+    await sleep(300);
+
+    const s2Path = path.join(ARTIFACT_DIR, "02_site_rules_scope_dropdown_options.png");
+    await page.screenshot({ path: s2Path });
+    console.log("Captured:", s2Path);
+
+    // Restore scope selector
+    await page.evaluate(() => {
+      const scopeSel = document.getElementById("ruleScopeSelector");
+      if (scopeSel) {
+        scopeSel.size = 1;
+        scopeSel.style.height = "";
+        scopeSel.style.minHeight = "";
+        scopeSel.style.background = "";
+      }
+    });
+    await sleep(200);
+
+    // =========================================================================
+    // 3. Site Rules: Dynamic Behavior Preview (When + ON) - Screenshot 03
+    // =========================================================================
+    await page.evaluate(() => {
+      const timingSel = document.getElementById("ruleTimingSelector");
+      if (timingSel) {
+        timingSel.value = "when";
+        timingSel.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+    });
+    await sleep(400);
+
+    const s3Path = path.join(ARTIFACT_DIR, "03_site_rules_dynamic_behavior_preview_when.png");
+    await page.screenshot({ path: s3Path });
+    console.log("Captured:", s3Path);
+
+    // =========================================================================
+    // 4. Group Membership Editor with Undo / Redo Controls - Screenshot 04
     // =========================================================================
     await page.goto("http://localhost:8798/manager/manager.html?page=extensions", {
       waitUntil: "networkidle0",
     });
     await sleep(600);
 
-    // Expand select so options are visually visible in screenshot
-    await page.evaluate(() => {
-      const sel = document.getElementById("typeFilter");
-      if (sel) {
-        sel.size = sel.options.length;
-        sel.style.height = "auto";
-        sel.style.minHeight = "75px";
-        sel.style.background = "#ffffff";
-        sel.style.zIndex = "100";
-        sel.style.padding = "4px";
-      }
-    });
-    await sleep(200);
-
-    const s8Path = path.join(ARTIFACT_DIR, "08_top_filter_no_app_theme.png");
-    await page.screenshot({ path: s8Path });
-    console.log("Captured:", s8Path);
-
-    // Restore select size
-    await page.evaluate(() => {
-      const sel = document.getElementById("typeFilter");
-      if (sel) {
-        sel.size = 1;
-        sel.style.background = "";
-      }
-    });
-    await sleep(200);
-
-    // =========================================================================
-    // 2. Group Focus (Outcome C): Click Job search card body - Screenshot 06
-    // =========================================================================
-    await page.evaluate(() => {
-      const groupTile = document.querySelector(".group-big-tile");
-      if (groupTile) groupTile.click();
-    });
-    await sleep(500);
-
-    const s6Path = path.join(ARTIFACT_DIR, "06_group_focused_extensions_view.png");
-    await page.screenshot({ path: s6Path });
-    console.log("Captured:", s6Path);
-
-    // =========================================================================
-    // 3. Clear Group Focus (Outcome C): Click [×] button - Screenshot 07
-    // =========================================================================
-    await page.evaluate(() => {
-      const clearBtn = document.querySelector(".group-focus-clear-btn");
-      if (clearBtn) clearBtn.click();
-    });
-    await sleep(500);
-
-    const s7Path = path.join(ARTIFACT_DIR, "07_group_focus_cleared.png");
-    await page.screenshot({ path: s7Path });
-    console.log("Captured:", s7Path);
-
-    // =========================================================================
-    // 4. Open Group Membership Editor (Outcome B) - Screenshot 04
-    // =========================================================================
+    // Open Job search edit dialog
     await page.evaluate(() => {
       const editBtn = document.querySelector(".group-big-tile button[title='Edit Group']");
       if (editBtn) editBtn.click();
     });
     await sleep(600);
 
-    const s4Path = path.join(ARTIFACT_DIR, "04_group_editor_membership.png");
+    // Toggle an extension to populate undo stack so Undo is enabled and visible
+    await page.evaluate(() => {
+      // Toggle Code Editor Snippets (ext_code_editor)
+      const rows = Array.from(document.querySelectorAll(".selectable-row"));
+      const codeRow = rows.find((r) => r.textContent.includes("Code Editor Snippets"));
+      if (codeRow) codeRow.click();
+    });
+    await sleep(400);
+
+    const s4Path = path.join(ARTIFACT_DIR, "04_group_membership_editor_undo_redo.png");
     await page.screenshot({ path: s4Path });
     console.log("Captured:", s4Path);
-
-    // =========================================================================
-    // 5. Toggle "Assigned only" in Group Editor (Outcome B) - Screenshot 05
-    // =========================================================================
-    await page.evaluate(() => {
-      const assignedOnlyBtn = document.querySelector(".assigned-only-toggle-btn");
-      if (assignedOnlyBtn) assignedOnlyBtn.click();
-    });
-    await sleep(500);
-
-    const s5Path = path.join(ARTIFACT_DIR, "05_group_editor_assigned_only.png");
-    await page.screenshot({ path: s5Path });
-    console.log("Captured:", s5Path);
 
     // Close SubWindow
     await page.evaluate(() => {
@@ -324,128 +333,22 @@ async function main() {
     await sleep(400);
 
     // =========================================================================
-    // 6. Navigate to AutoState Tab: Rules Table (Outcome A3) - Screenshot 03
+    // 5. Group Focus: Member Extensions with Visible Individual ON/OFF - Screenshot 05
     // =========================================================================
-    await page.goto("http://localhost:8798/manager/manager.html?page=autostate", {
-      waitUntil: "networkidle0",
+    // Click Job search group card to activate focus
+    await page.evaluate(() => {
+      const titleSpan = Array.from(document.querySelectorAll(".group-big-tile .item-name")).find(
+        (el) => el.textContent.includes("Job search")
+      );
+      if (titleSpan) titleSpan.click();
     });
     await sleep(600);
 
-    const s3Path = path.join(ARTIFACT_DIR, "03_autostate_existing_rule.png");
-    await page.screenshot({ path: s3Path });
-    console.log("Captured:", s3Path);
+    const s5Path = path.join(ARTIFACT_DIR, "05_group_focused_individual_toggles_visible.png");
+    await page.screenshot({ path: s5Path });
+    console.log("Captured:", s5Path);
 
-    // =========================================================================
-    // 7. AutoState: New Rule with Website pattern (Outcome A1) - Screenshot 01
-    // =========================================================================
-    // Populate LinkedIn URL via "Set as current website"
-    await page.evaluate(() => {
-      const setSiteBtn = Array.from(document.querySelectorAll("button")).find((b) =>
-        b.textContent.includes("Set as current website")
-      );
-      if (setSiteBtn) setSiteBtn.click();
-
-      // Scroll the new rule section into view
-      const newRuleHeadings = Array.from(document.querySelectorAll("h2"));
-      const newRuleHeader = newRuleHeadings.find((h) => h.textContent.includes("New Rule") || h.textContent.includes("Add rule"));
-      if (newRuleHeader) newRuleHeader.scrollIntoView({ behavior: "instant", block: "start" });
-    });
-    await sleep(400);
-
-    const s1Path = path.join(ARTIFACT_DIR, "01_autostate_new_website_pattern.png");
-    await page.screenshot({ path: s1Path });
-    console.log("Captured:", s1Path);
-
-    // =========================================================================
-    // 8. AutoState: Regular expression (advanced) (Outcome A1) - Screenshot 02
-    // =========================================================================
-    await page.evaluate(() => {
-      const selects = Array.from(document.querySelectorAll("select"));
-      const patternSelect = selects.find((s) =>
-        Array.from(s.options).some((o) => o.value === "RegExp" || o.value === "wildcard")
-      );
-      if (patternSelect) {
-        patternSelect.value = "RegExp";
-        patternSelect.dispatchEvent(new Event("change", { bubbles: true }));
-      }
-    });
-    await sleep(300);
-
-    await page.evaluate(() => {
-      const setSiteBtn = Array.from(document.querySelectorAll("button")).find((b) =>
-        b.textContent.includes("Set as current website")
-      );
-      if (setSiteBtn) setSiteBtn.click();
-    });
-    await sleep(400);
-
-    const s2Path = path.join(ARTIFACT_DIR, "02_autostate_new_regex.png");
-    await page.screenshot({ path: s2Path });
-    console.log("Captured:", s2Path);
-
-    // =========================================================================
-    // 9. Conditional App/Theme in Type Filter (Outcome D) - Screenshot 09
-    // =========================================================================
-    // Navigate back to extensions view
-    await page.evaluate(() => {
-      const navLinks = Array.from(document.querySelectorAll(".nav-link"));
-      const extBtn = navLinks.find((el) => el.textContent.includes("Extensions"));
-      if (extBtn) extBtn.click();
-    });
-    await sleep(500);
-
-    // Inject an app and a theme and notify listeners
-    await page.evaluate(() => {
-      window.__INTERNAL_EXTS = [
-        ...window.__INTERNAL_EXTS,
-        {
-          id: "app_sheets_sample",
-          name: "Sheets Web Workspace",
-          version: "1.2.0",
-          enabled: true,
-          type: "hosted_app",
-          installType: "normal",
-          mayDisable: true,
-          description: "Spreadsheet web application.",
-          icons: [],
-        },
-        {
-          id: "theme_dark_slate",
-          name: "Slate Dark Theme",
-          version: "1.0.0",
-          enabled: true,
-          type: "theme",
-          installType: "normal",
-          mayDisable: true,
-          description: "Custom dark contrast theme.",
-          icons: [],
-        },
-      ];
-      if (window.__MESSAGE_LISTENERS) {
-        window.__MESSAGE_LISTENERS.forEach((fn) => fn({ type: "STATE_CHANGED" }));
-      }
-    });
-    await sleep(600);
-
-    // Expand select so all 5 options are visible
-    await page.evaluate(() => {
-      const sel = document.getElementById("typeFilter");
-      if (sel) {
-        sel.size = sel.options.length;
-        sel.style.height = "auto";
-        sel.style.minHeight = "120px";
-        sel.style.background = "#ffffff";
-        sel.style.zIndex = "100";
-        sel.style.padding = "4px";
-      }
-    });
-    await sleep(200);
-
-    const s9Path = path.join(ARTIFACT_DIR, "09_top_filter_with_app_theme.png");
-    await page.screenshot({ path: s9Path });
-    console.log("Captured:", s9Path);
-
-    console.log("🎉 All 9 screenshots generated successfully!");
+    console.log("🎉 All 5 UX milestone screenshots generated successfully!");
   } finally {
     await browser.close();
     server.close();

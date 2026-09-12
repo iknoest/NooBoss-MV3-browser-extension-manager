@@ -153,13 +153,13 @@ ${extensions.map((e) => `<li><a href="https://chrome.google.com/webstore/detail/
         </div>
       </section>
 
-      {/* 2. AutoState Section */}
+      {/* 2. Site Rules Section */}
       <section className="settings-section">
-        <h2 className="settings-section-title">AutoState Engine</h2>
+        <h2 className="settings-section-title">Site Rules Engine</h2>
         <div className="settings-card">
           <div className="settings-row">
             <div className="settings-row-text">
-              <span className="settings-label">Enable AutoState</span>
+              <span className="settings-label">Enable Site Rules</span>
               <span className="settings-description">
                 Automatically manage extensions based on active website URLs
               </span>
@@ -182,7 +182,7 @@ ${extensions.map((e) => `<li><a href="https://chrome.google.com/webstore/detail/
             <div className="settings-row-text">
               <span className="settings-label">Operation Mode</span>
               <span className="settings-description">
-                How state changes are applied when URL rules match
+                How state changes are applied when Site Rules match
               </span>
             </div>
             <div className="settings-control">

@@ -15,6 +15,7 @@ export interface ExtensionBriefProps {
   onUninstall?: (id: string) => void;
   onReload?: (id: string) => void;
   isReloading?: boolean;
+  isGroupFocused?: boolean;
   onSelect?: (id: string) => void;
   onOpenSubWindow?: (type: "extension", id: string) => void;
   themeMainColor?: string;
@@ -80,6 +81,7 @@ export function ExtensionBrief({
   onUninstall,
   onReload,
   isReloading = false,
+  isGroupFocused = false,
   onSelect,
   onOpenSubWindow,
   themeMainColor = "#1a73e8",
@@ -461,6 +463,21 @@ export function ExtensionBrief({
           {extension.name}
         </span>
       </div>
+
+      {/* Visible individual ON/OFF toggle in group focus view without needing hover */}
+      {withControl && isGroupFocused && extension.type !== "theme" && (
+        <div
+          className="tile-persistent-switch"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <ExtensionSwitch
+            id={extension.id}
+            enabled={extension.enabled}
+            onToggle={onToggle}
+            size="small"
+          />
+        </div>
+      )}
 
       {withControl && (
         <div className="tile-hover-bar" onClick={(e) => e.stopPropagation()}>

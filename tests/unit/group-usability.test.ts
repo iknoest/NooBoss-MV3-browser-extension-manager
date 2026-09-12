@@ -211,4 +211,120 @@ describe("Group Usability UX & Taxonomy (Outcomes B, C, D)", () => {
       expect(getPlaceholder(true, 2)).toBe("Search extensions in group");
     });
   });
+
+  describe("Outcome 4: Group Membership Editor Undo / Redo", () => {
+    it("manages membership undo and redo stacks through additions and removals", () => {
+      let currentIds = ["ext_a", "ext_b"];
+      const undoStack: string[][] = [];
+      const redoStack: string[][] = [];
+
+      const toggleMember = (id: string) => {
+        const next = currentIds.includes(id)
+          ? currentIds.filter((m) => m !== id)
+          : [...currentIds, id];
+        undoStack.push([...currentIds]);
+        redoStack.length = 0;
+        currentIds = next;
+      };
+
+      const undo = () => {
+        if (undoStack.length === 0) return;
+        const prev = undoStack.pop()!;
+        redoStack.push([...currentIds]);
+        currentIds = prev;
+      };
+
+      const redo = () => {
+        if (redoStack.length === 0) return;
+        const next = redoStack.pop()!;
+        undoStack.push([...currentIds]);
+        currentIds = next;
+      };
+
+      // Initially empty undo/redo stacks
+      expect(undoStack).toHaveLength(0);
+      expect(redoStack).toHaveLength(0);
+
+      // Add ext_c
+      toggleMember("ext_c");
+      expect(currentIds).toEqual(["ext_a", "ext_b", "ext_c"]);
+      expect(undoStack).toHaveLength(1);
+      expect(redoStack).toHaveLength(0);
+
+      // Remove ext_a
+      toggleMember("ext_a");
+      expect(currentIds).toEqual(["ext_b", "ext_c"]);
+      expect(undoStack).toHaveLength(2);
+
+      // Undo removal of ext_a -> should restore ext_a
+      undo();
+      expect(currentIds).toEqual(["ext_a", "ext_b", "ext_c"]);
+      expect(undoStack).toHaveLength(1);
+      expect(redoStack).toHaveLength(1);
+
+      // Undo addition of ext_c -> should restore initial state
+      undo();
+      expect(currentIds).toEqual(["ext_a", "ext_b"]);
+      expect(undoStack).toHaveLength(0);
+      expect(redoStack).toHaveLength(2);
+
+      // Redo addition of ext_c
+      redo();
+      expect(currentIds).toEqual(["ext_a", "ext_b", "ext_c"]);
+      expect(undoStack).toHaveLength(1);
+      expect(redoStack).toHaveLength(1);
+
+      // Redo removal of ext_a
+      redo();
+      expect(currentIds).toEqual(["ext_b", "ext_c"]);
+      expect(undoStack).toHaveLength(2);
+      expect(redoStack).toHaveLength(0);
+    });
+  });
+
+  describe("Outcome 5: Group Focus Individual Extension Toggle & Counter", () => {
+    it("toggles an individual member extension without changing siblings and updates group count", () => {
+      const group: ExtensionGroup = {
+        id: "g_productivity",
+        name: "Productivity",
+        extensionIds: ["ext_1", "ext_2", "ext_3"],
+        color: "#3b82f6",
+        createdAt: 100,
+      };
+
+      let extensionsState: ExtensionInfo[] = [
+        { id: "ext_1", name: "Ext 1", enabled: true, type: "extension" } as ExtensionInfo,
+        { id: "ext_2", name: "Ext 2", enabled: false, type: "extension" } as ExtensionInfo,
+        { id: "ext_3", name: "Ext 3", enabled: false, type: "extension" } as ExtensionInfo,
+      ];
+
+      // Initial stats: 1 / 3 running
+      let summary = computeGroupRuntimeSummary(group, extensionsState);
+      expect(summary.summaryText).toBe("1 / 3 running");
+      expect(summary.runningMemberCount).toBe(1);
+
+      // Toggle ext_2 ON individually
+      extensionsState = extensionsState.map((e) =>
+        e.id === "ext_2" ? { ...e, enabled: true } : e
+      );
+
+      // Sibling states are preserved
+      expect(extensionsState.find((e) => e.id === "ext_1")?.enabled).toBe(true);
+      expect(extensionsState.find((e) => e.id === "ext_2")?.enabled).toBe(true);
+      expect(extensionsState.find((e) => e.id === "ext_3")?.enabled).toBe(false);
+
+      // Summary updates immediately to 2 / 3 running
+      summary = computeGroupRuntimeSummary(group, extensionsState);
+      expect(summary.summaryText).toBe("2 / 3 running");
+      expect(summary.runningMemberCount).toBe(2);
+
+      // Toggle ext_1 OFF individually
+      extensionsState = extensionsState.map((e) =>
+        e.id === "ext_1" ? { ...e, enabled: false } : e
+      );
+      summary = computeGroupRuntimeSummary(group, extensionsState);
+      expect(summary.summaryText).toBe("1 / 3 running");
+      expect(summary.runningMemberCount).toBe(1);
+    });
+  });
 });

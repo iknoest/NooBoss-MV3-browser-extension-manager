@@ -7,6 +7,7 @@ import { Listy, Tiley, BigTiley, Cleary, Closey, Optioney } from "./icons";
 import { MaterialSymbol } from "./MaterialSymbols";
 import { sortGroupMemberExtensions } from "./group-member-utils";
 import { computeGroupRuntimeSummary } from "./group-summary";
+import { GroupCommandControl } from "./GroupCommandControl";
 
 export interface SelectorProps {
   allowedViewModes?: Array<"list" | "bigTile" | "tile">;
@@ -21,6 +22,10 @@ export interface SelectorProps {
   focusedGroupId?: string | null;
   onFocusGroup?: (id: string | null) => void;
   onSelect?: (id: string) => void;
+  onUndoMembership?: () => void;
+  onRedoMembership?: () => void;
+  canUndoMembership?: boolean;
+  canRedoMembership?: boolean;
   onToggleExtension?: (id: string, enabled: boolean) => void;
   onReloadExtension?: (id: string) => Promise<void> | void;
   reloadingId?: string | null;
@@ -49,6 +54,10 @@ export function Selector({
   focusedGroupId,
   onFocusGroup,
   onSelect,
+  onUndoMembership,
+  onRedoMembership,
+  canUndoMembership = false,
+  canRedoMembership = false,
   onToggleExtension,
   onReloadExtension,
   reloadingId,
@@ -357,6 +366,31 @@ export function Selector({
               <span className="assigned-count-badge">
                 <strong>{selectedList.length}</strong> {selectionNoun === "selected" ? "selected" : "assigned"}
               </span>
+
+              {onUndoMembership && (
+                <div className="membership-history-controls" style={{ display: "inline-flex", alignItems: "center", gap: "2px" }}>
+                  <button
+                    type="button"
+                    className="action-icon-btn toolbar-icon-btn membership-undo-btn"
+                    disabled={!canUndoMembership}
+                    onClick={onUndoMembership}
+                    title="Undo membership change"
+                    aria-label="Undo membership change"
+                  >
+                    <MaterialSymbol name="undo" size={16} color="currentColor" />
+                  </button>
+                  <button
+                    type="button"
+                    className="action-icon-btn toolbar-icon-btn membership-redo-btn"
+                    disabled={!canRedoMembership}
+                    onClick={onRedoMembership}
+                    title="Redo membership change"
+                    aria-label="Redo membership change"
+                  >
+                    <MaterialSymbol name="redo" size={16} color="currentColor" />
+                  </button>
+                </div>
+              )}
               <button
                 type="button"
                 className={`assigned-only-toggle-btn ${filterAssignedOnly ? "active" : ""}`}
@@ -460,15 +494,23 @@ export function Selector({
             </span>
           </div>
           <div className="group-focus-actions">
+            {onToggleGroup && (
+              <GroupCommandControl
+                group={focusedGroup}
+                allExtensions={extensions}
+                onToggleGroup={onToggleGroup}
+                size="small"
+              />
+            )}
             <button
               type="button"
               className="group-focus-edit-btn"
               onClick={() => onOpenSubWindow?.("group", focusedGroup.id)}
               title="Edit group definition and membership"
-              aria-label="Edit group"
+              aria-label="Edit members"
             >
               <Optioney color={themeMainColor} size={15} />
-              <span>Edit group</span>
+              <span>Edit members</span>
             </button>
             <button
               type="button"
@@ -534,6 +576,7 @@ export function Selector({
                 extension={ext}
                 viewMode={viewMode}
                 withControl={withControl}
+                isGroupFocused={Boolean(focusedGroup)}
                 selected={selectedList ? selectedList.includes(ext.id) : null}
                 onSelect={onSelect}
                 onToggle={onToggleExtension}
@@ -561,6 +604,7 @@ export function Selector({
                 extension={app}
                 viewMode={viewMode}
                 withControl={withControl}
+                isGroupFocused={Boolean(focusedGroup)}
                 selected={selectedList ? selectedList.includes(app.id) : null}
                 onSelect={onSelect}
                 onToggle={onToggleExtension}
@@ -588,6 +632,7 @@ export function Selector({
                 extension={theme}
                 viewMode={viewMode}
                 withControl={withControl}
+                isGroupFocused={Boolean(focusedGroup)}
                 selected={selectedList ? selectedList.includes(theme.id) : null}
                 onSelect={onSelect}
                 onToggle={onToggleExtension}

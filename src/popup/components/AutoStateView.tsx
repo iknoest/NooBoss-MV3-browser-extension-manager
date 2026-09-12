@@ -5,12 +5,23 @@ import { GL } from "./i18n";
 import { Edity, Removy, Groupy } from "./icons";
 import { ExtensionSwitch } from "./ExtensionBrief";
 import {
+  MatchScope,
+  RuleTiming,
+  RuleEffect,
+  SCOPE_LABELS,
+  SCOPE_EXPLANATIONS,
+  SCOPE_PLACEHOLDERS,
+  TIMING_LABELS,
+  EFFECT_LABELS,
   AUTOSTATE_ACTION_LABELS,
-  AUTOSTATE_ACTION_HELPERS,
-  MATCH_TYPE_LABELS,
-  MATCH_TYPE_HELPERS,
-  generatePatternForUrl,
+  buildPatternFromScope,
+  detectScopeAndInput,
+  getTabValueForScope,
+  getActionFromDecisions,
+  getDecisionsFromAction,
+  getBehaviorPreview,
 } from "./autostate-helpers";
+import { MaterialSymbol } from "./MaterialSymbols";
 
 export interface AutoStateViewProps {
   extensions: ExtensionInfo[];
@@ -40,9 +51,10 @@ export function AutoStateView({
   themeMainColor = "#1a73e8",
 }: AutoStateViewProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [ruleAction, setRuleAction] = useState<AutoStateRule["action"]>("enableOnlyWhileMatched");
-  const [rulePattern, setRulePattern] = useState<string>("");
-  const [ruleIsWildcard, setRuleIsWildcard] = useState<boolean>(true);
+  const [ruleScope, setRuleScope] = useState<MatchScope>("website");
+  const [ruleScopeInput, setRuleScopeInput] = useState<string>("");
+  const [ruleTiming, setRuleTiming] = useState<RuleTiming>("while");
+  const [ruleEffect, setRuleEffect] = useState<RuleEffect>("on");
   const [ruleTargets, setRuleTargets] = useState<string[]>([]);
   const [websiteWarning, setWebsiteWarning] = useState<string | null>(null);
 
@@ -57,9 +69,9 @@ export function AutoStateView({
       if (typeof chrome !== "undefined" && chrome.tabs && chrome.tabs.query) {
         const tabs = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
         if (tabs && tabs[0] && tabs[0].url) {
-          const result = generatePatternForUrl(tabs[0].url, ruleIsWildcard);
-          if (result.success && result.pattern) {
-            setRulePattern(result.pattern);
+          const result = getTabValueForScope(tabs[0].url, ruleScope);
+          if (result.success && result.value) {
+            setRuleScopeInput(result.value);
             setWebsiteWarning(null);
           } else if (result.error) {
             setWebsiteWarning(result.error);
@@ -73,7 +85,10 @@ export function AutoStateView({
   };
 
   const handleAddOrUpdateRule = () => {
-    if (!rulePattern && ruleTargets.length === 0) return;
+    const { pattern, isWildcard } = buildPatternFromScope(ruleScope, ruleScopeInput);
+    if (!pattern && ruleTargets.length === 0) return;
+
+    const action = getActionFromDecisions(ruleTiming, ruleEffect);
 
     if (editingId) {
       // Update existing
@@ -81,9 +96,9 @@ export function AutoStateView({
         r.id === editingId
           ? {
               ...r,
-              action: ruleAction,
-              pattern: rulePattern,
-              isWildcard: ruleIsWildcard,
+              action,
+              pattern,
+              isWildcard,
               targets: ruleTargets,
             }
           : r
@@ -95,11 +110,11 @@ export function AutoStateView({
       const newRule: AutoStateRule = {
         id: "rule_" + Date.now().toString(36),
         enabled: true,
-        name: rulePattern || "New Rule",
-        pattern: rulePattern,
-        isWildcard: ruleIsWildcard,
+        name: ruleScopeInput || pattern || "Site Rule",
+        pattern,
+        isWildcard,
         targets: ruleTargets,
-        action: ruleAction,
+        action,
         priority: rules.length + 1,
         createdAt: Date.now(),
       };
@@ -108,17 +123,21 @@ export function AutoStateView({
 
     // Reset form
     setRuleTargets([]);
-    setRulePattern("");
-    setRuleAction("enableOnlyWhileMatched");
-    setRuleIsWildcard(true);
+    setRuleScope("website");
+    setRuleScopeInput("");
+    setRuleTiming("while");
+    setRuleEffect("on");
     setWebsiteWarning(null);
   };
 
   const handleEditRule = (rule: AutoStateRule) => {
+    const { scope, displayInput } = detectScopeAndInput(rule);
+    const { timing, effect } = getDecisionsFromAction(rule.action);
     setEditingId(rule.id);
-    setRuleAction(rule.action);
-    setRulePattern(rule.pattern);
-    setRuleIsWildcard(rule.isWildcard);
+    setRuleScope(scope);
+    setRuleScopeInput(displayInput);
+    setRuleTiming(timing);
+    setRuleEffect(effect);
     setRuleTargets([...rule.targets]);
     setWebsiteWarning(null);
   };
@@ -128,7 +147,11 @@ export function AutoStateView({
     if (editingId === ruleId) {
       setEditingId(null);
       setRuleTargets([]);
-      setRulePattern("");
+      setRuleScope("website");
+      setRuleScopeInput("");
+      setRuleTiming("while");
+      setRuleEffect("on");
+      setWebsiteWarning(null);
     }
   };
 
@@ -176,8 +199,29 @@ export function AutoStateView({
     });
   };
 
+  const preview = getBehaviorPreview(ruleTiming, ruleEffect, ruleScopeInput);
+
   return (
     <div className="nb-page">
+      {/* Site Rules Explanatory Header */}
+      <div
+        className="site-rules-header-card"
+        style={{
+          marginBottom: "20px",
+          padding: "14px 18px",
+          background: "var(--bg-secondary, #f8f9fa)",
+          borderRadius: "var(--radius-md, 8px)",
+          border: "1px solid var(--border-subtle, #e0e0e0)",
+        }}
+      >
+        <h1 style={{ fontSize: "18px", fontWeight: 600, margin: "0 0 4px 0", color: "var(--text-primary)" }}>
+          {GL("autoState")}
+        </h1>
+        <p style={{ margin: 0, fontSize: "13px", color: "var(--text-secondary)", lineHeight: "1.4" }}>
+          Site Rules automatically control extensions based on which websites are open.
+        </p>
+      </div>
+
       {/* MV3 Pending Changes Banner (if in assisted mode) */}
       {pendingChanges.length > 0 && (
         <div
@@ -234,10 +278,10 @@ export function AutoStateView({
           <thead>
             <tr>
               <th style={{ width: "40px" }}>#</th>
-              <th style={{ width: "160px" }}>{GL("target_s")}</th>
+              <th style={{ width: "150px" }}>{GL("target_s")}</th>
               <th style={{ width: "240px" }}>{GL("action")}</th>
-              <th>{GL("match")}</th>
-              <th style={{ width: "170px" }}>{GL("pattern")}</th>
+              <th style={{ width: "160px" }}>Scope</th>
+              <th>{GL("pattern")}</th>
               <th style={{ width: "50px", textAlign: "center" }}>State</th>
               <th style={{ width: "40px", textAlign: "center" }}></th>
               <th style={{ width: "40px", textAlign: "center" }}></th>
@@ -245,6 +289,16 @@ export function AutoStateView({
           </thead>
           <tbody>
             {rules.map((rule, idx) => {
+              const { scope, displayInput } = detectScopeAndInput(rule);
+              const scopeBadgeText =
+                scope === "website"
+                  ? "This website"
+                  : scope === "exact"
+                  ? "Exact page"
+                  : scope === "wildcard"
+                  ? "Custom pattern"
+                  : "Regular expression";
+
               return (
                 <tr key={rule.id} className="history-row">
                   <td>{idx + 1}</td>
@@ -254,13 +308,13 @@ export function AutoStateView({
                   <td style={{ fontWeight: 500, fontSize: "12px", lineHeight: "1.3" }}>
                     {AUTOSTATE_ACTION_LABELS[rule.action] || rule.action}
                   </td>
-                  <td style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    <code>{rule.pattern}</code>
-                  </td>
                   <td>
-                    <span className="history-badge event-update">
-                      {rule.isWildcard ? MATCH_TYPE_LABELS.wildcard : MATCH_TYPE_LABELS.regex}
+                    <span className="history-badge event-update" title={SCOPE_EXPLANATIONS[scope]}>
+                      {scopeBadgeText}
                     </span>
+                  </td>
+                  <td style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <code>{scope === "website" ? displayInput : rule.pattern}</code>
                   </td>
                   <td style={{ textAlign: "center" }}>
                     <ExtensionSwitch
@@ -298,7 +352,7 @@ export function AutoStateView({
             {rules.length === 0 && (
               <tr>
                 <td colSpan={8} className="history-empty-cell">
-                  No AutoState rules configured.
+                  No Site Rules configured.
                 </td>
               </tr>
             )}
@@ -311,9 +365,21 @@ export function AutoStateView({
         {editingId ? "Edit Rule" : GL("new_rule")}
       </h2>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "14px", marginBottom: "20px", background: "var(--bg-secondary)", padding: "16px", borderRadius: "var(--radius-md)", border: "1px solid var(--border-subtle)" }}>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "14px",
+          marginBottom: "20px",
+          background: "var(--bg-secondary)",
+          padding: "16px",
+          borderRadius: "var(--radius-md)",
+          border: "1px solid var(--border-subtle)",
+        }}
+      >
+        {/* Targets */}
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <div style={{ width: "110px", fontWeight: 600, color: "var(--text-secondary)" }}>{GL("target_s")}</div>
+          <div style={{ width: "130px", fontWeight: 600, color: "var(--text-secondary)" }}>{GL("target_s")}</div>
           <div style={{ flex: 1, minHeight: "32px", display: "flex", alignItems: "center", flexWrap: "wrap", gap: "4px" }}>
             {ruleTargets.length > 0 ? (
               renderTargetIcons(ruleTargets)
@@ -323,34 +389,35 @@ export function AutoStateView({
           </div>
         </div>
 
+        {/* Where should this rule apply? */}
         <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
-          <div style={{ width: "110px", fontWeight: 600, color: "var(--text-secondary)", paddingTop: "6px" }}>{GL("action")}</div>
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "4px" }}>
-            <select
-              value={ruleAction}
-              onChange={(e) => setRuleAction((e.target as HTMLSelectElement).value as AutoStateRule["action"])}
-              style={{ maxWidth: "360px" }}
-            >
-              <option value="enableOnlyWhileMatched">{AUTOSTATE_ACTION_LABELS.enableOnlyWhileMatched}</option>
-              <option value="disableOnlyWhileMatched">{AUTOSTATE_ACTION_LABELS.disableOnlyWhileMatched}</option>
-              <option value="enableWhenMatched">{AUTOSTATE_ACTION_LABELS.enableWhenMatched}</option>
-              <option value="disableWhenMatched">{AUTOSTATE_ACTION_LABELS.disableWhenMatched}</option>
-            </select>
-            <div className="autostate-inline-helper" style={{ fontSize: "11px", color: "var(--text-muted)", lineHeight: "1.4" }}>
-              {AUTOSTATE_ACTION_HELPERS[ruleAction]}
-            </div>
+          <div style={{ width: "130px", fontWeight: 600, color: "var(--text-secondary)", paddingTop: "6px" }}>
+            Where to apply
           </div>
-        </div>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "6px" }}>
+            <select
+              id="ruleScopeSelector"
+              value={ruleScope}
+              onChange={(e) => {
+                const nextScope = (e.target as HTMLSelectElement).value as MatchScope;
+                setRuleScope(nextScope);
+                setWebsiteWarning(null);
+              }}
+              style={{ maxWidth: "380px" }}
+            >
+              <option value="website">{SCOPE_LABELS.website}</option>
+              <option value="exact">{SCOPE_LABELS.exact}</option>
+              <option value="wildcard">{SCOPE_LABELS.wildcard}</option>
+              <option value="regex">{SCOPE_LABELS.regex}</option>
+            </select>
 
-        <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
-          <div style={{ width: "110px", fontWeight: 600, color: "var(--text-secondary)", paddingTop: "6px" }}>{GL("match")}</div>
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "4px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
               <input
+                id="ruleScopeInput"
                 style={{ width: "340px" }}
-                placeholder={ruleIsWildcard ? "e.g. https://www.linkedin.com/*" : "e.g. ^https://.*\\.linkedin\\.com/.*"}
-                value={rulePattern}
-                onInput={(e) => setRulePattern((e.target as HTMLInputElement).value)}
+                placeholder={SCOPE_PLACEHOLDERS[ruleScope]}
+                value={ruleScopeInput}
+                onInput={(e) => setRuleScopeInput((e.target as HTMLInputElement).value)}
               />
               <button
                 type="button"
@@ -361,6 +428,11 @@ export function AutoStateView({
                 {GL("set_as_current_website")}
               </button>
             </div>
+
+            <div className="autostate-inline-helper" style={{ fontSize: "11px", color: "var(--text-muted)", lineHeight: "1.4" }}>
+              {SCOPE_EXPLANATIONS[ruleScope]}
+            </div>
+
             {websiteWarning && (
               <div style={{ color: "var(--danger, #ea4335)", fontSize: "11px" }}>
                 {websiteWarning}
@@ -369,23 +441,71 @@ export function AutoStateView({
           </div>
         </div>
 
+        {/* When should this rule act? */}
         <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
-          <div style={{ width: "110px", fontWeight: 600, color: "var(--text-secondary)", paddingTop: "6px" }}>{GL("pattern")}</div>
+          <div style={{ width: "130px", fontWeight: 600, color: "var(--text-secondary)", paddingTop: "6px" }}>
+            When to act
+          </div>
           <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "4px" }}>
             <select
-              value={ruleIsWildcard ? "wildcard" : "RegExp"}
-              onChange={(e) => setRuleIsWildcard((e.target as HTMLSelectElement).value === "wildcard")}
-              style={{ maxWidth: "360px" }}
+              id="ruleTimingSelector"
+              value={ruleTiming}
+              onChange={(e) => setRuleTiming((e.target as HTMLSelectElement).value as RuleTiming)}
+              style={{ maxWidth: "380px" }}
             >
-              <option value="wildcard">{MATCH_TYPE_LABELS.wildcard}</option>
-              <option value="RegExp">{MATCH_TYPE_LABELS.regex}</option>
+              <option value="while">{TIMING_LABELS.while}</option>
+              <option value="when">{TIMING_LABELS.when}</option>
             </select>
-            <div className="autostate-inline-helper" style={{ fontSize: "11px", color: "var(--text-muted)", lineHeight: "1.4", whiteSpace: "pre-line" }}>
-              {ruleIsWildcard ? MATCH_TYPE_HELPERS.wildcard : MATCH_TYPE_HELPERS.regex}
+          </div>
+        </div>
+
+        {/* What should happen? */}
+        <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
+          <div style={{ width: "130px", fontWeight: 600, color: "var(--text-secondary)", paddingTop: "6px" }}>
+            What happens
+          </div>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "4px" }}>
+            <select
+              id="ruleEffectSelector"
+              value={ruleEffect}
+              onChange={(e) => setRuleEffect((e.target as HTMLSelectElement).value as RuleEffect)}
+              style={{ maxWidth: "380px" }}
+            >
+              <option value="on">{EFFECT_LABELS.on}</option>
+              <option value="off">{EFFECT_LABELS.off}</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Dynamic Behavior Preview */}
+        <div
+          className="behavior-preview-box"
+          style={{
+            background: "var(--bg-card, #ffffff)",
+            border: "1px solid var(--border-subtle, #e0e0e0)",
+            borderLeft: `4px solid ${themeMainColor}`,
+            borderRadius: "var(--radius-md, 8px)",
+            padding: "12px 14px",
+            marginTop: "2px",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "8px", fontWeight: 600, fontSize: "12px", color: "var(--text-primary)" }}>
+            <MaterialSymbol name="info" size={16} color={themeMainColor} />
+            <span>Rule behavior preview</span>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "4px", fontSize: "12px", color: "var(--text-secondary)" }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
+              <span style={{ color: themeMainColor, fontWeight: 700 }}>•</span>
+              <span id="behaviorPreviewOpen">{preview.openText}</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
+              <span style={{ color: themeMainColor, fontWeight: 700 }}>•</span>
+              <span id="behaviorPreviewClose">{preview.closeText}</span>
             </div>
           </div>
         </div>
 
+        {/* Action buttons */}
         <div style={{ display: "flex", gap: "10px", marginTop: "8px" }}>
           <button className="btn btn-primary action-btn" onClick={handleAddOrUpdateRule}>
             {editingId ? "Update rule" : GL("add_rule")}
@@ -396,7 +516,10 @@ export function AutoStateView({
               onClick={() => {
                 setEditingId(null);
                 setRuleTargets([]);
-                setRulePattern("");
+                setRuleScope("website");
+                setRuleScopeInput("");
+                setRuleTiming("while");
+                setRuleEffect("on");
                 setWebsiteWarning(null);
               }}
             >

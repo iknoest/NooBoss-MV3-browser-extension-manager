@@ -16,8 +16,8 @@ const EN_MESSAGES: Record<string, string> = {
   "apps": "Apps",
   "are_you_sure": "Are you sure?",
   "assigned_only": "Assigned only",
-  "autoState": "Auto State",
-  "autoState_rule_s": "[\"AutoState rule\",\"AutoState rules\"]",
+  "autoState": "Site Rules",
+  "autoState_rule_s": "[\"Site Rule\",\"Site Rules\"]",
   "backup": "Backup",
   "basics": "Basics",
   "buggy": "Buggy",
@@ -46,7 +46,7 @@ const EN_MESSAGES: Record<string, string> = {
   "export_extensions_to_html": "Export extensions to html",
   "export_options": "Export options",
   "extension": "Extension",
-  "extension_description": "Organize, group, enable and disable extensions, with AutoState rules, history and local backup.",
+  "extension_description": "Organize, group, enable and disable extensions, with Site Rules, history and local backup.",
   "extension_name": "Extension Drawer",
   "extension_s": "[\"extension\",\"extensions\"]",
   "extensions": "Extensions",
@@ -149,7 +149,7 @@ const EN_MESSAGES: Record<string, string> = {
   "x_4": "Successfully reset NooBoss page zoom to 100%",
   "x_5": "By turning off join community, you will no longer get any community features, and you will not send any NooBoss usage to AInoob, so he will not be able to make a better NooBoss based on user usage",
   "x_6": "NooBoss zoom is already 100%",
-  "x_7": "X1 X2 by autoState rule #X3",
+  "x_7": "X1 X2 by Site Rule #X3",
   "you_have": "You have",
   "zoom": "Zoom"
 };
