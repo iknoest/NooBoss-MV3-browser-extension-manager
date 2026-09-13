@@ -993,6 +993,7 @@ input[type="search"]:focus,
 
 .group-edit-info {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -1012,6 +1013,44 @@ input[type="search"]:focus,
 
 .group-name-input:focus {
   border-color: var(--theme-main);
+}
+
+.group-edit-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.subwindow-header-close-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.subwindow-header-close-btn:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.group-modal-control-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  border-radius: var(--radius-sm);
 }
 
 .group-meta-row {
@@ -2701,7 +2740,51 @@ input[type="search"]:focus,
 .membership-history-controls {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
+}
+
+.membership-undo-btn,
+.membership-redo-btn {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  min-height: 28px;
+  border: 1px solid var(--border-input);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-card);
+  color: var(--text-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.membership-undo-btn:not(:disabled):hover,
+.membership-redo-btn:not(:disabled):hover {
+  background-color: var(--bg-hover);
+  border-color: var(--theme-main);
+  color: var(--theme-main);
+  box-shadow: var(--shadow-sm);
+}
+
+.membership-undo-btn:disabled,
+.membership-redo-btn:disabled {
+  opacity: 0.25 !important;
+  cursor: not-allowed !important;
+  color: var(--text-muted, #9aa0a6) !important;
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+.group-control-members-btn {
+  transition: all 0.15s ease;
+}
+
+.group-control-members-btn:hover {
+  color: var(--theme-main);
+  background-color: var(--bg-hover);
 }
 
 

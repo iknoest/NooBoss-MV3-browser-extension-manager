@@ -10,10 +10,15 @@ import {
   SCOPE_LABELS,
   SCOPE_EXPLANATIONS,
   SCOPE_PLACEHOLDERS,
+  CUSTOM_REGEX_EXPLANATION,
+  CUSTOM_REGEX_EXAMPLE,
+  CUSTOM_REGEX_PLACEHOLDER,
   TIMING_LABELS,
+  TIMING_DESCRIPTIONS,
   EFFECT_LABELS,
   cleanDomainInput,
   buildPatternFromScope,
+  buildSiteRegex,
   detectScopeAndInput,
   getTabValueForScope,
   getActionFromDecisions,
@@ -21,6 +26,7 @@ import {
   formatFriendlySiteName,
   getBehaviorPreview,
   generatePatternForUrl,
+  validateRuleInput,
 } from "../../src/popup/components/autostate-helpers";
 import { GL, GLS } from "../../src/popup/components/i18n";
 
@@ -215,143 +221,230 @@ describe("AutoState Clarity & Wording (Outcome A)", () => {
     });
   });
 
-  describe("Outcome 2: Intent-based URL matching without raw wildcards", () => {
-    it("provides four distinct scopes with explanations and placeholders", () => {
-      expect(SCOPE_LABELS.website).toContain("This website");
+  describe("Outcome 1: Exactly 3 primary scopes & precise subdomain semantics", () => {
+    it("provides exactly three primary user-facing scopes with plain-language explanations", () => {
+      expect(Object.keys(SCOPE_LABELS)).toEqual(["site", "exact", "custom"]);
+      expect(SCOPE_LABELS.site).toContain("This site");
       expect(SCOPE_LABELS.exact).toBe("Exact page");
-      expect(SCOPE_LABELS.wildcard).toBe("Custom URL pattern");
-      expect(SCOPE_LABELS.regex).toContain("Regular expression");
+      expect(SCOPE_LABELS.custom).toBe("Custom");
 
-      expect(SCOPE_EXPLANATIONS.website).toContain("Applies to all pages on this website");
-      expect(SCOPE_EXPLANATIONS.exact).toBe("Applies only to this exact page URL");
-      expect(SCOPE_EXPLANATIONS.wildcard).toContain("Use * to match any text");
-      expect(SCOPE_EXPLANATIONS.regex).toContain("For complex URL matching");
+      expect(SCOPE_EXPLANATIONS.site).toBe("Applies to all pages on this site.");
+      expect(SCOPE_EXPLANATIONS.exact).toContain("Applies only to this exact page");
+      expect(SCOPE_EXPLANATIONS.custom).toContain("Matches pages matching this URL pattern");
 
-      expect(SCOPE_PLACEHOLDERS.website).toBe("e.g. linkedin.com");
+      expect(SCOPE_PLACEHOLDERS.site).toBe("e.g. linkedin.com");
       expect(SCOPE_PLACEHOLDERS.exact).toBe("e.g. https://www.linkedin.com/jobs/view/123");
+      expect(SCOPE_PLACEHOLDERS.custom).toBe("e.g. linkedin.com/jobs/*");
+
+      // Custom secondary regex affordance constants
+      expect(CUSTOM_REGEX_EXPLANATION).toContain("Uses standard JavaScript regular-expression syntax");
+      expect(CUSTOM_REGEX_EXAMPLE).toContain("linkedin.com/jobs/");
+      expect(CUSTOM_REGEX_PLACEHOLDER).toContain("^https://");
     });
 
-    it("cleans domain input and builds whole-website patterns without requiring user asterisks", () => {
+    it("verifies cleanDomainInput strips protocols, paths, query/hash, www, and asterisks", () => {
       expect(cleanDomainInput("linkedin.com")).toBe("linkedin.com");
       expect(cleanDomainInput("https://www.linkedin.com/feed/")).toBe("linkedin.com");
       expect(cleanDomainInput("*linkedin.com*")).toBe("linkedin.com");
-      expect(cleanDomainInput("http://github.com/pulls")).toBe("github.com");
-
-      const websiteResult = buildPatternFromScope("website", "linkedin.com");
-      expect(websiteResult.pattern).toBe("*linkedin.com*");
-      expect(websiteResult.isWildcard).toBe(true);
-
-      // Verify built pattern matches all pages, subdomains, and protocols
-      expect(matchUrl("https://www.linkedin.com/feed", websiteResult.pattern, true)).toBe(true);
-      expect(matchUrl("https://linkedin.com/", websiteResult.pattern, true)).toBe(true);
-      expect(matchUrl("https://sub.linkedin.com/jobs", websiteResult.pattern, true)).toBe(true);
-      expect(matchUrl("https://other.com/", websiteResult.pattern, true)).toBe(false);
+      expect(cleanDomainInput("http://github.com/pulls?q=is%3Aopen#top")).toBe("github.com");
+      expect(cleanDomainInput("jobs.linkedin.com")).toBe("jobs.linkedin.com");
     });
 
-    it("builds exact page, custom pattern, and regex patterns correctly", () => {
+    it("enforces least-surprising site and subdomain semantics without silent broadening", () => {
+      const siteResult = buildPatternFromScope("site", "linkedin.com");
+      expect(siteResult.isWildcard).toBe(false); // Regex-based for strict domain boundary
+
+      // 1. Matches base domain
+      expect(matchUrl("https://linkedin.com/", siteResult.pattern, false)).toBe(true);
+      expect(matchUrl("http://linkedin.com/page", siteResult.pattern, false)).toBe(true);
+
+      // 2. Matches www.
+      expect(matchUrl("https://www.linkedin.com/feed", siteResult.pattern, false)).toBe(true);
+
+      // 3. Matches arbitrary subdomains
+      expect(matchUrl("https://jobs.linkedin.com/view/123", siteResult.pattern, false)).toBe(true);
+      expect(matchUrl("https://deep.sub.linkedin.com/a/b", siteResult.pattern, false)).toBe(true);
+      expect(matchUrl("http://sub.linkedin.com:8080/test", siteResult.pattern, false)).toBe(true);
+
+      // 4. Strictly REJECTS lookalike or unrelated domains (no silent broadening)
+      expect(matchUrl("https://evil-linkedin.com/", siteResult.pattern, false)).toBe(false);
+      expect(matchUrl("https://notlinkedin.com/", siteResult.pattern, false)).toBe(false);
+      expect(matchUrl("https://attacker.com/?q=linkedin.com", siteResult.pattern, false)).toBe(false);
+      expect(matchUrl("https://linkedin.com.evil.org/", siteResult.pattern, false)).toBe(false);
+    });
+
+    it("builds exact page pattern and tests engine matching", () => {
       const exactResult = buildPatternFromScope("exact", "https://www.linkedin.com/jobs/view/123");
       expect(exactResult.pattern).toBe("https://www.linkedin.com/jobs/view/123");
       expect(exactResult.isWildcard).toBe(true);
+
       expect(matchUrl("https://www.linkedin.com/jobs/view/123", exactResult.pattern, true)).toBe(true);
       expect(matchUrl("https://www.linkedin.com/jobs/view/456", exactResult.pattern, true)).toBe(false);
-
-      const wildcardResult = buildPatternFromScope("wildcard", "*linkedin.com/in/*");
-      expect(wildcardResult.pattern).toBe("*linkedin.com/in/*");
-      expect(wildcardResult.isWildcard).toBe(true);
-
-      const regexResult = buildPatternFromScope("regex", "^https://.*\\.linkedin\\.com/.*");
-      expect(regexResult.pattern).toBe("^https://.*\\.linkedin\\.com/.*");
-      expect(regexResult.isWildcard).toBe(false);
     });
 
-    it("detects scope and user input cleanly from saved rules", () => {
+    it("builds Custom simple URL patterns and Advanced regex", () => {
+      // Custom simple URL pattern
+      const customSimple = buildPatternFromScope("custom", "linkedin.com/jobs/*", false);
+      expect(customSimple.isWildcard).toBe(true);
+      expect(matchUrl("https://linkedin.com/jobs/123", customSimple.pattern, true)).toBe(true);
+      expect(matchUrl("https://www.linkedin.com/jobs/123", customSimple.pattern, true)).toBe(true);
+      expect(matchUrl("https://linkedin.com/feed", customSimple.pattern, true)).toBe(false);
+
+      // Custom advanced regex
+      const customRegex = buildPatternFromScope("custom", "^https://.*\\.linkedin\\.com/jobs/.*", true);
+      expect(customRegex.isWildcard).toBe(false);
+      expect(matchUrl("https://jobs.linkedin.com/jobs/view", customRegex.pattern, false)).toBe(true);
+      expect(matchUrl("https://other.com/jobs/", customRegex.pattern, false)).toBe(false);
+    });
+
+    it("preserves compatibility with existing saved rules across scopes", () => {
+      // Legacy wildcard *domain.com*
       expect(detectScopeAndInput({ pattern: "*linkedin.com*", isWildcard: true })).toEqual({
-        scope: "website",
+        scope: "site",
         displayInput: "linkedin.com",
+        useRegex: false,
       });
 
-      expect(detectScopeAndInput({ pattern: "https://www.linkedin.com/*", isWildcard: true })).toEqual({
-        scope: "website",
-        displayInput: "www.linkedin.com",
+      // Legacy wildcard *://*.domain.com/*
+      expect(detectScopeAndInput({ pattern: "*://*.domain.com/*", isWildcard: true })).toEqual({
+        scope: "site",
+        displayInput: "domain.com",
+        useRegex: false,
       });
 
+      // New site regex
+      const newSitePattern = buildSiteRegex("github.com");
+      expect(detectScopeAndInput({ pattern: newSitePattern, isWildcard: false })).toEqual({
+        scope: "site",
+        displayInput: "github.com",
+        useRegex: false,
+      });
+
+      // Exact page
       expect(detectScopeAndInput({ pattern: "https://www.linkedin.com/jobs/view/123", isWildcard: true })).toEqual({
         scope: "exact",
         displayInput: "https://www.linkedin.com/jobs/view/123",
+        useRegex: false,
       });
 
-      expect(detectScopeAndInput({ pattern: "*linkedin.com/in/*", isWildcard: true })).toEqual({
-        scope: "wildcard",
-        displayInput: "*linkedin.com/in/*",
+      // Custom simple pattern
+      expect(detectScopeAndInput({ pattern: "*linkedin.com/jobs/*", isWildcard: true })).toEqual({
+        scope: "custom",
+        displayInput: "linkedin.com/jobs/*",
+        useRegex: false,
       });
 
-      expect(detectScopeAndInput({ pattern: "^https://.*\\.linkedin\\.com/.*", isWildcard: false })).toEqual({
-        scope: "regex",
-        displayInput: "^https://.*\\.linkedin\\.com/.*",
+      // Custom advanced regex
+      expect(detectScopeAndInput({ pattern: "^https://.*\\.github\\.com/.*", isWildcard: false })).toEqual({
+        scope: "custom",
+        displayInput: "^https://.*\\.github\\.com/.*",
+        useRegex: true,
       });
     });
 
-    it("extracts active tab values formatted cleanly per scope and rejects internal URLs", () => {
+    it("extracts active tab values formatted per scope and warns on internal URLs", () => {
       const tabUrl = "https://www.github.com/trending";
-      const websiteTab = getTabValueForScope(tabUrl, "website");
-      expect(websiteTab.success).toBe(true);
-      expect(websiteTab.value).toBe("github.com");
+      const siteTab = getTabValueForScope(tabUrl, "site");
+      expect(siteTab.success).toBe(true);
+      expect(siteTab.value).toBe("github.com");
 
       const exactTab = getTabValueForScope(tabUrl, "exact");
       expect(exactTab.success).toBe(true);
       expect(exactTab.value).toBe(tabUrl);
 
-      const internalTab = getTabValueForScope("chrome://extensions/", "website");
+      const customTab = getTabValueForScope(tabUrl, "custom", false);
+      expect(customTab.success).toBe(true);
+      expect(customTab.value).toBe("github.com/*");
+
+      const internalTab = getTabValueForScope("chrome://extensions/", "site");
       expect(internalTab.success).toBe(false);
       expect(internalTab.error).toContain("Cannot set pattern from internal");
     });
   });
 
-  describe("Outcome 3: Two-decision action model & dynamic behavior preview", () => {
-    it("maps two decisions to and from internal engine actions bijectively", () => {
-      expect(getActionFromDecisions("while", "on")).toBe("enableOnlyWhileMatched");
-      expect(getActionFromDecisions("while", "off")).toBe("disableOnlyWhileMatched");
-      expect(getActionFromDecisions("when", "on")).toBe("enableWhenMatched");
-      expect(getActionFromDecisions("when", "off")).toBe("disableWhenMatched");
+  describe("Outcome 2: Temporary vs One-time lifecycle labels & required previews", () => {
+    it("maps Temporary while open and One-time on open bijectively to all 4 internal actions", () => {
+      expect(TIMING_LABELS.temporary).toBe("Temporary while open");
+      expect(TIMING_LABELS.onetime).toBe("One-time on open");
 
-      expect(getDecisionsFromAction("enableOnlyWhileMatched")).toEqual({ timing: "while", effect: "on" });
-      expect(getDecisionsFromAction("disableOnlyWhileMatched")).toEqual({ timing: "while", effect: "off" });
-      expect(getDecisionsFromAction("enableWhenMatched")).toEqual({ timing: "when", effect: "on" });
-      expect(getDecisionsFromAction("disableWhenMatched")).toEqual({ timing: "when", effect: "off" });
+      expect(TIMING_DESCRIPTIONS.temporary).toContain("revers");
+      expect(TIMING_DESCRIPTIONS.onetime).toContain("not reverse");
+
+      expect(getActionFromDecisions("temporary", "on")).toBe("enableOnlyWhileMatched");
+      expect(getActionFromDecisions("temporary", "off")).toBe("disableOnlyWhileMatched");
+      expect(getActionFromDecisions("onetime", "on")).toBe("enableWhenMatched");
+      expect(getActionFromDecisions("onetime", "off")).toBe("disableWhenMatched");
+
+      expect(getDecisionsFromAction("enableOnlyWhileMatched")).toEqual({ timing: "temporary", effect: "on" });
+      expect(getDecisionsFromAction("disableOnlyWhileMatched")).toEqual({ timing: "temporary", effect: "off" });
+      expect(getDecisionsFromAction("enableWhenMatched")).toEqual({ timing: "onetime", effect: "on" });
+      expect(getDecisionsFromAction("disableWhenMatched")).toEqual({ timing: "onetime", effect: "off" });
     });
 
-    it("formats brand/domain names cleanly for dynamic behavior preview", () => {
-      expect(formatFriendlySiteName("linkedin.com")).toBe("LinkedIn");
-      expect(formatFriendlySiteName("https://www.github.com/issues")).toBe("GitHub");
-      expect(formatFriendlySiteName("google.com")).toBe("Google");
-      expect(formatFriendlySiteName("nytimes.com")).toBe("Nytimes");
+    it("produces exact required lifecycle preview texts", () => {
+      // Temporary + ON
+      const tempOnSite = getBehaviorPreview("temporary", "on", "linkedin.com");
+      expect(tempOnSite.openText).toBe("LinkedIn open → extension ON");
+      expect(tempOnSite.closeText).toBe("Last LinkedIn tab closes → extension OFF");
+
+      const tempOnDefault = getBehaviorPreview("temporary", "on", "");
+      expect(tempOnDefault.openText).toBe("Matching site open → extension ON");
+      expect(tempOnDefault.closeText).toBe("Last matching tab closes → extension OFF");
+
+      // Temporary + OFF
+      const tempOffSite = getBehaviorPreview("temporary", "off", "linkedin.com");
+      expect(tempOffSite.openText).toBe("LinkedIn open → extension OFF");
+      expect(tempOffSite.closeText).toBe("Last LinkedIn tab closes → extension ON");
+
+      const tempOffDefault = getBehaviorPreview("temporary", "off", "");
+      expect(tempOffDefault.openText).toBe("Matching site open → extension OFF");
+      expect(tempOffDefault.closeText).toBe("Last matching tab closes → extension ON");
+
+      // One-time + ON
+      const oneOnSite = getBehaviorPreview("onetime", "on", "linkedin.com");
+      expect(oneOnSite.openText).toBe("LinkedIn opens → extension ON");
+      expect(oneOnSite.closeText).toBe("Closing LinkedIn does not turn it OFF");
+
+      const oneOnDefault = getBehaviorPreview("onetime", "on", "");
+      expect(oneOnDefault.openText).toBe("Matching site opens → extension ON");
+      expect(oneOnDefault.closeText).toBe("Closing the site does not turn it OFF");
+
+      // One-time + OFF
+      const oneOffSite = getBehaviorPreview("onetime", "off", "linkedin.com");
+      expect(oneOffSite.openText).toBe("LinkedIn opens → extension OFF");
+      expect(oneOffSite.closeText).toBe("Closing LinkedIn does not turn it ON");
+
+      const oneOffDefault = getBehaviorPreview("onetime", "off", "");
+      expect(oneOffDefault.openText).toBe("Matching site opens → extension OFF");
+      expect(oneOffDefault.closeText).toBe("Closing the site does not turn it ON");
+    });
+  });
+
+  describe("Outcome 3: Block invalid and targetless rules", () => {
+    it("blocks submission when zero targets are selected with actionable guidance", () => {
+      const res = validateRuleInput([], "site", "linkedin.com");
+      expect(res.isValid).toBe(false);
+      expect(res.error).toBe("Select at least one extension or group.");
     });
 
-    it("generates exact required dynamic behavior preview text", () => {
-      // While + ON with linkedin.com
-      const whileOn = getBehaviorPreview("while", "on", "linkedin.com");
-      expect(whileOn.openText).toBe("When any LinkedIn tab is open → extension turns ON");
-      expect(whileOn.closeText).toBe("When the last LinkedIn tab is closed → extension turns OFF automatically");
+    it("blocks submission when scope value is empty or invalid domain", () => {
+      expect(validateRuleInput(["ext_1"], "site", "").isValid).toBe(false);
+      expect(validateRuleInput(["ext_1"], "site", "invalid").isValid).toBe(false);
+      expect(validateRuleInput(["ext_1"], "site", "linkedin.com").isValid).toBe(true);
+    });
 
-      // When + ON with linkedin.com
-      const whenOn = getBehaviorPreview("when", "on", "linkedin.com");
-      expect(whenOn.openText).toBe("When you open LinkedIn → extension turns ON");
-      expect(whenOn.closeText).toBe("When you close LinkedIn → extension stays ON (does not turn off)");
+    it("blocks submission when Exact page URL is not a full http(s) URL", () => {
+      expect(validateRuleInput(["ext_1"], "exact", "page-only").isValid).toBe(false);
+      expect(validateRuleInput(["ext_1"], "exact", "https://linkedin.com/jobs/1").isValid).toBe(true);
+    });
 
-      // While + OFF with linkedin.com
-      const whileOff = getBehaviorPreview("while", "off", "linkedin.com");
-      expect(whileOff.openText).toBe("When any LinkedIn tab is open → extension turns OFF");
-      expect(whileOff.closeText).toBe("When the last LinkedIn tab is closed → extension turns ON automatically");
+    it("blocks submission when Custom regex has invalid syntax", () => {
+      const invalidRegex = validateRuleInput(["ext_1"], "custom", "[invalid", true);
+      expect(invalidRegex.isValid).toBe(false);
+      expect(invalidRegex.error).toContain("Invalid regular expression");
 
-      // When + OFF with linkedin.com
-      const whenOff = getBehaviorPreview("when", "off", "linkedin.com");
-      expect(whenOff.openText).toBe("When you open LinkedIn → extension turns OFF");
-      expect(whenOff.closeText).toBe("When you close LinkedIn → extension stays OFF (does not turn on)");
-
-      // Fallback when no site is entered yet
-      const fallbackWhileOn = getBehaviorPreview("while", "on", "");
-      expect(fallbackWhileOn.openText).toBe("When any matching tab is open → extension turns ON");
-      expect(fallbackWhileOn.closeText).toBe("When the last matching tab is closed → extension turns OFF automatically");
+      const validRegex = validateRuleInput(["ext_1"], "custom", "^https://.*\\.example\\.com/.*", true);
+      expect(validRegex.isValid).toBe(true);
     });
   });
 });

@@ -33,11 +33,19 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
   const [pendingChanges, setPendingChanges] = useState<PendingAutoStateChange[]>([]);
 
   const [viewMode, setViewMode] = useState<"tile" | "bigTile" | "list">("bigTile");
+  const [focusedGroupId, setFocusedGroupId] = useState<string | null>(null);
   const [subWindow, setSubWindow] = useState<{ display: "" | "extension" | "group"; targetId: string }>({
     display: "",
     targetId: "",
   });
   const [reloadingId, setReloadingId] = useState<string | null>(null);
+
+  const handleFocusGroup = (groupId: string | null) => {
+    setFocusedGroupId(groupId);
+    if (groupId) {
+      setMainLocation("extensions");
+    }
+  };
 
   const resolvedAccent = settings.accentColor || "#1a73e8";
 
@@ -418,6 +426,8 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
               onDeleteGroup={handleDeleteGroup}
               onCreateGroup={handleCreateGroup}
               onOpenSubWindow={handleOpenSubWindow}
+              focusedGroupId={focusedGroupId}
+              onFocusGroup={handleFocusGroup}
               themeMainColor={resolvedAccent}
             />
           </div>
@@ -481,6 +491,7 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
         onOpenDetails={handleOpenDetails}
         onUninstallExtension={handleUninstall}
         onUpdateGroup={handleUpdateGroup}
+        onFocusGroup={handleFocusGroup}
         themeMainColor={resolvedAccent}
       />
     </div>

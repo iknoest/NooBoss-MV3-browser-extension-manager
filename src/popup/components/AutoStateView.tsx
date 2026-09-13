@@ -11,7 +11,11 @@ import {
   SCOPE_LABELS,
   SCOPE_EXPLANATIONS,
   SCOPE_PLACEHOLDERS,
+  CUSTOM_REGEX_EXPLANATION,
+  CUSTOM_REGEX_EXAMPLE,
+  CUSTOM_REGEX_PLACEHOLDER,
   TIMING_LABELS,
+  TIMING_DESCRIPTIONS,
   EFFECT_LABELS,
   AUTOSTATE_ACTION_LABELS,
   buildPatternFromScope,
@@ -20,6 +24,7 @@ import {
   getActionFromDecisions,
   getDecisionsFromAction,
   getBehaviorPreview,
+  validateRuleInput,
 } from "./autostate-helpers";
 import { MaterialSymbol } from "./MaterialSymbols";
 
@@ -51,12 +56,24 @@ export function AutoStateView({
   themeMainColor = "#1a73e8",
 }: AutoStateViewProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [ruleScope, setRuleScope] = useState<MatchScope>("website");
+  const [ruleScope, setRuleScope] = useState<MatchScope>("site");
+  const [ruleUseRegex, setRuleUseRegex] = useState<boolean>(false);
   const [ruleScopeInput, setRuleScopeInput] = useState<string>("");
-  const [ruleTiming, setRuleTiming] = useState<RuleTiming>("while");
+  const [ruleTiming, setRuleTiming] = useState<RuleTiming>("temporary");
   const [ruleEffect, setRuleEffect] = useState<RuleEffect>("on");
   const [ruleTargets, setRuleTargets] = useState<string[]>([]);
   const [websiteWarning, setWebsiteWarning] = useState<string | null>(null);
+
+  const resetForm = () => {
+    setEditingId(null);
+    setRuleTargets([]);
+    setRuleScope("site");
+    setRuleUseRegex(false);
+    setRuleScopeInput("");
+    setRuleTiming("temporary");
+    setRuleEffect("on");
+    setWebsiteWarning(null);
+  };
 
   const handleToggleTarget = (id: string) => {
     setRuleTargets((prev) =>
@@ -69,7 +86,7 @@ export function AutoStateView({
       if (typeof chrome !== "undefined" && chrome.tabs && chrome.tabs.query) {
         const tabs = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
         if (tabs && tabs[0] && tabs[0].url) {
-          const result = getTabValueForScope(tabs[0].url, ruleScope);
+          const result = getTabValueForScope(tabs[0].url, ruleScope, ruleScope === "custom" && ruleUseRegex);
           if (result.success && result.value) {
             setRuleScopeInput(result.value);
             setWebsiteWarning(null);
@@ -84,9 +101,23 @@ export function AutoStateView({
     }
   };
 
+  const validation = validateRuleInput(
+    ruleTargets,
+    ruleScope,
+    ruleScopeInput,
+    ruleScope === "custom" && ruleUseRegex
+  );
+  const isFormValid = validation.isValid;
+
   const handleAddOrUpdateRule = () => {
-    const { pattern, isWildcard } = buildPatternFromScope(ruleScope, ruleScopeInput);
-    if (!pattern && ruleTargets.length === 0) return;
+    if (!isFormValid) return;
+
+    const { pattern, isWildcard } = buildPatternFromScope(
+      ruleScope,
+      ruleScopeInput,
+      ruleScope === "custom" && ruleUseRegex
+    );
+    if (!pattern) return;
 
     const action = getActionFromDecisions(ruleTiming, ruleEffect);
 
@@ -104,7 +135,7 @@ export function AutoStateView({
           : r
       );
       onSaveRules(updated);
-      setEditingId(null);
+      resetForm();
     } else {
       // Create new
       const newRule: AutoStateRule = {
@@ -119,22 +150,16 @@ export function AutoStateView({
         createdAt: Date.now(),
       };
       onSaveRules([...rules, newRule]);
+      resetForm();
     }
-
-    // Reset form
-    setRuleTargets([]);
-    setRuleScope("website");
-    setRuleScopeInput("");
-    setRuleTiming("while");
-    setRuleEffect("on");
-    setWebsiteWarning(null);
   };
 
   const handleEditRule = (rule: AutoStateRule) => {
-    const { scope, displayInput } = detectScopeAndInput(rule);
+    const { scope, displayInput, useRegex } = detectScopeAndInput(rule);
     const { timing, effect } = getDecisionsFromAction(rule.action);
     setEditingId(rule.id);
     setRuleScope(scope);
+    setRuleUseRegex(useRegex);
     setRuleScopeInput(displayInput);
     setRuleTiming(timing);
     setRuleEffect(effect);
@@ -145,13 +170,7 @@ export function AutoStateView({
   const handleDeleteRule = (ruleId: string) => {
     onSaveRules(rules.filter((r) => r.id !== ruleId));
     if (editingId === ruleId) {
-      setEditingId(null);
-      setRuleTargets([]);
-      setRuleScope("website");
-      setRuleScopeInput("");
-      setRuleTiming("while");
-      setRuleEffect("on");
-      setWebsiteWarning(null);
+      resetForm();
     }
   };
 
@@ -218,7 +237,7 @@ export function AutoStateView({
           {GL("autoState")}
         </h1>
         <p style={{ margin: 0, fontSize: "13px", color: "var(--text-secondary)", lineHeight: "1.4" }}>
-          Site Rules automatically control extensions based on which websites are open.
+          Site Rules automatically turn extensions ON or OFF when websites open or close, either temporarily while browsing or as a one-time change.
         </p>
       </div>
 
@@ -289,15 +308,15 @@ export function AutoStateView({
           </thead>
           <tbody>
             {rules.map((rule, idx) => {
-              const { scope, displayInput } = detectScopeAndInput(rule);
+              const { scope, displayInput, useRegex } = detectScopeAndInput(rule);
               const scopeBadgeText =
-                scope === "website"
-                  ? "This website"
+                scope === "site"
+                  ? "This Site"
                   : scope === "exact"
-                  ? "Exact page"
-                  : scope === "wildcard"
-                  ? "Custom pattern"
-                  : "Regular expression";
+                  ? "Exact Page"
+                  : useRegex
+                  ? "Custom (RegExp)"
+                  : "Custom";
 
               return (
                 <tr key={rule.id} className="history-row">
@@ -314,7 +333,7 @@ export function AutoStateView({
                     </span>
                   </td>
                   <td style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    <code>{scope === "website" ? displayInput : rule.pattern}</code>
+                    <code>{scope === "site" ? displayInput : (scope === "exact" ? displayInput : (useRegex ? rule.pattern : displayInput))}</code>
                   </td>
                   <td style={{ textAlign: "center" }}>
                     <ExtensionSwitch
@@ -405,17 +424,20 @@ export function AutoStateView({
               }}
               style={{ maxWidth: "380px" }}
             >
-              <option value="website">{SCOPE_LABELS.website}</option>
+              <option value="site">{SCOPE_LABELS.site}</option>
               <option value="exact">{SCOPE_LABELS.exact}</option>
-              <option value="wildcard">{SCOPE_LABELS.wildcard}</option>
-              <option value="regex">{SCOPE_LABELS.regex}</option>
+              <option value="custom">{SCOPE_LABELS.custom}</option>
             </select>
 
             <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
               <input
                 id="ruleScopeInput"
                 style={{ width: "340px" }}
-                placeholder={SCOPE_PLACEHOLDERS[ruleScope]}
+                placeholder={
+                  ruleScope === "custom" && ruleUseRegex
+                    ? CUSTOM_REGEX_PLACEHOLDER
+                    : SCOPE_PLACEHOLDERS[ruleScope]
+                }
                 value={ruleScopeInput}
                 onInput={(e) => setRuleScopeInput((e.target as HTMLInputElement).value)}
               />
@@ -425,12 +447,42 @@ export function AutoStateView({
                 style={{ fontSize: "12px", whiteSpace: "nowrap" }}
                 onClick={handleSetCurrentWebsite}
               >
-                {GL("set_as_current_website")}
+                {ruleScope === "exact" ? "Set as current page" : GL("set_as_current_website")}
               </button>
             </div>
 
+            {/* Custom scope advanced regex toggle */}
+            {ruleScope === "custom" && (
+              <label
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  fontSize: "12px",
+                  color: "var(--text-primary)",
+                  cursor: "pointer",
+                  marginTop: "2px",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  id="customUseRegexCheckbox"
+                  checked={ruleUseRegex}
+                  onChange={(e) => setRuleUseRegex((e.target as HTMLInputElement).checked)}
+                />
+                <span>Use advanced regular expression</span>
+              </label>
+            )}
+
             <div className="autostate-inline-helper" style={{ fontSize: "11px", color: "var(--text-muted)", lineHeight: "1.4" }}>
-              {SCOPE_EXPLANATIONS[ruleScope]}
+              {ruleScope === "custom" && ruleUseRegex ? (
+                <>
+                  <div>{CUSTOM_REGEX_EXPLANATION}</div>
+                  <div style={{ marginTop: "2px", fontFamily: "ui-monospace, monospace" }}>{CUSTOM_REGEX_EXAMPLE}</div>
+                </>
+              ) : (
+                SCOPE_EXPLANATIONS[ruleScope]
+              )}
             </div>
 
             {websiteWarning && (
@@ -453,9 +505,12 @@ export function AutoStateView({
               onChange={(e) => setRuleTiming((e.target as HTMLSelectElement).value as RuleTiming)}
               style={{ maxWidth: "380px" }}
             >
-              <option value="while">{TIMING_LABELS.while}</option>
-              <option value="when">{TIMING_LABELS.when}</option>
+              <option value="temporary">{TIMING_LABELS.temporary}</option>
+              <option value="onetime">{TIMING_LABELS.onetime}</option>
             </select>
+            <div className="autostate-inline-helper" style={{ fontSize: "11px", color: "var(--text-muted)", lineHeight: "1.4" }}>
+              {TIMING_DESCRIPTIONS[ruleTiming]}
+            </div>
           </div>
         </div>
 
@@ -505,23 +560,41 @@ export function AutoStateView({
           </div>
         </div>
 
+        {/* Inline Validation Guidance */}
+        {!isFormValid && (
+          <div
+            id="ruleValidationWarning"
+            className="rule-validation-warning"
+            style={{
+              fontSize: "12px",
+              color: "var(--danger, #ea4335)",
+              fontWeight: 500,
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "4px 0",
+            }}
+          >
+            <MaterialSymbol name="error" size={16} color="var(--danger, #ea4335)" />
+            <span>{validation.error}</span>
+          </div>
+        )}
+
         {/* Action buttons */}
-        <div style={{ display: "flex", gap: "10px", marginTop: "8px" }}>
-          <button className="btn btn-primary action-btn" onClick={handleAddOrUpdateRule}>
+        <div style={{ display: "flex", gap: "10px", marginTop: "4px" }}>
+          <button
+            id="addRuleBtn"
+            className={`btn btn-primary action-btn ${!isFormValid ? "disabled" : ""}`}
+            disabled={!isFormValid}
+            onClick={handleAddOrUpdateRule}
+            title={!isFormValid ? validation.error || "Fill required fields" : undefined}
+          >
             {editingId ? "Update rule" : GL("add_rule")}
           </button>
           {editingId && (
             <button
               className="btn btn-secondary action-btn"
-              onClick={() => {
-                setEditingId(null);
-                setRuleTargets([]);
-                setRuleScope("website");
-                setRuleScopeInput("");
-                setRuleTiming("while");
-                setRuleEffect("on");
-                setWebsiteWarning(null);
-              }}
+              onClick={resetForm}
             >
               {GL("cancel")}
             </button>

@@ -1,33 +1,43 @@
 import type { AutoStateRule } from "../../shared/types";
+import { validateRegex } from "../../shared/matching";
 
-export type MatchScope = "website" | "exact" | "wildcard" | "regex";
-export type RuleTiming = "while" | "when";
+export type MatchScope = "site" | "exact" | "custom";
+export type RuleTiming = "temporary" | "onetime";
 export type RuleEffect = "on" | "off";
 
 export const SCOPE_LABELS: Record<MatchScope, string> = {
-  website: "This website (recommended)",
+  site: "This site (recommended)",
   exact: "Exact page",
-  wildcard: "Custom URL pattern",
-  regex: "Regular expression · Advanced",
+  custom: "Custom",
 };
 
 export const SCOPE_EXPLANATIONS: Record<MatchScope, string> = {
-  website: "Applies to all pages on this website (e.g. linkedin.com/feed, www.linkedin.com)",
-  exact: "Applies only to this exact page URL",
-  wildcard: "Use * to match any text and ? for a single character",
-  regex: "For complex URL matching when the options above are not enough",
+  site: "Applies to all pages on this site.",
+  exact: "Applies only to this exact page (matches full URL including query or hash).",
+  custom: "Matches pages matching this URL pattern. Example: linkedin.com/jobs/* (matches pages under linkedin.com/jobs/)",
 };
 
 export const SCOPE_PLACEHOLDERS: Record<MatchScope, string> = {
-  website: "e.g. linkedin.com",
+  site: "e.g. linkedin.com",
   exact: "e.g. https://www.linkedin.com/jobs/view/123",
-  wildcard: "e.g. *linkedin.com/in/*",
-  regex: "e.g. ^https://.*\\.linkedin\\.com/.*",
+  custom: "e.g. linkedin.com/jobs/*",
 };
 
+export const CUSTOM_REGEX_EXPLANATION =
+  "Uses standard JavaScript regular-expression syntax. Use only when simple URL patterns are not enough.";
+export const CUSTOM_REGEX_EXAMPLE = "Example: ^https://.*linkedin.com/jobs/.*";
+export const CUSTOM_REGEX_PLACEHOLDER = "e.g. ^https://.*linkedin.com/jobs/.*";
+
 export const TIMING_LABELS: Record<RuleTiming, string> = {
-  while: "While this site is open (Temporary: reverts when tab closes)",
-  when: "When this site opens (One-time trigger: stays changed after tab closes)",
+  temporary: "Temporary while open",
+  onetime: "One-time on open",
+};
+
+export const TIMING_DESCRIPTIONS: Record<RuleTiming, string> = {
+  temporary:
+    "The extension follows the site. When the last matching tab closes, the change is automatically reversed.",
+  onetime:
+    "The extension changes once when a matching page opens. Closing the page does not reverse the change.",
 };
 
 export const EFFECT_LABELS: Record<RuleEffect, string> = {
@@ -71,17 +81,30 @@ export interface PatternGenerationResult {
 }
 
 /**
- * Clean a domain input by stripping protocol, path, leading www., and outer asterisks.
+ * Clean a domain input by stripping protocol, path, query/hash, leading www., and outer asterisks.
  */
 export function cleanDomainInput(input: string): string {
   if (!input) return "";
   let d = input.trim();
   d = d.replace(/^https?:\/\//i, "");
   d = d.replace(/^\/\//, "");
-  d = d.replace(/\/.*$/, "");
+  d = d.replace(/[/?#].*$/, "");
   d = d.replace(/^[*?]+|[*?]+$/g, "");
   d = d.replace(/^www\./i, "");
-  return d;
+  return d.trim();
+}
+
+/**
+ * Build a robust, least-surprising site-matching regular expression.
+ * Semantics:
+ * - Matches http:// and https://
+ * - Matches cleanHost and www.cleanHost
+ * - Matches arbitrary subdomains (*.cleanHost)
+ * - Rejects non-subdomains such as evil-cleanHost or attacker.com/?q=cleanHost
+ */
+export function buildSiteRegex(cleanHost: string): string {
+  const escaped = cleanHost.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return `^https?:\\/\\/(?:[a-zA-Z0-9-]+\\.)*${escaped}(?::\\d+)?(?:\\/.*)?$`;
 }
 
 /**
@@ -89,15 +112,17 @@ export function cleanDomainInput(input: string): string {
  */
 export function buildPatternFromScope(
   scope: MatchScope,
-  input: string
+  input: string,
+  useRegex = false
 ): { pattern: string; isWildcard: boolean } {
   const trimmed = input.trim();
   switch (scope) {
-    case "website": {
+    case "site": {
       const clean = cleanDomainInput(trimmed);
+      if (!clean) return { pattern: "", isWildcard: false };
       return {
-        pattern: clean ? `*${clean}*` : "",
-        isWildcard: true,
+        pattern: buildSiteRegex(clean),
+        isWildcard: false,
       };
     }
     case "exact":
@@ -105,16 +130,22 @@ export function buildPatternFromScope(
         pattern: trimmed,
         isWildcard: true,
       };
-    case "wildcard":
+    case "custom": {
+      if (useRegex) {
+        return {
+          pattern: trimmed,
+          isWildcard: false,
+        };
+      }
+      let pat = trimmed;
+      if (pat && !pat.startsWith("http://") && !pat.startsWith("https://") && !pat.startsWith("*") && !pat.startsWith("?")) {
+        pat = `*${pat}`;
+      }
       return {
-        pattern: trimmed,
+        pattern: pat,
         isWildcard: true,
       };
-    case "regex":
-      return {
-        pattern: trimmed,
-        isWildcard: false,
-      };
+    }
   }
 }
 
@@ -124,61 +155,94 @@ export function buildPatternFromScope(
 export function detectScopeAndInput(rule: Pick<AutoStateRule, "pattern" | "isWildcard">): {
   scope: MatchScope;
   displayInput: string;
+  useRegex: boolean;
 } {
+  const p = (rule.pattern || "").trim();
+
   if (!rule.isWildcard) {
+    // Check if it's our structured site regex: ^https?:\/\/(?:[a-zA-Z0-9-]+\.)*domain\.com(?::\d+)?(?:\/.*)?$
+    const siteRegexMatch = p.match(
+      /^\^https\?:\\\/\\\/\(\?:\[a-zA-Z0-9-\]\+\\\.\)\*((?:[a-zA-Z0-9-]|\\\.)+)\(\?::\\d\+\)\?\(\?:\\\/.*\)?[\\$]?$/i
+    );
+    if (siteRegexMatch) {
+      // Unescape dots
+      const unescapedDomain = siteRegexMatch[1].replace(/\\([.])/g, "$1");
+      return {
+        scope: "site",
+        displayInput: unescapedDomain,
+        useRegex: false,
+      };
+    }
+
+    // Otherwise, it's an advanced custom regex
     return {
-      scope: "regex",
-      displayInput: rule.pattern,
+      scope: "custom",
+      displayInput: p,
+      useRegex: true,
     };
   }
 
-  const p = rule.pattern.trim();
-
-  // Pattern like *domain.com*
+  // Wildcard patterns:
+  // 1. Legacy *domain.com*
   const starDomainMatch = p.match(/^\*+([a-zA-Z0-9.-]+)\*+$/);
   if (starDomainMatch) {
     return {
-      scope: "website",
+      scope: "site",
       displayInput: starDomainMatch[1],
+      useRegex: false,
     };
   }
 
-  // Pattern like *://*.domain.com/* or *://*domain.com/*
+  // 2. Legacy *://*.domain.com/* or *://*domain.com/*
   const schemeStarMatch = p.match(/^\*:\/\/\*?\.?([a-zA-Z0-9.-]+)\/\*$/);
   if (schemeStarMatch) {
     return {
-      scope: "website",
+      scope: "site",
       displayInput: schemeStarMatch[1],
+      useRegex: false,
     };
   }
 
-  // Pattern like https://domain.com/* or http://domain.com/*
+  // 3. Legacy https://domain.com/*
   const originStarMatch = p.match(/^https?:\/\/([a-zA-Z0-9.-]+)\/\*$/);
   if (originStarMatch) {
     return {
-      scope: "website",
+      scope: "site",
       displayInput: originStarMatch[1],
+      useRegex: false,
     };
   }
 
-  // Exact page URL (starts with http:// or https:// and contains no * or ?)
+  // 4. Exact page URL: starts with http(s):// and contains no * or ?
   if (/^https?:\/\//i.test(p) && !p.includes("*") && !p.includes("?")) {
     return {
       scope: "exact",
       displayInput: p,
+      useRegex: false,
     };
   }
 
+  // 5. Custom URL pattern (clean leading * if we added it for scheme-agnostic matching)
+  let customDisplay = p;
+  if (customDisplay.startsWith("*") && !customDisplay.startsWith("*://") && customDisplay.includes("/")) {
+    customDisplay = customDisplay.replace(/^\*/, "");
+  }
+
   return {
-    scope: "wildcard",
-    displayInput: p,
+    scope: "custom",
+    displayInput: customDisplay,
+    useRegex: false,
   };
 }
 
 /**
  * Get active tab value formatted cleanly for the given scope.
  */
-export function getTabValueForScope(rawUrl: string, scope: MatchScope): PatternGenerationResult {
+export function getTabValueForScope(
+  rawUrl: string,
+  scope: MatchScope,
+  useRegex = false
+): PatternGenerationResult {
   if (!rawUrl || (!rawUrl.startsWith("http://") && !rawUrl.startsWith("https://"))) {
     return {
       success: false,
@@ -189,12 +253,12 @@ export function getTabValueForScope(rawUrl: string, scope: MatchScope): PatternG
   try {
     const parsed = new URL(rawUrl);
     switch (scope) {
-      case "website": {
+      case "site": {
         const cleanHost = parsed.hostname.replace(/^www\./i, "");
         return {
           success: true,
           value: cleanHost,
-          pattern: `*${cleanHost}*`,
+          pattern: buildSiteRegex(cleanHost),
         };
       }
       case "exact":
@@ -203,19 +267,21 @@ export function getTabValueForScope(rawUrl: string, scope: MatchScope): PatternG
           value: rawUrl,
           pattern: rawUrl,
         };
-      case "wildcard":
+      case "custom": {
+        if (useRegex) {
+          const escapedOrigin = parsed.origin.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          const re = `^${escapedOrigin}/.*`;
+          return {
+            success: true,
+            value: re,
+            pattern: re,
+          };
+        }
+        const cleanHost = parsed.hostname.replace(/^www\./i, "");
         return {
           success: true,
-          value: `${parsed.origin}/*`,
-          pattern: `${parsed.origin}/*`,
-        };
-      case "regex": {
-        const escapedOrigin = parsed.origin.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        const re = `^${escapedOrigin}/.*`;
-        return {
-          success: true,
-          value: re,
-          pattern: re,
+          value: `${cleanHost}/*`,
+          pattern: `*${cleanHost}/*`,
         };
       }
     }
@@ -234,12 +300,36 @@ export function generatePatternForUrl(
   rawUrl: string,
   isWildcard: boolean
 ): PatternGenerationResult {
-  const res = getTabValueForScope(rawUrl, isWildcard ? "wildcard" : "regex");
-  return {
-    success: res.success,
-    pattern: res.pattern,
-    error: res.error,
-  };
+  if (!rawUrl || (!rawUrl.startsWith("http://") && !rawUrl.startsWith("https://"))) {
+    return {
+      success: false,
+      error: "Cannot set pattern from internal or non-web pages (must be http:// or https://)",
+    };
+  }
+
+  try {
+    const parsed = new URL(rawUrl);
+    if (isWildcard) {
+      return {
+        success: true,
+        pattern: `${parsed.origin}/*`,
+        value: `${parsed.origin}/*`,
+      };
+    } else {
+      const escapedOrigin = parsed.origin.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const re = `^${escapedOrigin}/.*`;
+      return {
+        success: true,
+        pattern: re,
+        value: re,
+      };
+    }
+  } catch {
+    return {
+      success: false,
+      error: "Invalid URL provided",
+    };
+  }
 }
 
 /**
@@ -249,7 +339,7 @@ export function getActionFromDecisions(
   timing: RuleTiming,
   effect: RuleEffect
 ): AutoStateRule["action"] {
-  if (timing === "while") {
+  if (timing === "temporary") {
     return effect === "on" ? "enableOnlyWhileMatched" : "disableOnlyWhileMatched";
   } else {
     return effect === "on" ? "enableWhenMatched" : "disableWhenMatched";
@@ -264,15 +354,15 @@ export function getDecisionsFromAction(
 ): { timing: RuleTiming; effect: RuleEffect } {
   switch (action) {
     case "enableOnlyWhileMatched":
-      return { timing: "while", effect: "on" };
+      return { timing: "temporary", effect: "on" };
     case "disableOnlyWhileMatched":
-      return { timing: "while", effect: "off" };
+      return { timing: "temporary", effect: "off" };
     case "enableWhenMatched":
-      return { timing: "when", effect: "on" };
+      return { timing: "onetime", effect: "on" };
     case "disableWhenMatched":
-      return { timing: "when", effect: "off" };
+      return { timing: "onetime", effect: "off" };
     default:
-      return { timing: "while", effect: "on" };
+      return { timing: "temporary", effect: "on" };
   }
 }
 
@@ -285,7 +375,7 @@ export function formatFriendlySiteName(rawInput: string): string {
   s = s.replace(/^https?:\/\//i, "");
   s = s.replace(/^www\./i, "");
   s = s.replace(/^[*?]+|[*?]+$/g, "");
-  s = s.replace(/\/.*$/, "");
+  s = s.replace(/[/?#].*$/, "");
   s = s.replace(/[\^$]/g, "").replace(/\\\./g, ".");
 
   const lower = s.toLowerCase();
@@ -316,6 +406,19 @@ export interface BehaviorPreview {
 
 /**
  * Generate dynamic plain-language lifecycle explanation based on timing, effect, and website.
+ * Follows exact human QA requirements:
+ * Temporary + ON:
+ * - `Matching site open → extension ON`
+ * - `Last matching tab closes → extension OFF`
+ * Temporary + OFF:
+ * - `Matching site open → extension OFF`
+ * - `Last matching tab closes → extension ON`
+ * One-time + ON:
+ * - `Matching site opens → extension ON`
+ * - `Closing the site does not turn it OFF`
+ * One-time + OFF:
+ * - `Matching site opens → extension OFF`
+ * - `Closing the site does not turn it ON`
  */
 export function getBehaviorPreview(
   timing: RuleTiming,
@@ -323,23 +426,75 @@ export function getBehaviorPreview(
   siteInput: string
 ): BehaviorPreview {
   const brand = formatFriendlySiteName(siteInput);
-  const onOrOff = effect === "on" ? "ON" : "OFF";
-  const oppOnOrOff = effect === "on" ? "OFF" : "ON";
-  const stayOrNot = effect === "on" ? "stays ON (does not turn off)" : "stays OFF (does not turn on)";
 
-  if (timing === "while") {
-    const siteRef = brand ? `${brand} tab` : "matching tab";
-    const lastSiteRef = brand ? `${brand} tab` : "matching tab";
-    return {
-      openText: `When any ${siteRef} is open → extension turns ${onOrOff}`,
-      closeText: `When the last ${lastSiteRef} is closed → extension turns ${oppOnOrOff} automatically`,
-    };
+  if (timing === "temporary") {
+    if (effect === "on") {
+      return {
+        openText: brand ? `${brand} open → extension ON` : "Matching site open → extension ON",
+        closeText: brand
+          ? `Last ${brand} tab closes → extension OFF`
+          : "Last matching tab closes → extension OFF",
+      };
+    } else {
+      return {
+        openText: brand ? `${brand} open → extension OFF` : "Matching site open → extension OFF",
+        closeText: brand
+          ? `Last ${brand} tab closes → extension ON`
+          : "Last matching tab closes → extension ON",
+      };
+    }
   } else {
-    const openSiteRef = brand ? brand : "a matching site";
-    const closeSiteRef = brand ? brand : "a matching site";
-    return {
-      openText: `When you open ${openSiteRef} → extension turns ${onOrOff}`,
-      closeText: `When you close ${closeSiteRef} → extension ${stayOrNot}`,
-    };
+    if (effect === "on") {
+      return {
+        openText: brand ? `${brand} opens → extension ON` : "Matching site opens → extension ON",
+        closeText: brand
+          ? `Closing ${brand} does not turn it OFF`
+          : "Closing the site does not turn it OFF",
+      };
+    } else {
+      return {
+        openText: brand ? `${brand} opens → extension OFF` : "Matching site opens → extension OFF",
+        closeText: brand
+          ? `Closing ${brand} does not turn it ON`
+          : "Closing the site does not turn it ON",
+      };
+    }
   }
+}
+
+/**
+ * Validate user input before adding/updating a Site Rule.
+ */
+export function validateRuleInput(
+  targets: string[],
+  scope: MatchScope,
+  input: string,
+  useRegex = false
+): { isValid: boolean; error: string | null } {
+  if (targets.length === 0) {
+    return { isValid: false, error: "Select at least one extension or group." };
+  }
+
+  const trimmed = input.trim();
+  if (!trimmed) {
+    return { isValid: false, error: "Please enter a website or URL pattern." };
+  }
+
+  if (scope === "site") {
+    const clean = cleanDomainInput(trimmed);
+    if (!clean || clean.length < 3 || !clean.includes(".")) {
+      return { isValid: false, error: "Please enter a valid website domain (e.g. linkedin.com)." };
+    }
+  } else if (scope === "exact") {
+    if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://")) {
+      return { isValid: false, error: "Exact page must be a full web URL starting with http:// or https://" };
+    }
+  } else if (scope === "custom" && useRegex) {
+    const regexError = validateRegex(trimmed);
+    if (regexError) {
+      return { isValid: false, error: `Invalid regular expression: ${regexError}` };
+    }
+  }
+
+  return { isValid: true, error: null };
 }

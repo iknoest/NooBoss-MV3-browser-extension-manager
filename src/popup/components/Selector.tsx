@@ -257,7 +257,11 @@ export function Selector({
               value={filterType}
               onChange={(e) => setFilterType((e.target as HTMLSelectElement).value)}
             >
-              <option value="all">{GL("everything")}</option>
+              <option value="all">
+                {groups.length === 0
+                  ? (hasApps || hasThemes ? "All items" : "All extensions")
+                  : GL("everything")}
+              </option>
               {groups.length > 0 && <option value="group">{GL("groups")}</option>}
               <option value="extension">{GL("extensions")}</option>
               {hasApps && <option value="app">{GL("apps")}</option>}
@@ -483,7 +487,6 @@ export function Selector({
             <span className="group-focus-icon">
               {renderGroupIcon(focusedGroup, 22, themeMainColor)}
             </span>
-            <span className="group-focus-label">Group:</span>
             <span className="group-focus-name">{focusedGroup.name}</span>
             <span className="group-focus-separator">·</span>
             <span className="group-focus-stats">

@@ -8,6 +8,7 @@ import { GroupIconPicker } from "./GroupIconPicker";
 import { GroupCommandControl } from "./GroupCommandControl";
 import { computeGroupRuntimeSummary } from "./group-summary";
 import { ExtensionSwitch } from "./ExtensionBrief";
+import { MaterialSymbol } from "./MaterialSymbols";
 
 export interface SubWindowProps {
   display: "" | "extension" | "group";
@@ -21,6 +22,7 @@ export interface SubWindowProps {
   onOpenDetails?: (id: string) => void;
   onUninstallExtension?: (id: string) => void;
   onUpdateGroup?: (group: ExtensionGroup) => void;
+  onFocusGroup?: (groupId: string) => void;
   themeMainColor?: string;
 }
 
@@ -36,6 +38,7 @@ export function SubWindow({
   onOpenDetails,
   onUninstallExtension,
   onUpdateGroup,
+  onFocusGroup,
   themeMainColor = "#1a73e8",
 }: SubWindowProps) {
   const [editorViewMode, setEditorViewMode] = useState<"list" | "bigTile">("list");
@@ -253,10 +256,6 @@ export function SubWindow({
     return (
       <div className="subwindow-overlay" onClick={onClose}>
         <div className="subwindow-box group-subwindow" onClick={(e) => e.stopPropagation()}>
-          <button className="subwindow-close-btn" onClick={onClose} aria-label="Close">
-            <Closey color="currentColor" style={{ width: "20px", height: "20px" }} />
-          </button>
-
           <div className="group-edit-header">
             <button
               type="button"
@@ -295,6 +294,31 @@ export function SubWindow({
                   />
                 )}
               </div>
+            </div>
+
+            <div className="group-edit-actions">
+              <button
+                type="button"
+                className="btn btn-secondary action-btn group-modal-control-btn"
+                onClick={() => {
+                  onClose();
+                  onFocusGroup?.(group.id);
+                }}
+                title="Control members for this group"
+                aria-label="Control members"
+              >
+                <MaterialSymbol name="tune" size={15} color={themeMainColor} />
+                <span>Control members</span>
+              </button>
+              <button
+                type="button"
+                className="subwindow-header-close-btn"
+                onClick={onClose}
+                aria-label="Close"
+                title="Close"
+              >
+                <Closey color="currentColor" style={{ width: "20px", height: "20px" }} />
+              </button>
             </div>
           </div>
 
