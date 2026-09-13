@@ -429,6 +429,7 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
               focusedGroupId={focusedGroupId}
               onFocusGroup={handleFocusGroup}
               themeMainColor={resolvedAccent}
+              developerMode={settings.developerMode ?? false}
             />
           </div>
         )}
@@ -493,6 +494,8 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
         onUpdateGroup={handleUpdateGroup}
         onFocusGroup={handleFocusGroup}
         themeMainColor={resolvedAccent}
+        developerMode={settings.developerMode ?? false}
+        onReloadExtension={handleReloadExtension}
       />
     </div>
   );

@@ -116,6 +116,8 @@ export interface AppSettings {
   sortOrder: 'name' | 'name-state' | 'type' | 'recently-updated';
   /** View mode */
   viewMode: 'list' | 'bigTile' | 'tile' | 'grid';
+  /** Whether Developer Mode is enabled */
+  developerMode: boolean;
 }
 
 /** Export/Import data format */
@@ -181,6 +183,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   accentColor: '#1a73e8',
   sortOrder: 'name-state',
   viewMode: 'bigTile',
+  developerMode: false,
 };
 
 /** Storage keys */

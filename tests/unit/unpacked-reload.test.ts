@@ -66,45 +66,67 @@ describe("Unpacked Extension Indicator & Reload Controls", () => {
     const viewModes: Array<"bigTile" | "tile" | "list"> = ["bigTile", "tile", "list"];
 
     viewModes.forEach((mode) => {
-      it(`shows orange dot for unpacked extension in ${mode} view`, () => {
+      it(`shows orange dot and DEV chip for unpacked extension in ${mode} view when developerMode is ON`, () => {
         const vnode = ExtensionBrief({
           extension: unpackedExt,
           viewMode: mode,
           withControl: true,
+          developerMode: true,
         });
         const badge = findVNode(vnode, (n) => n?.props?.className === "unpacked-badge-dot");
         expect(badge).toBeTruthy();
         expect(badge.props.title).toBe("Unpacked extension");
         expect(badge.props["aria-label"]).toBe("Unpacked extension");
+
+        const devChip = findVNode(vnode, (n) => typeof n?.props?.className === "string" && n.props.className.includes("dev-chip-badge"));
+        expect(devChip).toBeTruthy();
+        expect(devChip.props.children).toBe("DEV");
       });
 
-      it(`shows orange dot for disabled unpacked extension in ${mode} view`, () => {
+      it(`does NOT show orange dot or DEV chip when developerMode is OFF (default) in ${mode} view`, () => {
+        const vnode = ExtensionBrief({
+          extension: unpackedExt,
+          viewMode: mode,
+          withControl: true,
+          developerMode: false,
+        });
+        const badge = findVNode(vnode, (n) => n?.props?.className === "unpacked-badge-dot");
+        expect(badge).toBeNull();
+
+        const devChip = findVNode(vnode, (n) => typeof n?.props?.className === "string" && n.props.className.includes("dev-chip-badge"));
+        expect(devChip).toBeNull();
+      });
+
+      it(`shows orange dot for disabled unpacked extension in ${mode} view when developerMode is ON`, () => {
         const disabledUnpacked: ExtensionInfo = { ...unpackedExt, enabled: false };
         const vnode = ExtensionBrief({
           extension: disabledUnpacked,
           viewMode: mode,
           withControl: true,
+          developerMode: true,
         });
         const badge = findVNode(vnode, (n) => n?.props?.className === "unpacked-badge-dot");
         expect(badge).toBeTruthy();
       });
 
-      it(`does NOT show orange dot for store-installed extension in ${mode} view`, () => {
+      it(`does NOT show orange dot for store-installed extension in ${mode} view even with developerMode ON`, () => {
         const vnode = ExtensionBrief({
           extension: normalExt,
           viewMode: mode,
           withControl: true,
+          developerMode: true,
         });
         const badge = findVNode(vnode, (n) => n?.props?.className === "unpacked-badge-dot");
         expect(badge).toBeNull();
       });
     });
 
-    it("shows orange dot in selectable mode (group editor)", () => {
+    it("shows orange dot in selectable mode (group editor) when developerMode is ON", () => {
       const vnodeBig = ExtensionBrief({
         extension: unpackedExt,
         viewMode: "bigTile",
         selected: false,
+        developerMode: true,
       });
       expect(findVNode(vnodeBig, (n) => n?.props?.className === "unpacked-badge-dot")).toBeTruthy();
 
@@ -112,6 +134,7 @@ describe("Unpacked Extension Indicator & Reload Controls", () => {
         extension: unpackedExt,
         viewMode: "tile",
         selected: false,
+        developerMode: true,
       });
       expect(findVNode(vnodeTile, (n) => n?.props?.className === "unpacked-badge-dot")).toBeTruthy();
 
@@ -119,6 +142,7 @@ describe("Unpacked Extension Indicator & Reload Controls", () => {
         extension: unpackedExt,
         viewMode: "list",
         selected: false,
+        developerMode: true,
       });
       expect(findVNode(vnodeList, (n) => n?.props?.className === "unpacked-badge-dot")).toBeTruthy();
     });
@@ -128,12 +152,30 @@ describe("Unpacked Extension Indicator & Reload Controls", () => {
     const viewModes: Array<"bigTile" | "tile" | "list"> = ["bigTile", "tile", "list"];
 
     viewModes.forEach((mode) => {
-      it(`renders active reload button for enabled unpacked extension in ${mode} view`, () => {
+      it(`does NOT render reload button when developerMode is OFF (default) in ${mode} view`, () => {
         const onReload = vi.fn();
         const vnode = ExtensionBrief({
           extension: unpackedExt,
           viewMode: mode,
           withControl: true,
+          developerMode: false,
+          onReload,
+        });
+
+        const reloadBtn = findVNode(
+          vnode,
+          (n) => typeof n?.props?.className === "string" && n.props.className.includes("reload-btn")
+        );
+        expect(reloadBtn).toBeNull();
+      });
+
+      it(`renders active reload button for enabled unpacked extension in ${mode} view when developerMode is ON`, () => {
+        const onReload = vi.fn();
+        const vnode = ExtensionBrief({
+          extension: unpackedExt,
+          viewMode: mode,
+          withControl: true,
+          developerMode: true,
           onReload,
         });
 
@@ -153,13 +195,14 @@ describe("Unpacked Extension Indicator & Reload Controls", () => {
         expect(onReload).toHaveBeenCalledWith("unpacked-ext-id");
       });
 
-      it(`renders disabled reload button for disabled unpacked extension in ${mode} view`, () => {
+      it(`renders disabled reload button for disabled unpacked extension in ${mode} view when developerMode is ON`, () => {
         const onReload = vi.fn();
         const disabledUnpacked: ExtensionInfo = { ...unpackedExt, enabled: false };
         const vnode = ExtensionBrief({
           extension: disabledUnpacked,
           viewMode: mode,
           withControl: true,
+          developerMode: true,
           onReload,
         });
 
@@ -184,6 +227,7 @@ describe("Unpacked Extension Indicator & Reload Controls", () => {
           extension: normalExt,
           viewMode: mode,
           withControl: true,
+          developerMode: true,
         });
 
         const reloadBtn = findVNode(
@@ -198,6 +242,7 @@ describe("Unpacked Extension Indicator & Reload Controls", () => {
           extension: unpackedExt,
           viewMode: mode,
           withControl: true,
+          developerMode: true,
           isReloading: true,
         });
 
@@ -212,11 +257,31 @@ describe("Unpacked Extension Indicator & Reload Controls", () => {
     });
 
     describe("Tile View Hover Metadata & Overlay", () => {
-      it("renders DEV prefix with version for unpacked extensions in Tile hover bar", () => {
+      it("renders clean version without DEV prefix for unpacked extensions in Tile hover bar when developerMode is OFF", () => {
         const vnode = ExtensionBrief({
           extension: unpackedExt,
           viewMode: "tile",
           withControl: true,
+          developerMode: false,
+        });
+
+        expect(vnode.props.className).toContain("has-hover-controls");
+
+        const hoverMeta = findVNode(
+          vnode,
+          (n) => typeof n?.props?.className === "string" && n.props.className.includes("tile-hover-meta")
+        );
+        expect(hoverMeta).toBeTruthy();
+        expect(hoverMeta.props.children).toBe("v0.1.0");
+        expect(hoverMeta.props.title).toBe("v0.1.0");
+      });
+
+      it("renders DEV prefix with version for unpacked extensions in Tile hover bar when developerMode is ON", () => {
+        const vnode = ExtensionBrief({
+          extension: unpackedExt,
+          viewMode: "tile",
+          withControl: true,
+          developerMode: true,
         });
 
         expect(vnode.props.className).toContain("has-hover-controls");

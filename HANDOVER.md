@@ -1,6 +1,6 @@
 # Handover
 
-Snapshot: 2026-09-13T19:55:00+02:00
+Snapshot: 2026-09-13T22:47:00+02:00
 
 ## Current release state (1.1.0 continuity)
 - `f87404a02534d704e00b281a38411f8c204d0cb9` is the frozen accepted 1.1.0 source and release baseline.
@@ -8,9 +8,29 @@ Snapshot: 2026-09-13T19:55:00+02:00
 - Chrome Web Store 1.1.0 upload / submission / approval / publication is NOT CONFIRMED by current repository evidence.
 - Therefore, the 1.1.0 CWS publication loop remains open until externally verified (do not guess CWS dashboard state).
 - The GitHub `v1.1.0` tag and release should remain pending until public 1.1.0 publication is confirmed.
-- Current UX work (at `4fbdbcb`, `c12e195`, `f22a1e4`, and follow-up commits) is post-1.1.0 local work and must not silently become part of the frozen 1.1.0 release artifact.
+- Current UX work (at `4fbdbcb`, `c12e195`, `f22a1e4`, `e014bf4`, and follow-up commits) is post-1.1.0 local work and must not silently become part of the frozen 1.1.0 release artifact.
 
 ## Work completed
+- **Developer Mode v1 Shell & Developer Actions Milestone**:
+  - **Outcome 1 — Options > Developer Mode Switch**:
+    - Added `developerMode: boolean` to `AppSettings` interface and defaulted it to `false` in `DEFAULT_SETTINGS`.
+    - Added validation for `developerMode` in `validateSettings` and preserved it through export/import round-tripping.
+    - Added standardized Developer Mode row in `OptionsView.tsx` with M3 switch primitive (`#setting-developer-mode`), label `"Developer Mode"`, and supporting text `"Show developer tools and extension package actions."`
+  - **Outcome 2 — Unpacked Extensions Behavior**:
+    - When `developerMode: true`: renders subtle `DEV` chip badge next to extension name, orange status dot on icon slot, and Developer Reload button (`refresh` icon) in control strip and SubWindow header controls.
+    - When `developerMode: false` (default): normal catalog card layout is rendered without any developer badges, dots, or reload buttons.
+    - Unpacked reload checks self-targeting protection and executes safe disable-enable reload cycle with retry recovery.
+  - **Outcome 3 — Store-Installed Extensions Behavior**:
+    - When `developerMode: true`: exposes compact developer actions popover menu (`details.dev-menu-container` with `terminal` icon button).
+    - Popover includes: `Open store page` (`https://chrome.google.com/webstore/detail/${id}`), `Open extension details` (`chrome://extensions/?id=${id}`), and disabled `Download store package` action.
+    - Required copy displayed on disabled package download: `"Store package download requires additional browser permission."`
+    - Does NOT expose store package download on unpacked extensions.
+    - When `developerMode: false`: zero developer affordances or popover menus on store extensions.
+  - **Outcome 4 & 5 — Interaction Grammar & SubWindow Integration**:
+    - Preserved exact base component and layout dimensions: unpacked and store extensions reuse identical `ExtensionBrief` card templates (`bigTile`, `tile`, `list`).
+    - Fixed CSS stacking context (`z-index: 200` on card when `details[open]`) ensuring open popover is never covered by sibling cards or containers.
+    - SubWindow detail modal reflects `developerMode`: shows `DEV` chip and Reload button for unpacked extensions, and adds a dedicated "Developer Actions" section for store extensions with store link, details link, and disabled store package download.
+    - Zero new permissions added: `src/manifest.json` completely untouched. Zero external network calls.
 - **Options Shared-Control Consistency & Grammar Milestone**:
   - **Standardized Row Structure & Tokens**:
     - Established shared tokens in `:root`: `--settings-select-width: 240px;`, `--settings-action-width: 140px;`.
@@ -74,14 +94,13 @@ Snapshot: 2026-09-13T19:55:00+02:00
   - *Unsupported cases*: Unpacked/dev extensions (no CWS package), extensions removed/delisted from CWS, enterprise policy-installed extensions without public store URLs.
 
 ## Tests and verification
-- **Unit test suite**: 10 test files, 156 tests passing (`npm test` via Vitest), including dedicated test suites `tests/unit/autostate-clarity.test.ts` (26 tests), `tests/unit/group-usability.test.ts` (16 tests), and `tests/unit/modernization.test.ts` (17 tests covering Options row grammar and tokens).
+- **Unit test suite**: 11 test files, 183 tests passing (`npm test` via Vitest), including `tests/unit/developer-mode.test.ts` (20 tests covering default OFF, persistence, Options row, unpacked vs store behavior, SubWindow contracts) and `tests/unit/unpacked-reload.test.ts` (35 tests).
 - **Static verification**: `npm run typecheck` (`tsc --noEmit`) and `npm run lint` (`eslint src/`) pass with 0 errors and 0 warnings.
 - **Production build**: `npm run build` generates production assets cleanly (`dist/`) in ~150ms.
-- **Visual inspection**: 7 high-fidelity Options consistency screenshots captured via Puppeteer harness and visually inspected (`options_01_appearance_selects.png` through `options_07_full_page_overview.png`), bundled into `/private/tmp/agent-review/20260913_1952_AGY_options-consistency_7files.zip`.
+- **Visual inspection**: 7 high-fidelity Developer Mode v1 screenshots captured via Puppeteer harness and visually inspected (`devmode_01_options_mode_off.png` through `devmode_07_card_layout_reuse.png`), bundled into `/private/tmp/agent-review/20260913_2246_AGY_developer-mode-v1_7files.zip`.
 - **Gate receipt**: Recorded and validated via `agentos_final_gate.py record` and `agentos_final_gate.py validate --agent AGY` (`decision: allow`, code: `OK`).
 - **Baseline safety**: Release baseline `f87404a02534d704e00b281a38411f8c204d0cb9` and `release/extension-drawer-1.1.0.zip` preserved frozen; zero permission additions; no version bumps.
 - **Real-Chrome smoke**: Verified environment capability boundary via `tests/e2e/runner.mjs` and `tests/e2e/real-chrome-test.mjs`. Chrome unpacked extension CLI loading (`--load-extension`) in this headless macOS environment does not register target IDs; this is an environment capability limitation, not an extension bundle defect.
-- **Baseline safety**: Release baseline `f87404a02534d704e00b281a38411f8c204d0cb9` and `release/extension-drawer-1.1.0.zip` preserved frozen; zero permission additions; no version bumps.
 
 ## Lessons learned
 - Browser profile data can contain extension IDs, user-specific metadata, and personal group naming that must be redacted before any commit.

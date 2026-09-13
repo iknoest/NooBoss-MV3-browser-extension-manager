@@ -18,6 +18,7 @@ export interface ExtensionBriefProps {
   onSelect?: (id: string) => void;
   onOpenSubWindow?: (type: "extension", id: string) => void;
   themeMainColor?: string;
+  developerMode?: boolean;
 }
 
 interface ExtensionSwitchProps {
@@ -83,11 +84,18 @@ export function ExtensionBrief({
   onSelect,
   onOpenSubWindow,
   themeMainColor = "#1a73e8",
+  developerMode = false,
 }: ExtensionBriefProps) {
+
   const isSelectable = selected !== null;
   const isSelected = selected === true;
   const disabled = !extension.enabled;
   const isDevelopment = extension.installType === "development";
+
+  // Developer Mode visibility flags
+  const showDevBadge = developerMode && isDevelopment;
+  const showReload = developerMode && isDevelopment;
+  const showDevMenu = developerMode && !isDevelopment;
 
   let displayIcon = iconUrl;
   if (!displayIcon && extension.icons && extension.icons.length > 0) {
@@ -110,6 +118,109 @@ export function ExtensionBrief({
     if (isSelectable) {
       onSelect?.(extension.id);
     }
+  };
+
+  const renderDevBadge = (className = "") => {
+    if (!showDevBadge) return null;
+    return (
+      <span className={`dev-chip-badge ${className}`} title="Unpacked extension (development)" aria-label="DEV">
+        DEV
+      </span>
+    );
+  };
+
+  const renderDevDot = () => {
+    if (!showDevBadge) return null;
+    return (
+      <span
+        className="unpacked-badge-dot"
+        title="Unpacked extension"
+        aria-label="Unpacked extension"
+      />
+    );
+  };
+
+  const renderReloadBtn = (iconSize: number = 16) => {
+    if (!showReload) return null;
+    return (
+      <button
+        type="button"
+        className={`action-icon-btn reload-btn ${!extension.enabled ? "disabled" : ""} ${isReloading ? "is-reloading" : ""}`}
+        disabled={!extension.enabled || isReloading}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (extension.enabled && !isReloading) {
+            onReload?.(extension.id);
+          }
+        }}
+        title={extension.enabled ? "Reload extension code" : "Enable this unpacked extension before reloading"}
+        aria-label={extension.enabled ? "Reload extension code. Manifest changes require Chrome's extension page." : "Enable this unpacked extension before reloading"}
+      >
+        <MaterialSymbol name="refresh" size={iconSize} color={extension.enabled ? themeMainColor : "var(--text-muted, #888)"} />
+      </button>
+    );
+  };
+
+  const renderDevActionsMenu = (iconSize: number = 16) => {
+    if (!showDevMenu) return null;
+    return (
+      <details className="dev-menu-container" onClick={(e) => e.stopPropagation()}>
+        <summary
+          className="action-icon-btn dev-menu-btn"
+          title="Developer actions"
+          aria-label="Developer actions"
+        >
+          <MaterialSymbol name="terminal" size={iconSize} color={themeMainColor} />
+        </summary>
+        <div className="dev-actions-popover" role="menu">
+          <div className="dev-menu-header">Developer Actions</div>
+          <button
+            type="button"
+            className="dev-menu-item"
+            role="menuitem"
+            onClick={(e) => {
+              e.stopPropagation();
+              (e.currentTarget.closest("details") as HTMLDetailsElement | null)?.removeAttribute("open");
+              window.open(`https://chrome.google.com/webstore/detail/${extension.id}`, "_blank", "noreferrer");
+            }}
+          >
+            <MaterialSymbol name="storefront" size={16} color="var(--text-primary)" />
+            <div className="dev-menu-item-text">
+              <span className="dev-menu-item-title">Open store page</span>
+            </div>
+          </button>
+          <button
+            type="button"
+            className="dev-menu-item"
+            role="menuitem"
+            onClick={(e) => {
+              e.stopPropagation();
+              (e.currentTarget.closest("details") as HTMLDetailsElement | null)?.removeAttribute("open");
+              onOpenDetails?.(extension.id);
+            }}
+          >
+            <MaterialSymbol name="settings" size={16} color="var(--text-primary)" />
+            <div className="dev-menu-item-text">
+              <span className="dev-menu-item-title">Open extension details</span>
+            </div>
+          </button>
+          <button
+            type="button"
+            className="dev-menu-item disabled"
+            role="menuitem"
+            disabled
+            title="Store package download requires additional browser permission."
+            aria-label="Download store package (requires additional browser permission)"
+          >
+            <MaterialSymbol name="download" size={16} color="var(--text-muted)" />
+            <div className="dev-menu-item-text">
+              <span className="dev-menu-item-title">Download store package</span>
+              <span className="dev-menu-item-desc">Store package download requires additional browser permission.</span>
+            </div>
+          </button>
+        </div>
+      </details>
+    );
   };
 
   // --- Selectable Mode (Used in AutoState & Group Editor Target Selector) ---
@@ -135,16 +246,13 @@ export function ExtensionBrief({
           </div>
           <div className="extension-icon-slot slot-big-tile big-tile-icon-wrapper">
             <img className="extension-icon" src={displayIcon} alt={extension.name} />
-            {isDevelopment && (
-              <span
-                className="unpacked-badge-dot"
-                title="Unpacked extension"
-                aria-label="Unpacked extension"
-              />
-            )}
+            {renderDevDot()}
           </div>
           <div className="big-tile-content">
-            <span className="item-name" title={extension.name}>{extension.name}</span>
+            <div className="item-name-row">
+              <span className="item-name" title={extension.name}>{extension.name}</span>
+              {renderDevBadge()}
+            </div>
             <span className="item-version">{extension.version}</span>
           </div>
           <span className={`status-pill-badge ${extension.enabled ? "enabled" : "disabled"}`}>
@@ -181,17 +289,14 @@ export function ExtensionBrief({
                 alt={extension.name}
                 title={extension.name}
               />
-              {isDevelopment && (
-                <span
-                  className="unpacked-badge-dot"
-                  title="Unpacked extension"
-                  aria-label="Unpacked extension"
-                />
-              )}
+              {renderDevDot()}
             </div>
-            <span className="tile-item-name" title={extension.name}>
-              {extension.name}
-            </span>
+            <div className="tile-name-row">
+              <span className="tile-item-name" title={extension.name}>
+                {extension.name}
+              </span>
+              {renderDevBadge("dev-chip-tile")}
+            </div>
           </div>
           <span className={`tile-status-tag ${extension.enabled ? "enabled" : "disabled"}`}>
             {extension.enabled ? "ON" : "OFF"}
@@ -221,15 +326,12 @@ export function ExtensionBrief({
         </div>
         <div className="extension-icon-slot slot-list list-icon-wrapper">
           <img className="list-icon" src={displayIcon} alt={extension.name} />
-          {isDevelopment && (
-            <span
-              className="unpacked-badge-dot"
-              title="Unpacked extension"
-              aria-label="Unpacked extension"
-            />
-          )}
+          {renderDevDot()}
         </div>
-        <span className="list-name" title={extension.name}>{extension.name}</span>
+        <div className="list-name-row">
+          <span className="list-name" title={extension.name}>{extension.name}</span>
+          {renderDevBadge()}
+        </div>
         <span className="list-version">{extension.version}</span>
         <span className={`status-pill-badge ${extension.enabled ? "enabled" : "disabled"}`}>
           {extension.enabled ? "ON" : "OFF"}
@@ -249,18 +351,15 @@ export function ExtensionBrief({
             alt={extension.name}
             title={extension.name}
           />
-          {isDevelopment && (
-            <span
-              className="unpacked-badge-dot"
-              title="Unpacked extension"
-              aria-label="Unpacked extension"
-            />
-          )}
+          {renderDevDot()}
         </div>
         <div className="big-tile-content" onClick={handleOpenDetail}>
-          <span className="item-name" title={extension.name}>
-            {extension.name}
-          </span>
+          <div className="item-name-row">
+            <span className="item-name" title={extension.name}>
+              {extension.name}
+            </span>
+            {renderDevBadge()}
+          </div>
           <span className="item-version">{extension.version}</span>
         </div>
 
@@ -274,23 +373,8 @@ export function ExtensionBrief({
                 size="medium"
               />
             )}
-            {isDevelopment && (
-              <button
-                type="button"
-                className={`action-icon-btn reload-btn ${!extension.enabled ? "disabled" : ""} ${isReloading ? "is-reloading" : ""}`}
-                disabled={!extension.enabled || isReloading}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (extension.enabled && !isReloading) {
-                    onReload?.(extension.id);
-                  }
-                }}
-                title={extension.enabled ? "Reload extension code" : "Enable this unpacked extension before reloading"}
-                aria-label={extension.enabled ? "Reload extension code. Manifest changes require Chrome's extension page." : "Enable this unpacked extension before reloading"}
-              >
-                <MaterialSymbol name="refresh" size={16} color={extension.enabled ? themeMainColor : "var(--text-muted, #888)"} />
-              </button>
-            )}
+            {renderReloadBtn(16)}
+            {renderDevActionsMenu(16)}
             {extension.optionsUrl && (
               <button
                 type="button"
@@ -353,41 +437,22 @@ export function ExtensionBrief({
             src={displayIcon}
             alt={extension.name}
           />
-          {isDevelopment && (
-            <span
-              className="unpacked-badge-dot"
-              title="Unpacked extension"
-              aria-label="Unpacked extension"
-            />
-          )}
+          {renderDevDot()}
         </div>
-        <span
-          className="list-name clickable"
-          onClick={handleOpenDetail}
-          title={extension.name}
-        >
-          {extension.name}
-        </span>
+        <div className="list-name-row" onClick={handleOpenDetail}>
+          <span
+            className="list-name clickable"
+            title={extension.name}
+          >
+            {extension.name}
+          </span>
+          {renderDevBadge()}
+        </div>
         <span className="list-version">{extension.version}</span>
         {withControl && (
           <div className="list-actions">
-            {isDevelopment && (
-              <button
-                type="button"
-                className={`action-icon-btn reload-btn ${!extension.enabled ? "disabled" : ""} ${isReloading ? "is-reloading" : ""}`}
-                disabled={!extension.enabled || isReloading}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (extension.enabled && !isReloading) {
-                    onReload?.(extension.id);
-                  }
-                }}
-                title={extension.enabled ? "Reload extension code" : "Enable this unpacked extension before reloading"}
-                aria-label={extension.enabled ? "Reload extension code. Manifest changes require Chrome's extension page." : "Enable this unpacked extension before reloading"}
-              >
-                <MaterialSymbol name="refresh" size={16} color={extension.enabled ? themeMainColor : "var(--text-muted, #888)"} />
-              </button>
-            )}
+            {renderReloadBtn(16)}
+            {renderDevActionsMenu(16)}
             {extension.type === "app" && (
               <button
                 type="button"
@@ -437,7 +502,7 @@ export function ExtensionBrief({
   // --- Normal Tile View (Max 6 Columns) ---
   const cleanVersion = (extension.version || "0.0.0").replace(/^v/i, "");
   const versionDisplay = `v${cleanVersion}`;
-  const tileHoverMeta = isDevelopment ? `DEV · ${versionDisplay}` : versionDisplay;
+  const tileHoverMeta = showDevBadge ? `DEV · ${versionDisplay}` : versionDisplay;
 
   return (
     <div className={`nb-tile ${withControl ? "has-hover-controls" : ""} ${disabled ? "disabled" : ""}`} onClick={handleOpenDetail}>
@@ -449,17 +514,14 @@ export function ExtensionBrief({
             alt={extension.name}
             title={extension.name}
           />
-          {isDevelopment && (
-            <span
-              className="unpacked-badge-dot"
-              title="Unpacked extension"
-              aria-label="Unpacked extension"
-            />
-          )}
+          {renderDevDot()}
         </div>
-        <span className="tile-item-name" title={extension.name}>
-          {extension.name}
-        </span>
+        <div className="tile-name-row">
+          <span className="tile-item-name" title={extension.name}>
+            {extension.name}
+          </span>
+          {renderDevBadge("dev-chip-tile")}
+        </div>
       </div>
 
       {withControl && (
@@ -476,23 +538,8 @@ export function ExtensionBrief({
                 size="small"
               />
             )}
-            {isDevelopment && (
-              <button
-                type="button"
-                className={`action-icon-btn reload-btn ${!extension.enabled ? "disabled" : ""} ${isReloading ? "is-reloading" : ""}`}
-                disabled={!extension.enabled || isReloading}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (extension.enabled && !isReloading) {
-                    onReload?.(extension.id);
-                  }
-                }}
-                title={extension.enabled ? "Reload extension code" : "Enable this unpacked extension before reloading"}
-                aria-label={extension.enabled ? "Reload extension code. Manifest changes require Chrome's extension page." : "Enable this unpacked extension before reloading"}
-              >
-                <MaterialSymbol name="refresh" size={14} color={extension.enabled ? themeMainColor : "var(--text-muted, #888)"} />
-              </button>
-            )}
+            {renderReloadBtn(14)}
+            {renderDevActionsMenu(14)}
             {extension.optionsUrl && (
               <button
                 type="button"

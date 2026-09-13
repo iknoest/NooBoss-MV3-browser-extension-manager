@@ -2645,6 +2645,232 @@ input[type="search"]:focus,
   opacity: 0 !important;
 }
 
+/* ── Developer Mode Affordances (Outcomes 2, 3, 4, 5) ──────────────────────── */
+.item-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  width: 100%;
+}
+
+.item-name-row .item-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.list-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.list-name-row .list-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tile-name-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  width: 100%;
+}
+
+.subwindow-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dev-chip-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-family);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.5px;
+  padding: 2px 5px;
+  border-radius: 4px;
+  background-color: rgba(249, 115, 22, 0.12);
+  color: #ea580c;
+  border: 1px solid rgba(249, 115, 22, 0.3);
+  text-transform: uppercase;
+  flex-shrink: 0;
+  user-select: none;
+  box-sizing: border-box;
+}
+
+[data-theme="dark"] .dev-chip-badge {
+  background-color: rgba(249, 115, 22, 0.2);
+  color: #fb923c;
+  border-color: rgba(249, 115, 22, 0.4);
+}
+
+.dev-chip-tile {
+  font-size: 9px;
+  padding: 1px 4px;
+}
+
+.dev-menu-container {
+  position: relative;
+  display: inline-flex;
+}
+
+details.dev-menu-container[open] {
+  z-index: 210;
+}
+
+.nb-big-tile:has(details.dev-menu-container[open]),
+.nb-list-row:has(details.dev-menu-container[open]),
+.nb-tile:has(details.dev-menu-container[open]) {
+  z-index: 200;
+}
+
+details.dev-menu-container > summary {
+  list-style: none;
+  display: inline-flex;
+  cursor: pointer;
+}
+
+details.dev-menu-container > summary::-webkit-details-marker {
+  display: none;
+}
+
+.dev-actions-popover {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  width: 250px;
+  background-color: var(--bg-card, #ffffff);
+  border: 1px solid var(--border-subtle, #e0e0e0);
+  border-radius: var(--radius-md, 8px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  padding: 6px 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  text-align: left;
+}
+
+[data-theme="dark"] .dev-actions-popover {
+  background-color: var(--bg-card, #202124);
+  border-color: var(--border-subtle, #3c4043);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.6);
+}
+
+.dev-menu-header {
+  padding: 4px 12px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted, #70757a);
+  border-bottom: 1px solid var(--border-subtle, #e0e0e0);
+  margin-bottom: 4px;
+}
+
+.dev-menu-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  text-align: left;
+  font-family: var(--font-family);
+  font-size: 12px;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+  box-sizing: border-box;
+}
+
+.dev-menu-item:hover:not(:disabled) {
+  background-color: var(--bg-hover, #f1f3f4);
+}
+
+.dev-menu-item.disabled,
+.dev-menu-item:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.dev-menu-item-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.dev-menu-item-title {
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.dev-menu-item-desc {
+  font-size: 10px;
+  color: var(--text-muted, #70757a);
+  line-height: 1.25;
+}
+
+.tile-hover-bar.menu-open {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+/* SubWindow Developer Section */
+.subwindow-dev-section {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.subwindow-dev-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dev-subwindow-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  font-size: 12px;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.dev-subwindow-btn.disabled,
+.dev-subwindow-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.dev-note-text {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
 /* ── Group Focus Removable Context Banner (Outcome C & Outcome 4) ────────── */
 .group-focus-banner {
   display: flex;

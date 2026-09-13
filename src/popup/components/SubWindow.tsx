@@ -8,6 +8,7 @@ import { GroupIconPicker } from "./GroupIconPicker";
 import { GroupCommandControl } from "./GroupCommandControl";
 import { computeGroupRuntimeSummary } from "./group-summary";
 import { ExtensionSwitch } from "./ExtensionBrief";
+import { MaterialSymbol } from "./MaterialSymbols";
 
 export interface SubWindowProps {
   display: "" | "extension" | "group";
@@ -23,6 +24,8 @@ export interface SubWindowProps {
   onUpdateGroup?: (group: ExtensionGroup) => void;
   onFocusGroup?: (groupId: string) => void;
   themeMainColor?: string;
+  developerMode?: boolean;
+  onReloadExtension?: (id: string) => Promise<void> | void;
 }
 
 export function SubWindow({
@@ -39,6 +42,8 @@ export function SubWindow({
   onUpdateGroup,
   onFocusGroup: _onFocusGroup,
   themeMainColor = "#1a73e8",
+  developerMode = false,
+  onReloadExtension,
 }: SubWindowProps) {
   const [editorViewMode, setEditorViewMode] = useState<"list" | "bigTile">("list");
   const [showIconPicker, setShowIconPicker] = useState(false);
@@ -89,6 +94,18 @@ export function SubWindow({
                   size="medium"
                 />
               )}
+              {developerMode && ext.installType === "development" && (
+                <button
+                  type="button"
+                  className={`action-icon-btn reload-btn ${!ext.enabled ? "disabled" : ""}`}
+                  disabled={!ext.enabled}
+                  onClick={() => onReloadExtension?.(ext.id)}
+                  title={ext.enabled ? "Reload extension code" : "Enable this unpacked extension before reloading"}
+                  aria-label="Reload extension code"
+                >
+                  <MaterialSymbol name="refresh" size={18} color={ext.enabled ? themeMainColor : "var(--text-muted, #888)"} />
+                </button>
+              )}
               {ext.optionsUrl && (
                 <Optioney
                   color={themeMainColor}
@@ -113,14 +130,21 @@ export function SubWindow({
           </div>
 
           {/* Title */}
-          <a
-            href={webstoreUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="subwindow-title"
-          >
-            {ext.name}
-          </a>
+          <div className="subwindow-title-row">
+            <a
+              href={webstoreUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="subwindow-title"
+            >
+              {ext.name}
+            </a>
+            {developerMode && ext.installType === "development" && (
+              <span className="dev-chip-badge" title="Unpacked extension (development)">
+                DEV
+              </span>
+            )}
+          </div>
 
           {/* Brief Table */}
           <table className="subwindow-table">
@@ -207,6 +231,47 @@ export function SubWindow({
               )}
             </tbody>
           </table>
+
+          {developerMode && (
+            <div className="subwindow-dev-section">
+              <h4 className="subwindow-section-heading">Developer Actions</h4>
+              <div className="subwindow-dev-actions">
+                <button
+                  type="button"
+                  className="btn btn-secondary dev-subwindow-btn"
+                  onClick={() => window.open(webstoreUrl, "_blank", "noreferrer")}
+                >
+                  <MaterialSymbol name="storefront" size={16} />
+                  Open store page
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary dev-subwindow-btn"
+                  onClick={() => onOpenDetails?.(ext.id)}
+                >
+                  <MaterialSymbol name="settings" size={16} />
+                  Open extension details
+                </button>
+                {ext.installType !== "development" && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary dev-subwindow-btn disabled"
+                    disabled
+                    title="Store package download requires additional browser permission."
+                    aria-label="Download store package (requires additional browser permission)"
+                  >
+                    <MaterialSymbol name="download" size={16} />
+                    Download store package
+                  </button>
+                )}
+              </div>
+              {ext.installType !== "development" && (
+                <div className="dev-note-text">
+                  Store package download requires additional browser permission.
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     );

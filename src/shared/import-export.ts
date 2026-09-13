@@ -161,7 +161,7 @@ function validateRule(rule: unknown): asserts rule is AutoStateRule {
   }
 }
 
-function validateSettings(settings: Record<string, unknown>): AppSettings {
+export function validateSettings(settings: Record<string, unknown>): AppSettings {
   // Merge with defaults, only keeping known keys with valid types
   const result = { ...DEFAULT_SETTINGS };
 
@@ -215,6 +215,9 @@ function validateSettings(settings: Record<string, unknown>): AppSettings {
     result.viewMode = settings.viewMode;
   } else if (settings.viewMode === 'grid') {
     result.viewMode = 'bigTile';
+  }
+  if (typeof settings.developerMode === 'boolean') {
+    result.developerMode = settings.developerMode;
   }
 
   return result;

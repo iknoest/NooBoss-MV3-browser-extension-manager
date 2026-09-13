@@ -382,7 +382,32 @@ ${extensions.map((e) => `<li><a href="https://chrome.google.com/webstore/detail/
         </div>
       </section>
 
-      {/* 5. Backup & Data Section */}
+      {/* 5. Developer Mode Section */}
+      <section className="settings-section">
+        <h2 className="settings-section-title">Developer Mode</h2>
+        <div className="settings-card">
+          <div className="settings-row">
+            <div className="settings-row-text">
+              <span className="settings-label">Developer Mode</span>
+              <span className="settings-description">Show developer tools and extension package actions.</span>
+            </div>
+            <div className="settings-control">
+              <input
+                type="checkbox"
+                id="setting-developer-mode"
+                className="switch-input"
+                checked={settings.developerMode ?? false}
+                onChange={(e) =>
+                  handleUpdateSetting("developerMode", (e.target as HTMLInputElement).checked)
+                }
+              />
+              <label htmlFor="setting-developer-mode" className="switch-label" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 6. Backup & Data Section */}
       <section className="settings-section">
         <h2 className="settings-section-title">Backup & Data</h2>
         <div className="settings-card">

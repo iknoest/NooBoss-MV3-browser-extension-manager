@@ -39,6 +39,7 @@ export interface SelectorProps {
   onOpenSubWindow?: (type: "extension" | "group", id: string) => void;
   themeMainColor?: string;
   filterTypeOnly?: string;
+  developerMode?: boolean;
 }
 
 export function Selector({
@@ -71,6 +72,7 @@ export function Selector({
   onOpenSubWindow,
   themeMainColor,
   filterTypeOnly,
+  developerMode = false,
 }: SelectorProps) {
   const [internalFocusedGroupId, setInternalFocusedGroupId] = useState<string | null>(null);
   const activeFocusedGroupId = focusedGroupId !== undefined ? focusedGroupId : internalFocusedGroupId;
@@ -588,6 +590,7 @@ export function Selector({
                 onUninstall={onUninstallExtension}
                 onOpenSubWindow={onOpenSubWindow}
                 themeMainColor={themeMainColor}
+                developerMode={developerMode}
               />
             ))}
           </div>
@@ -615,6 +618,7 @@ export function Selector({
                 onUninstall={onUninstallExtension}
                 onOpenSubWindow={onOpenSubWindow}
                 themeMainColor={themeMainColor}
+                developerMode={developerMode}
               />
             ))}
           </div>
@@ -642,6 +646,7 @@ export function Selector({
                 onUninstall={onUninstallExtension}
                 onOpenSubWindow={onOpenSubWindow}
                 themeMainColor={themeMainColor}
+                developerMode={developerMode}
               />
             ))}
           </div>
