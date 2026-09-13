@@ -81,6 +81,8 @@
   --control-radius: 6px;
   --control-padding-h: 12px;
   --form-primary-width: 380px;
+  --settings-select-width: 240px;
+  --settings-action-width: 140px;
 
   --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
@@ -783,6 +785,15 @@ input[type="search"]:focus,
   transform: translateX(14px);
 }
 
+.switch-input:focus-visible + .switch-label {
+  outline: 2px solid var(--theme-main);
+  outline-offset: 2px;
+}
+
+.switch-label:hover {
+  opacity: 0.9;
+}
+
 /* ==========================================================================
    Modals & SubWindows
    ========================================================================== */
@@ -1267,6 +1278,8 @@ input[type="search"]:focus,
   justify-content: space-between;
   padding: 12px 16px;
   border-bottom: 1px solid var(--border-subtle);
+  min-height: 56px;
+  box-sizing: border-box;
 }
 
 .settings-row:last-child {
@@ -1278,6 +1291,8 @@ input[type="search"]:focus,
   flex-direction: column;
   gap: 2px;
   padding-right: 16px;
+  flex: 1;
+  min-width: 0;
 }
 
 .settings-label {
@@ -1293,12 +1308,27 @@ input[type="search"]:focus,
 
 .settings-control {
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.settings-select {
+  width: var(--settings-select-width, 240px);
+  box-sizing: border-box;
 }
 
 .accent-control-group {
   display: flex;
   align-items: center;
   gap: 8px;
+  width: var(--settings-select-width, 240px);
+  justify-content: flex-end;
+}
+
+.accent-control-group .settings-select {
+  flex: 1;
+  min-width: 0;
 }
 
 .settings-color-input {
@@ -1306,21 +1336,57 @@ input[type="search"]:focus,
   height: 32px;
   padding: 0;
   border: 1px solid var(--border-input);
-  border-radius: var(--radius-md);
+  border-radius: var(--control-radius, var(--radius-md));
   cursor: pointer;
   background: none;
+  flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .settings-number-input {
   width: 90px;
-  height: 32px;
-  padding: 0 8px;
+  height: var(--control-height, 32px);
+  padding: 0 10px;
   font-family: var(--font-family);
   font-size: 13px;
   color: var(--text-primary);
   background-color: var(--bg-card);
   border: 1px solid var(--border-input);
-  border-radius: var(--radius-md);
+  border-radius: var(--control-radius, var(--radius-md));
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  box-sizing: border-box;
+}
+
+.settings-number-input:focus {
+  border-color: var(--border-input-focus);
+  box-shadow: 0 0 0 2px var(--theme-main-subtle);
+}
+
+/* Settings Action Buttons (Consistent trailing column width) */
+.settings-action-btn {
+  width: var(--settings-action-width, 140px);
+  height: var(--control-height, 32px);
+  justify-content: center;
+  text-align: center;
+  box-sizing: border-box;
+  white-space: nowrap;
+}
+
+.settings-confirm-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.settings-confirm-actions .btn {
+  min-width: 90px;
+  height: var(--control-height, 32px);
+  justify-content: center;
+  text-align: center;
+  box-sizing: border-box;
+  white-space: nowrap;
 }
 
 /* ==========================================================================

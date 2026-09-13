@@ -1,6 +1,6 @@
 # Handover
 
-Snapshot: 2026-09-13T12:20:00+02:00
+Snapshot: 2026-09-13T19:55:00+02:00
 
 ## Current release state (1.1.0 continuity)
 - `f87404a02534d704e00b281a38411f8c204d0cb9` is the frozen accepted 1.1.0 source and release baseline.
@@ -8,9 +8,23 @@ Snapshot: 2026-09-13T12:20:00+02:00
 - Chrome Web Store 1.1.0 upload / submission / approval / publication is NOT CONFIRMED by current repository evidence.
 - Therefore, the 1.1.0 CWS publication loop remains open until externally verified (do not guess CWS dashboard state).
 - The GitHub `v1.1.0` tag and release should remain pending until public 1.1.0 publication is confirmed.
-- Current UX work (at `4fbdbcb`, `c12e195`, and follow-up commits) is post-1.1.0 local work and must not silently become part of the frozen 1.1.0 release artifact.
+- Current UX work (at `4fbdbcb`, `c12e195`, `f22a1e4`, and follow-up commits) is post-1.1.0 local work and must not silently become part of the frozen 1.1.0 release artifact.
 
 ## Work completed
+- **Options Shared-Control Consistency & Grammar Milestone**:
+  - **Standardized Row Structure & Tokens**:
+    - Established shared tokens in `:root`: `--settings-select-width: 240px;`, `--settings-action-width: 140px;`.
+    - Standardized `.settings-row` to `min-height: 56px; padding: 12px 16px; border-bottom: 1px solid var(--border-subtle); justify-content: space-between;`.
+    - Row grammar enforced: `[label + supporting text] [trailing control column]`.
+  - **Control Column Alignment & Sizing**:
+    - Dropdowns (`.settings-select`): Standardized to 240px width across Appearance (Theme Mode, Accent Color) and Site Rules Engine (Operation Mode).
+    - Composite controls (`.accent-control-group`): Fixed total container width to 240px (`flex: 1` on select, 32px color square) so trailing boundary never jumps between preset and custom colors.
+    - Action buttons (`.settings-action-btn`): Standardized to 140px width, 32px height, centered text (`Export JSON`, `Export HTML`, `Import JSON`, `Clear history`).
+    - Destructive confirmation (`.settings-confirm-actions`): Flex row with 90px min-width buttons (`Confirm erase` and `Cancel`), fitting cleanly into trailing column.
+    - Number inputs (`.settings-number-input`): Standardized to 32px height, 90px width, 6px radius, with matching focus rings.
+    - Switches: Aligned right on trailing axis with keyboard focus outline on `.switch-input:focus-visible + .switch-label`.
+  - **Action Copy & Grammar**:
+    - Standardized action copy to clean sentence casing without ellipsis: replaced `Clear History...` with `Clear history`. Preserved standard acronyms (`JSON`, `HTML`).
 - **Interaction Grammar & Material-3-Aligned Shared UI Primitives Milestone**:
   - **Outcome 1 & 2 — Unified Card Body Navigation & Single Edit Affordance**:
     - Removed redundant `Control members` / tune buttons from Group cards (`bigTile`, `list`, `tile`).
@@ -51,11 +65,19 @@ Snapshot: 2026-09-13T12:20:00+02:00
 - **Historical Migration / Recovery Foundations**:
   - Sanitized migration templates, documentation for legacy profile recovery, and sensitive data exclusion.
 
+## Investigations completed
+- **Developer Mode v1 & Store Package Download Feasibility**:
+  - *Unpacked Local Extensions (`installType === "development"`)*: Chrome sandboxing and `chrome.management` APIs strictly protect local file systems; extensions cannot access directory paths or read file contents of other unpacked extensions. Local source packaging is infeasible via web extension APIs. Developer Mode v1 for local extensions should provide a `DEV` badge, quick reload (`setEnabled` toggle), and direct links to `chrome://extensions/?id=...`.
+  - *Store-Installed Extensions*: Public packages can be acquired from Chromium update endpoint `https://clients2.google.com/service/update2/crx?response=redirect&prodversion=[VERSION]&acceptformat=crx2,crx3&x=id%3D[ID]%26uc`.
+  - *CRX3-to-ZIP Conversion*: CRX3 has a 12-byte header + `header_size` protobuf, immediately followed by the standard ZIP payload (`PK\x03\x04`). Slicing at `12 + headerSize` yields a pure standard ZIP in memory without third-party dependencies.
+  - *Permissions*: Requires `downloads` permission and host permissions (`clients2.google.com`, `googleusercontent.com`). Can be declared as `optional_permissions` and `optional_host_permissions` in MV3, requested just-in-time on user click to avoid install-time warnings.
+  - *Unsupported cases*: Unpacked/dev extensions (no CWS package), extensions removed/delisted from CWS, enterprise policy-installed extensions without public store URLs.
+
 ## Tests and verification
-- **Unit test suite**: 10 test files, 153 tests passing (`npm test` via Vitest), including dedicated test suites `tests/unit/autostate-clarity.test.ts` (26 tests) and `tests/unit/group-usability.test.ts` (16 tests).
+- **Unit test suite**: 10 test files, 156 tests passing (`npm test` via Vitest), including dedicated test suites `tests/unit/autostate-clarity.test.ts` (26 tests), `tests/unit/group-usability.test.ts` (16 tests), and `tests/unit/modernization.test.ts` (17 tests covering Options row grammar and tokens).
 - **Static verification**: `npm run typecheck` (`tsc --noEmit`) and `npm run lint` (`eslint src/`) pass with 0 errors and 0 warnings.
 - **Production build**: `npm run build` generates production assets cleanly (`dist/`) in ~150ms.
-- **Visual inspection**: 12 high-fidelity screenshots captured via Puppeteer harness and visually inspected (`01_group_big_tile_no_tune.png` through `12_options_shared_controls_m3.png`), bundled into `/private/tmp/agent-review/20260913_1216_AGY_interaction-grammar-m3-primitives_12files.zip`.
+- **Visual inspection**: 7 high-fidelity Options consistency screenshots captured via Puppeteer harness and visually inspected (`options_01_appearance_selects.png` through `options_07_full_page_overview.png`), bundled into `/private/tmp/agent-review/20260913_1952_AGY_options-consistency_7files.zip`.
 - **Gate receipt**: Recorded and validated via `agentos_final_gate.py record` and `agentos_final_gate.py validate --agent AGY` (`decision: allow`, code: `OK`).
 - **Baseline safety**: Release baseline `f87404a02534d704e00b281a38411f8c204d0cb9` and `release/extension-drawer-1.1.0.zip` preserved frozen; zero permission additions; no version bumps.
 - **Real-Chrome smoke**: Verified environment capability boundary via `tests/e2e/runner.mjs` and `tests/e2e/real-chrome-test.mjs`. Chrome unpacked extension CLI loading (`--load-extension`) in this headless macOS environment does not register target IDs; this is an environment capability limitation, not an extension bundle defect.

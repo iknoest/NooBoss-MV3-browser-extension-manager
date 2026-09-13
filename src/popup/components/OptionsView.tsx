@@ -353,13 +353,13 @@ ${extensions.map((e) => `<li><a href="https://chrome.google.com/webstore/detail/
             <div className="settings-control">
               {!confirmClearHistory ? (
                 <button
-                  className="btn btn-secondary"
+                  className="btn btn-secondary settings-action-btn"
                   onClick={() => setConfirmClearHistory(true)}
                 >
-                  Clear History...
+                  Clear history
                 </button>
               ) : (
-                <div style={{ display: "flex", gap: "8px" }}>
+                <div className="settings-confirm-actions">
                   <button
                     className="btn btn-danger"
                     onClick={() => {
@@ -367,7 +367,7 @@ ${extensions.map((e) => `<li><a href="https://chrome.google.com/webstore/detail/
                       setConfirmClearHistory(false);
                     }}
                   >
-                    Confirm Erase
+                    Confirm erase
                   </button>
                   <button
                     className="btn btn-secondary"
@@ -392,7 +392,7 @@ ${extensions.map((e) => `<li><a href="https://chrome.google.com/webstore/detail/
               <span className="settings-description">Export groups, AutoState rules, and preferences to JSON</span>
             </div>
             <div className="settings-control">
-              <button className="btn btn-secondary" onClick={onExportData}>
+              <button className="btn btn-secondary settings-action-btn" onClick={onExportData}>
                 Export JSON
               </button>
             </div>
@@ -404,7 +404,7 @@ ${extensions.map((e) => `<li><a href="https://chrome.google.com/webstore/detail/
               <span className="settings-description">Export a human-readable HTML list of your extensions</span>
             </div>
             <div className="settings-control">
-              <button className="btn btn-secondary" onClick={handleExportHtml}>
+              <button className="btn btn-secondary settings-action-btn" onClick={handleExportHtml}>
                 Export HTML
               </button>
             </div>
@@ -416,7 +416,7 @@ ${extensions.map((e) => `<li><a href="https://chrome.google.com/webstore/detail/
               <span className="settings-description">Restore groups and settings from a JSON file</span>
             </div>
             <div className="settings-control">
-              <label className="btn btn-secondary" style={{ cursor: "pointer", margin: 0 }}>
+              <label className="btn btn-secondary settings-action-btn" style={{ cursor: "pointer", margin: 0 }}>
                 Import JSON
                 <input
                   type="file"

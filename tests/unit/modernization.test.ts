@@ -214,4 +214,36 @@ describe("Material Symbols & Usability Refinements", () => {
     });
   });
 
+  describe("Options UI Consistency & Row Grammar (Milestone Outcomes A1 - A3)", () => {
+    it("A1: verifies CSS tokens and rules for settings trailing controls and action buttons", () => {
+      const css = fs.readFileSync("src/popup/components/nooboss.css", "utf8");
+      expect(css).toMatch(/--settings-select-width:\s*240px/);
+      expect(css).toMatch(/--settings-action-width:\s*140px/);
+      expect(css).toMatch(/\.settings-action-btn\s*\{[^}]*width:\s*var\(--settings-action-width,\s*140px\)/);
+      expect(css).toMatch(/\.settings-select\s*\{[^}]*width:\s*var\(--settings-select-width,\s*240px\)/);
+      expect(css).toMatch(/\.accent-control-group\s*\{[^}]*width:\s*var\(--settings-select-width,\s*240px\)/);
+    });
+
+    it("A2: action buttons use clean naming without trailing ellipsis and consistent capitalization", () => {
+      const optionsCode = fs.readFileSync("src/popup/components/OptionsView.tsx", "utf8");
+      // Check that "Clear History..." is replaced with "Clear history"
+      expect(optionsCode).not.toContain("Clear History...");
+      expect(optionsCode).toContain("Clear history");
+      expect(optionsCode).toContain("Export JSON");
+      expect(optionsCode).toContain("Export HTML");
+      expect(optionsCode).toContain("Import JSON");
+      expect(optionsCode).toContain("Confirm erase");
+      expect(optionsCode).toContain("Cancel");
+    });
+
+    it("A3: ensures all comparable settings action buttons have settings-action-btn class", () => {
+      const optionsCode = fs.readFileSync("src/popup/components/OptionsView.tsx", "utf8");
+      expect(optionsCode).toContain('className="btn btn-secondary settings-action-btn"');
+      expect(optionsCode).toContain("Clear history");
+      expect(optionsCode).toContain("Export JSON");
+      expect(optionsCode).toContain("Export HTML");
+      expect(optionsCode).toContain("Import JSON");
+    });
+  });
+
 });
