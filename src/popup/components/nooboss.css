@@ -76,6 +76,12 @@
   --radius-lg: 8px;
   --radius-pill: 9999px;
 
+  /* Material-3 Compact Form Primitive Tokens */
+  --control-height: 32px;
+  --control-radius: 6px;
+  --control-padding-h: 12px;
+  --form-primary-width: 380px;
+
   --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
@@ -309,17 +315,30 @@ html, body {
 
 select,
 .settings-select {
-  height: 32px;
-  padding: 0 24px 0 10px;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  height: var(--control-height, 32px);
+  padding: 0 32px 0 var(--control-padding-h, 12px);
   font-family: var(--font-family);
   font-size: 13px;
   color: var(--text-primary);
   background-color: var(--bg-card);
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%235f6368'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 18px 18px;
   border: 1px solid var(--border-input);
-  border-radius: var(--radius-md);
+  border-radius: var(--control-radius, var(--radius-md));
   outline: none;
   cursor: pointer;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  box-sizing: border-box;
+}
+
+[data-theme="dark"] select,
+[data-theme="dark"] .settings-select {
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%239aa0a6'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
 }
 
 select:focus,
@@ -337,16 +356,17 @@ select:focus,
 input[type="text"],
 input[type="search"],
 #nameFilter {
-  height: 32px;
-  padding: 0 10px;
+  height: var(--control-height, 32px);
+  padding: 0 var(--control-padding-h, 12px);
   font-family: var(--font-family);
   font-size: 13px;
   color: var(--text-primary);
   background-color: var(--bg-card);
   border: 1px solid var(--border-input);
-  border-radius: var(--radius-md);
+  border-radius: var(--control-radius, var(--radius-md));
   outline: none;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  box-sizing: border-box;
 }
 
 input[type="text"]:focus,
@@ -354,6 +374,13 @@ input[type="search"]:focus,
 #nameFilter:focus {
   border-color: var(--border-input-focus);
   box-shadow: 0 0 0 2px var(--theme-main-subtle);
+}
+
+/* Primary Form Field Width (Outcome 8) */
+.form-primary-field {
+  width: var(--form-primary-width, 380px) !important;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 #nameFilter {
@@ -2552,24 +2579,45 @@ input[type="search"]:focus,
   opacity: 0 !important;
 }
 
-/* ── Group Focus Removable Context Banner (Outcome C) ────────────────────── */
+/* ── Group Focus Removable Context Banner (Outcome C & Outcome 4) ────────── */
 .group-focus-banner {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   background-color: var(--bg-card, #ffffff);
   border: 1px solid var(--theme-main, #1a73e8);
   border-left: 4px solid var(--theme-main, #1a73e8);
   border-radius: var(--radius-md, 8px);
   padding: 8px 14px;
   margin: 6px 0 12px 0;
-  gap: 12px;
+  gap: 10px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
 [data-theme="dark"] .group-focus-banner {
   background-color: var(--bg-card, #202124);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.group-focus-back-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.group-focus-back-btn:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+  border-color: var(--border-subtle);
 }
 
 .group-focus-info {
@@ -2610,16 +2658,18 @@ input[type="search"]:focus,
   display: flex;
   align-items: center;
   gap: 8px;
+  margin-left: auto;
 }
 
 .group-focus-edit-btn {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
   background: var(--bg-secondary, #f8f9fa);
   border: 1px solid var(--border-subtle, #dadce0);
-  border-radius: var(--radius-sm, 6px);
-  padding: 4px 8px;
+  border-radius: var(--radius-md, 6px);
   font-size: 12px;
   color: var(--text-primary);
   cursor: pointer;
@@ -2629,25 +2679,6 @@ input[type="search"]:focus,
 .group-focus-edit-btn:hover {
   background: var(--bg-hover, rgba(0, 0, 0, 0.05));
   border-color: var(--theme-main, #1a73e8);
-}
-
-.group-focus-clear-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  border: none;
-  background: transparent;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
-}
-
-.group-focus-clear-btn:hover {
-  background: var(--bg-hover, rgba(0, 0, 0, 0.08));
-  color: var(--text-primary);
 }
 
 .group-focus-empty-state {
@@ -2726,17 +2757,7 @@ input[type="search"]:focus,
   line-height: 1.4;
 }
 
-/* ── Group Focus Persistent Switch & Membership Undo/Redo ─────────────────── */
-.tile-persistent-switch {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  z-index: 4;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
+/* ── Group Membership Undo/Redo Controls ─────────────────────────────────── */
 .membership-history-controls {
   display: inline-flex;
   align-items: center;
@@ -2776,15 +2797,6 @@ input[type="search"]:focus,
   background: transparent !important;
   border-color: transparent !important;
   box-shadow: none !important;
-}
-
-.group-control-members-btn {
-  transition: all 0.15s ease;
-}
-
-.group-control-members-btn:hover {
-  color: var(--theme-main);
-  background-color: var(--bg-hover);
 }
 
 

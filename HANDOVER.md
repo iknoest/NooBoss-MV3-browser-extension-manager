@@ -1,6 +1,6 @@
 # Handover
 
-Snapshot: 2026-09-12T22:15:00+02:00
+Snapshot: 2026-09-13T12:20:00+02:00
 
 ## Current release state (1.1.0 continuity)
 - `f87404a02534d704e00b281a38411f8c204d0cb9` is the frozen accepted 1.1.0 source and release baseline.
@@ -8,58 +8,56 @@ Snapshot: 2026-09-12T22:15:00+02:00
 - Chrome Web Store 1.1.0 upload / submission / approval / publication is NOT CONFIRMED by current repository evidence.
 - Therefore, the 1.1.0 CWS publication loop remains open until externally verified (do not guess CWS dashboard state).
 - The GitHub `v1.1.0` tag and release should remain pending until public 1.1.0 publication is confirmed.
-- Current UX work (at `4fbdbcb` and follow-up commits) is post-1.1.0 local work and must not silently become part of the frozen 1.1.0 release artifact.
+- Current UX work (at `4fbdbcb`, `c12e195`, and follow-up commits) is post-1.1.0 local work and must not silently become part of the frozen 1.1.0 release artifact.
 
 ## Work completed
-- **Final Site Rules & Group Usability Closure Milestone (Post-QA)**:
-  - **Site Rules 3-Mode Primary Scope Model**:
-    - Simplified the scope model to exactly three primary choices:
-      1. `This site (recommended)`: clean domain (e.g. `linkedin.com`), no asterisks required, matching `http://` and `https://`, the apex domain, `www.`, and arbitrary subdomains (`*.linkedin.com`), while strictly rejecting lookalike/unrelated domains (`evil-linkedin.com`, query strings);
-      2. `Exact page`: matches full URL strictly (e.g. `https://www.linkedin.com/jobs/view/123`);
-      3. `Custom`: simple URL pattern (e.g. `linkedin.com/jobs/*`) with secondary `Use advanced regular expression` checkbox (`^https://.*linkedin.com/jobs/.*`), removing regex from top-level clutter.
-  - **Replaced Confusing When / While Labels**:
-    - Replaced cryptic lifecycle labels with two explicit decisions:
-      - Timing: `Temporary while open` vs `One-time on open`;
-      - Effect: `Turn extension ON` vs `Turn extension OFF`.
-    - Bijectively maps to all 4 internal engine actions (`enableOnlyWhileMatched`, `disableOnlyWhileMatched`, `enableWhenMatched`, `disableWhenMatched`) without changing engine semantics.
-    - Added live dynamic behavior preview box explicitly explaining tab open and tab close lifecycle effects.
-    - Updated page intro copy to clearly explain both temporary and one-time behaviors.
-  - **Blocked Invalid and Targetless Rules**:
-    - `Add rule` button is disabled whenever zero targets are selected or input syntax is invalid.
-    - Added prominent inline validation guidance (`Select at least one extension or group.`).
-  - **Discoverable Individual Group Controls & Runtime Management**:
-    - Added dedicated `Control members` affordance across group card layouts (`bigTile`, `list`, `tile`), with informative hover titles.
-    - Added secondary `Control members` shortcut inside Group Edit modal header to jump straight to runtime control.
-    - Group Focus banner visibly shows `<group name> · X / Y running [Turn all OFF] [Turn all ON] [Edit members] [×]`.
-    - Every member extension card in a focused group displays a persistent, directly clickable ON/OFF switch without requiring hover.
-  - **Structural UI Quality Fixes**:
-    - Fixed Group Edit modal header overlap defect: moved Close `×` and secondary `Control members` button into dedicated `.group-edit-actions` container (`flex-shrink: 0; margin-left: auto;`), ensuring group-name input never overlaps or clips buttons.
-    - Made group membership Undo and Redo buttons visually distinct between enabled (bordered, card background, active cursor) and disabled (opacity 0.25, transparent background and border, not-allowed cursor) states.
-    - Updated taxonomy filter to display `All extensions` / `All items` instead of confusing `Everything` when viewing extensions.
-  - **Consistent Terminology Audit**:
-    - Cleaned all copy across Site Rules and Group workflows to purge misleading terms.
-- **AutoState Clarity UX Milestone**:
-  - Replaced ambiguous AutoState terminology with user-friendly lifecycle labels: *"Keep on while matching site is open"*, *"Keep off while matching site is open"*, *"Turn on when a matching site opens"*, and *"Turn off when a matching site opens"*, accompanied by inline explanatory guidance.
-  - Renamed pattern matching modes: default is now *"Website pattern"* (`wildcard`), with *"Regular expression (advanced)"* (`RegExp`) as the secondary option; provided inline helper explanations and pattern examples.
-  - Added smart URL helper button (*"Set as current website"* via active tab query) with graceful handling and warning messages for internal `chrome://`, `edge://`, `about:`, or file URLs.
-  - Upgraded AutoState rules table layout with explicit column headers (`#`, `Target(s)`, `Action`, `Match`, `Pattern`, `State`), lifecycle action labels, pattern type badges, target icons, and action buttons.
+- **Interaction Grammar & Material-3-Aligned Shared UI Primitives Milestone**:
+  - **Outcome 1 & 2 — Unified Card Body Navigation & Single Edit Affordance**:
+    - Removed redundant `Control members` / tune buttons from Group cards (`bigTile`, `list`, `tile`).
+    - Standardized card-body navigation across all three views: clicking the card body enters the group-filtered extensions view.
+    - Ensured all nested interactive controls (`[OFF | ON]`, duplicate, edit, delete) call `e.stopPropagation()` so interacting with controls never triggers card-body navigation.
+    - Fixed tile mode bug where `.group-tile-hover-panel` intercepted card clicks.
+  - **Outcome 3 — Identical Catalog Presentation in Group Focus**:
+    - Removed custom `.tile-persistent-switch` overlay and eliminated `isGroupFocused` card variant branch in `ExtensionBrief`.
+    - Extension cards rendered inside group focus now look and behave identically to normal catalog cards (same icon, layout, switch, hover, disabled/enabled states).
+  - **Outcome 4 — Standardized Back Navigation Affordance**:
+    - Replaced `×` dismissal icon in `.group-focus-banner` with a local Material Symbol `arrow_back` back button.
+    - Unified header grammar: `← [Icon] <Group Name> · X / Y running [OFF | ON] [gear/edit]`.
+  - **Outcome 5 — Honest Auto-Save Semantics in Group Editor**:
+    - Verified data flow: group edits (name, icon, membership toggles, undo/redo) persist immediately to storage via `UPDATE_GROUP`.
+    - Removed confusing `Control members` button from modal header; introduced prominent `Done` button (`btn-primary`) and close `×` button.
+    - Completely avoided fake "Cancel" state to honestly communicate immediate persistence.
+  - **Outcome 6 & 7 — Material-3 Compact Form Primitives & Global Dropdown Arrow Spacing**:
+    - Established shared compact control tokens in `:root`: `--control-height: 32px`, `--control-radius: 6px`, `--control-padding-h: 12px`, `--form-primary-width: 380px`.
+    - Standardized `select, .settings-select`: `appearance: none`, 32px height, 12px start padding, 32px reserved end padding, and local Material Symbol `arrow_drop_down` SVG data URI positioned at `right 8px center` (including light and dark mode variants).
+    - Standardized `input[type="text"], input[type="search"]` with 32px height, 12px padding, 6px radius, and standard focus ring.
+  - **Outcome 8 — Form Field Width Alignment in Site Rules**:
+    - Standardized `#ruleScopeSelector`, `#ruleScopeInput`, `#ruleTimingSelector`, and `#ruleEffectSelector` to `.form-primary-field` (380px width).
+    - Positioned `[Set as current website]` button in its own trailing flex column without shrinking or distorting the input.
+  - **Outcome 9 — Documented Core UI Grammar Rules**:
+    1. *Card Body = Primary Navigation*: Clicking any entity card body navigates into its filtered view or details.
+    2. *Embedded Controls = Stop Propagation*: Batch switches, action icon buttons, and inputs inside cards must stop click propagation.
+    3. *Single Configuration Affordance*: One clear gear/edit icon opens the modal editor; no duplicate secondary config buttons.
+    4. *Catalog Presentation Parity*: Catalog views (normal vs filtered) share the exact same card component and visual affordances.
+    5. *Hierarchical Back Affordance*: Sub-contexts use `arrow_back` to return to the catalog root, reserving `×` for dismissing overlays/modals.
+    6. *Honest Persistence Semantics*: Surfaces with immediate auto-save feature `Done` and `Close`, never pseudo "Cancel" controls.
+- **Site Rules 3-Mode Primary Scope Model & Usability Milestone**:
+  - Simplified the scope model to exactly three primary choices: `This site (recommended)`, `Exact page`, `Custom` (with secondary advanced regex toggle).
+  - Explicit timing and effect decisions: `Temporary while open` vs `One-time on open`, `Turn extension ON` vs `Turn extension OFF`.
+  - Blocked invalid and targetless rules with live inline validation and dynamic behavior preview.
 - **Group Usability & Membership UX Milestone**:
-  - Disentangled group card interactions: clicking the card body activates a temporary focused extensions view; clicking the settings/edit icon explicitly opens the group membership editor.
-  - Added a prominent, dismissible group-focus banner in the Extensions view showing group name, live running counter (`Group: <name> · X / Y running`), shortcut to `[Edit group]`, and `[×]` clear button (with `Escape` key support).
-  - Enhanced group membership selector with dynamic `<N> assigned` counter badge, an *"Assigned only"* toggle button, and membership-aware sorting (assigned members partitioned at top, running members first, alphabetical order).
-  - Refined top-level taxonomy filter to dynamically show *"Apps"* and *"Themes"* only when items of those types are actually present in the library, preventing clutter.
-  - Compact search placeholders preventing toolbar clipping: `"Search extensions & groups"` for normal combined view, `"Search this group"` for focused group view, and `"Search extensions"` for extension-only contexts.
+  - Added membership-aware sorting, `<N> assigned` counter badge, *"Assigned only"* toggle button, and membership undo/redo stacks.
+  - Refined top-level taxonomy filter to dynamically show *"Apps"* and *"Themes"* only when items exist.
 - **Historical Migration / Recovery Foundations**:
-  - Added a concise handover summary to `README.md` for the current repository state.
-  - Documented policy expectations around sensitive browser metadata and raw migration dumps.
-  - Added extraction guidance for legacy Chrome profile recovery in `docs/EXTRACT_LEGACY_DATA.md`.
-  - Created a sanitized migration template at `migrated-nooboss-import-anon.json` and excluded raw migration files via `.gitignore`.
+  - Sanitized migration templates, documentation for legacy profile recovery, and sensitive data exclusion.
 
 ## Tests and verification
-- **Unit test suite**: 10 test files, 148 tests passing (`npm test` via Vitest), including dedicated test suites `tests/unit/autostate-clarity.test.ts` (26 tests) and `tests/unit/group-usability.test.ts` (11 tests).
+- **Unit test suite**: 10 test files, 153 tests passing (`npm test` via Vitest), including dedicated test suites `tests/unit/autostate-clarity.test.ts` (26 tests) and `tests/unit/group-usability.test.ts` (16 tests).
 - **Static verification**: `npm run typecheck` (`tsc --noEmit`) and `npm run lint` (`eslint src/`) pass with 0 errors and 0 warnings.
 - **Production build**: `npm run build` generates production assets cleanly (`dist/`) in ~150ms.
-- **Visual inspection**: 12 high-fidelity screenshots captured via Puppeteer harness and visually inspected (`01_site_rules_this_site_default.png` through `12_group_membership_undo_disabled.png`), bundled into `/private/tmp/agent-os-gate/a61582c5-ddf9-422d-8e81-0925bfcf4db8/screenshots.zip` per Agent-OS Playbook §5b.
+- **Visual inspection**: 12 high-fidelity screenshots captured via Puppeteer harness and visually inspected (`01_group_big_tile_no_tune.png` through `12_options_shared_controls_m3.png`), bundled into `/private/tmp/agent-review/20260913_1216_AGY_interaction-grammar-m3-primitives_12files.zip`.
+- **Gate receipt**: Recorded and validated via `agentos_final_gate.py record` and `agentos_final_gate.py validate --agent AGY` (`decision: allow`, code: `OK`).
+- **Baseline safety**: Release baseline `f87404a02534d704e00b281a38411f8c204d0cb9` and `release/extension-drawer-1.1.0.zip` preserved frozen; zero permission additions; no version bumps.
 - **Real-Chrome smoke**: Verified environment capability boundary via `tests/e2e/runner.mjs` and `tests/e2e/real-chrome-test.mjs`. Chrome unpacked extension CLI loading (`--load-extension`) in this headless macOS environment does not register target IDs; this is an environment capability limitation, not an extension bundle defect.
 - **Baseline safety**: Release baseline `f87404a02534d704e00b281a38411f8c204d0cb9` and `release/extension-drawer-1.1.0.zip` preserved frozen; zero permission additions; no version bumps.
 

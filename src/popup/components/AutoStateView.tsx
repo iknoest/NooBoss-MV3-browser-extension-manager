@@ -385,6 +385,7 @@ export function AutoStateView({
       </h2>
 
       <div
+        className="autostate-form-card"
         style={{
           display: "flex",
           flexDirection: "column",
@@ -416,23 +417,23 @@ export function AutoStateView({
           <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "6px" }}>
             <select
               id="ruleScopeSelector"
+              className="form-primary-field"
               value={ruleScope}
               onChange={(e) => {
                 const nextScope = (e.target as HTMLSelectElement).value as MatchScope;
                 setRuleScope(nextScope);
                 setWebsiteWarning(null);
               }}
-              style={{ maxWidth: "380px" }}
             >
               <option value="site">{SCOPE_LABELS.site}</option>
               <option value="exact">{SCOPE_LABELS.exact}</option>
               <option value="custom">{SCOPE_LABELS.custom}</option>
             </select>
 
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <input
                 id="ruleScopeInput"
-                style={{ width: "340px" }}
+                className="form-primary-field"
                 placeholder={
                   ruleScope === "custom" && ruleUseRegex
                     ? CUSTOM_REGEX_PLACEHOLDER
@@ -444,7 +445,7 @@ export function AutoStateView({
               <button
                 type="button"
                 className="btn btn-secondary action-btn"
-                style={{ fontSize: "12px", whiteSpace: "nowrap" }}
+                style={{ fontSize: "12px", whiteSpace: "nowrap", flexShrink: 0 }}
                 onClick={handleSetCurrentWebsite}
               >
                 {ruleScope === "exact" ? "Set as current page" : GL("set_as_current_website")}
@@ -501,9 +502,9 @@ export function AutoStateView({
           <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "4px" }}>
             <select
               id="ruleTimingSelector"
+              className="form-primary-field"
               value={ruleTiming}
               onChange={(e) => setRuleTiming((e.target as HTMLSelectElement).value as RuleTiming)}
-              style={{ maxWidth: "380px" }}
             >
               <option value="temporary">{TIMING_LABELS.temporary}</option>
               <option value="onetime">{TIMING_LABELS.onetime}</option>
@@ -522,9 +523,9 @@ export function AutoStateView({
           <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "4px" }}>
             <select
               id="ruleEffectSelector"
+              className="form-primary-field"
               value={ruleEffect}
               onChange={(e) => setRuleEffect((e.target as HTMLSelectElement).value as RuleEffect)}
-              style={{ maxWidth: "380px" }}
             >
               <option value="on">{EFFECT_LABELS.on}</option>
               <option value="off">{EFFECT_LABELS.off}</option>

@@ -3,7 +3,7 @@ import type { ExtensionInfo, ExtensionGroup } from "../../shared/types";
 import { ExtensionBrief } from "./ExtensionBrief";
 import { GroupBrief, renderGroupIcon } from "./GroupBrief";
 import { GL } from "./i18n";
-import { Listy, Tiley, BigTiley, Cleary, Closey, Optioney } from "./icons";
+import { Listy, Tiley, BigTiley, Cleary, Optioney } from "./icons";
 import { MaterialSymbol } from "./MaterialSymbols";
 import { sortGroupMemberExtensions } from "./group-member-utils";
 import { computeGroupRuntimeSummary } from "./group-summary";
@@ -480,12 +480,21 @@ export function Selector({
         </>
       )}
 
-      {/* Group Focus Removable Context Banner (Outcome C) */}
+      {/* Group Focus Context Navigation Header (Outcome 4) */}
       {focusedGroup && (
-        <div className="group-focus-banner" role="status" aria-label={`Filtered by group: ${focusedGroup.name}`}>
+        <div className="group-focus-banner" role="region" aria-label={`Filtered by group: ${focusedGroup.name}`}>
+          <button
+            type="button"
+            className="group-focus-back-btn action-icon-btn"
+            onClick={() => setActiveFocusedGroupId(null)}
+            title="Back to all extensions"
+            aria-label="Back to all extensions"
+          >
+            <MaterialSymbol name="arrow_back" size={20} color="currentColor" />
+          </button>
           <div className="group-focus-info">
             <span className="group-focus-icon">
-              {renderGroupIcon(focusedGroup, 22, themeMainColor)}
+              {renderGroupIcon(focusedGroup, 20, themeMainColor)}
             </span>
             <span className="group-focus-name">{focusedGroup.name}</span>
             <span className="group-focus-separator">·</span>
@@ -507,22 +516,12 @@ export function Selector({
             )}
             <button
               type="button"
-              className="group-focus-edit-btn"
+              className="action-icon-btn group-focus-edit-btn"
               onClick={() => onOpenSubWindow?.("group", focusedGroup.id)}
               title="Edit group definition and membership"
-              aria-label="Edit members"
+              aria-label="Edit group definition and membership"
             >
-              <Optioney color={themeMainColor} size={15} />
-              <span>Edit members</span>
-            </button>
-            <button
-              type="button"
-              className="group-focus-clear-btn"
-              onClick={() => setActiveFocusedGroupId(null)}
-              title="Clear group filter (show all extensions)"
-              aria-label="Clear group filter"
-            >
-              <Closey color="currentColor" style={{ width: "16px", height: "16px" }} />
+              <Optioney color={themeMainColor} size={16} />
             </button>
           </div>
         </div>
@@ -579,7 +578,6 @@ export function Selector({
                 extension={ext}
                 viewMode={viewMode}
                 withControl={withControl}
-                isGroupFocused={Boolean(focusedGroup)}
                 selected={selectedList ? selectedList.includes(ext.id) : null}
                 onSelect={onSelect}
                 onToggle={onToggleExtension}
@@ -607,7 +605,6 @@ export function Selector({
                 extension={app}
                 viewMode={viewMode}
                 withControl={withControl}
-                isGroupFocused={Boolean(focusedGroup)}
                 selected={selectedList ? selectedList.includes(app.id) : null}
                 onSelect={onSelect}
                 onToggle={onToggleExtension}
@@ -635,7 +632,6 @@ export function Selector({
                 extension={theme}
                 viewMode={viewMode}
                 withControl={withControl}
-                isGroupFocused={Boolean(focusedGroup)}
                 selected={selectedList ? selectedList.includes(theme.id) : null}
                 onSelect={onSelect}
                 onToggle={onToggleExtension}

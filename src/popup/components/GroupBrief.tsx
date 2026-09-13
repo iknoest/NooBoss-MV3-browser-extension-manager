@@ -194,7 +194,8 @@ export function GroupBrief({
             handleCardClick();
           }
         }}
-        title={`Click to control ${group.name} members`}
+        title={`View ${group.name} extensions`}
+        aria-label={`View ${group.name} extensions`}
       >
         <div className="group-icon-center clickable">
           {renderGroupIcon(group, 36, themeMainColor)}
@@ -211,18 +212,6 @@ export function GroupBrief({
 
         {withControl && (
           <div className="item-controls-strip" onClick={(e) => e.stopPropagation()}>
-            <button
-              type="button"
-              className="action-icon-btn group-control-members-btn"
-              onClick={(e) => {
-                e.stopPropagation();
-                onFocusGroup?.(group.id);
-              }}
-              title="Control members"
-              aria-label="Control members"
-            >
-              <MaterialSymbol name="tune" size={16} color={themeMainColor} />
-            </button>
             {onToggleGroup && (
               <GroupCommandControl
                 group={group}
@@ -247,8 +236,8 @@ export function GroupBrief({
               type="button"
               className="action-icon-btn"
               onClick={handleEditGroup}
-              title="Edit Group"
-              aria-label="Edit Group"
+              title="Edit group definition and membership"
+              aria-label="Edit group definition and membership"
             >
               <Optioney color={themeMainColor} size={16} />
             </button>
@@ -284,7 +273,8 @@ export function GroupBrief({
             handleCardClick();
           }
         }}
-        title={`Click to control ${group.name} members`}
+        title={`View ${group.name} extensions`}
+        aria-label={`View ${group.name} extensions`}
       >
         {withControl && onToggleGroup && (
           <div className="list-group-toggle-wrap" onClick={(e) => e.stopPropagation()}>
@@ -313,18 +303,6 @@ export function GroupBrief({
           <div className="list-actions" onClick={(e) => e.stopPropagation()}>
             <button
               type="button"
-              className="action-icon-btn group-control-members-btn"
-              onClick={(e) => {
-                e.stopPropagation();
-                onFocusGroup?.(group.id);
-              }}
-              title="Control members"
-              aria-label="Control members"
-            >
-              <MaterialSymbol name="tune" size={16} color={themeMainColor} />
-            </button>
-            <button
-              type="button"
               className="action-icon-btn"
               onClick={(e) => {
                 e.stopPropagation();
@@ -339,8 +317,8 @@ export function GroupBrief({
               type="button"
               className="action-icon-btn"
               onClick={handleEditGroup}
-              title="Edit Group"
-              aria-label="Edit Group"
+              title="Edit group definition and membership"
+              aria-label="Edit group definition and membership"
             >
               <Optioney color={themeMainColor} size={16} />
             </button>
@@ -375,7 +353,8 @@ export function GroupBrief({
           handleCardClick();
         }
       }}
-      title={`Click to control ${group.name} members`}
+      title={`View ${group.name} extensions`}
+      aria-label={`View ${group.name} extensions`}
     >
       <div className="tile-body">
         <div className="group-icon-center">
@@ -387,7 +366,7 @@ export function GroupBrief({
       </div>
 
       {withControl && (
-        <div className="group-tile-hover-panel" onClick={(e) => e.stopPropagation()}>
+        <div className="group-tile-hover-panel" onClick={handleCardClick}>
           <div className="group-tile-hover-stats">
             <span className="group-stats-running">{summary.summaryText}</span>
             {summary.exceptionText && (
@@ -395,26 +374,16 @@ export function GroupBrief({
             )}
           </div>
           {onToggleGroup && (
-            <GroupCommandControl
-              group={group}
-              allExtensions={allExtensions}
-              onToggleGroup={onToggleGroup}
-              size="small"
-            />
+            <div onClick={(e) => e.stopPropagation()}>
+              <GroupCommandControl
+                group={group}
+                allExtensions={allExtensions}
+                onToggleGroup={onToggleGroup}
+                size="small"
+              />
+            </div>
           )}
-          <div className="group-tile-hover-actions">
-            <button
-              type="button"
-              className="tile-action-btn group-control-members-btn"
-              onClick={(e) => {
-                e.stopPropagation();
-                onFocusGroup?.(group.id);
-              }}
-              title="Control members"
-              aria-label="Control members"
-            >
-              <MaterialSymbol name="tune" size={14} color={themeMainColor} />
-            </button>
+          <div className="group-tile-hover-actions" onClick={(e) => e.stopPropagation()}>
             <button
               type="button"
               className="tile-action-btn"
@@ -431,8 +400,8 @@ export function GroupBrief({
               type="button"
               className="tile-action-btn"
               onClick={handleEditGroup}
-              title="Edit Group"
-              aria-label="Edit Group"
+              title="Edit group definition and membership"
+              aria-label="Edit group definition and membership"
             >
               <Optioney color={themeMainColor} size={14} />
             </button>

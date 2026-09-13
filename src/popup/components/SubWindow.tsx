@@ -8,7 +8,6 @@ import { GroupIconPicker } from "./GroupIconPicker";
 import { GroupCommandControl } from "./GroupCommandControl";
 import { computeGroupRuntimeSummary } from "./group-summary";
 import { ExtensionSwitch } from "./ExtensionBrief";
-import { MaterialSymbol } from "./MaterialSymbols";
 
 export interface SubWindowProps {
   display: "" | "extension" | "group";
@@ -38,7 +37,7 @@ export function SubWindow({
   onOpenDetails,
   onUninstallExtension,
   onUpdateGroup,
-  onFocusGroup,
+  onFocusGroup: _onFocusGroup,
   themeMainColor = "#1a73e8",
 }: SubWindowProps) {
   const [editorViewMode, setEditorViewMode] = useState<"list" | "bigTile">("list");
@@ -299,20 +298,16 @@ export function SubWindow({
             <div className="group-edit-actions">
               <button
                 type="button"
-                className="btn btn-secondary action-btn group-modal-control-btn"
-                onClick={() => {
-                  onClose();
-                  onFocusGroup?.(group.id);
-                }}
-                title="Control members for this group"
-                aria-label="Control members"
+                className="btn btn-primary action-btn group-done-btn"
+                onClick={onClose}
+                title="Finish editing (changes are saved automatically)"
+                aria-label="Done editing group"
               >
-                <MaterialSymbol name="tune" size={15} color={themeMainColor} />
-                <span>Control members</span>
+                Done
               </button>
               <button
                 type="button"
-                className="subwindow-header-close-btn"
+                className="subwindow-header-close-btn action-icon-btn"
                 onClick={onClose}
                 aria-label="Close"
                 title="Close"
