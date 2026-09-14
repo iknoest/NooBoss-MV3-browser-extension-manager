@@ -26,6 +26,7 @@ const EN_MESSAGES: Record<string, string> = {
   "confirm": "Confirm",
   "description": "Description",
   "detail": "Detail",
+  "developer": "Developer",
   "disable": "Disable",
   "disableOnly": "Keep off while matching site is open",
   "disableOnlyWhileMatched": "Keep off while matching site is open",

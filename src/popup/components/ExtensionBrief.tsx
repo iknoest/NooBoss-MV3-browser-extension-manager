@@ -95,7 +95,6 @@ export function ExtensionBrief({
   // Developer Mode visibility flags
   const showDevBadge = developerMode && isDevelopment;
   const showReload = developerMode && isDevelopment;
-  const showDevMenu = developerMode && !isDevelopment;
 
   let displayIcon = iconUrl;
   if (!displayIcon && extension.icons && extension.icons.length > 0) {
@@ -158,68 +157,6 @@ export function ExtensionBrief({
       >
         <MaterialSymbol name="refresh" size={iconSize} color={extension.enabled ? themeMainColor : "var(--text-muted, #888)"} />
       </button>
-    );
-  };
-
-  const renderDevActionsMenu = (iconSize: number = 16) => {
-    if (!showDevMenu) return null;
-    return (
-      <details className="dev-menu-container" onClick={(e) => e.stopPropagation()}>
-        <summary
-          className="action-icon-btn dev-menu-btn"
-          title="Developer actions"
-          aria-label="Developer actions"
-        >
-          <MaterialSymbol name="terminal" size={iconSize} color={themeMainColor} />
-        </summary>
-        <div className="dev-actions-popover" role="menu">
-          <div className="dev-menu-header">Developer Actions</div>
-          <button
-            type="button"
-            className="dev-menu-item"
-            role="menuitem"
-            onClick={(e) => {
-              e.stopPropagation();
-              (e.currentTarget.closest("details") as HTMLDetailsElement | null)?.removeAttribute("open");
-              window.open(`https://chrome.google.com/webstore/detail/${extension.id}`, "_blank", "noreferrer");
-            }}
-          >
-            <MaterialSymbol name="storefront" size={16} color="var(--text-primary)" />
-            <div className="dev-menu-item-text">
-              <span className="dev-menu-item-title">Open store page</span>
-            </div>
-          </button>
-          <button
-            type="button"
-            className="dev-menu-item"
-            role="menuitem"
-            onClick={(e) => {
-              e.stopPropagation();
-              (e.currentTarget.closest("details") as HTMLDetailsElement | null)?.removeAttribute("open");
-              onOpenDetails?.(extension.id);
-            }}
-          >
-            <MaterialSymbol name="settings" size={16} color="var(--text-primary)" />
-            <div className="dev-menu-item-text">
-              <span className="dev-menu-item-title">Open extension details</span>
-            </div>
-          </button>
-          <button
-            type="button"
-            className="dev-menu-item disabled"
-            role="menuitem"
-            disabled
-            title="Store package download requires additional browser permission."
-            aria-label="Download store package (requires additional browser permission)"
-          >
-            <MaterialSymbol name="download" size={16} color="var(--text-muted)" />
-            <div className="dev-menu-item-text">
-              <span className="dev-menu-item-title">Download store package</span>
-              <span className="dev-menu-item-desc">Store package download requires additional browser permission.</span>
-            </div>
-          </button>
-        </div>
-      </details>
     );
   };
 
@@ -374,7 +311,6 @@ export function ExtensionBrief({
               />
             )}
             {renderReloadBtn(16)}
-            {renderDevActionsMenu(16)}
             {extension.optionsUrl && (
               <button
                 type="button"
@@ -452,7 +388,6 @@ export function ExtensionBrief({
         {withControl && (
           <div className="list-actions">
             {renderReloadBtn(16)}
-            {renderDevActionsMenu(16)}
             {extension.type === "app" && (
               <button
                 type="button"
@@ -539,7 +474,6 @@ export function ExtensionBrief({
               />
             )}
             {renderReloadBtn(14)}
-            {renderDevActionsMenu(14)}
             {extension.optionsUrl && (
               <button
                 type="button"

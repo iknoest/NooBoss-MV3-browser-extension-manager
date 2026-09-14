@@ -12,6 +12,7 @@ import {
   type AppSettings,
   type HistoryRecord,
   type PendingAutoStateChange,
+  type DeveloperProject,
 } from './types';
 
 /** Get a typed value from storage */
@@ -109,4 +110,16 @@ export async function saveAutoStateManaged(
   managed: Record<string, boolean>
 ): Promise<void> {
   await set(STORAGE_KEYS.AUTOSTATE_MANAGED, managed);
+}
+
+// ── Developer Projects ──────────────────────────────────────
+
+export async function getDeveloperProjects(): Promise<DeveloperProject[]> {
+  return get<DeveloperProject[]>(STORAGE_KEYS.DEVELOPER_PROJECTS, []);
+}
+
+export async function saveDeveloperProjects(
+  projects: DeveloperProject[]
+): Promise<void> {
+  await set(STORAGE_KEYS.DEVELOPER_PROJECTS, projects);
 }

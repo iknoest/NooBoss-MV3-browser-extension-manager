@@ -120,6 +120,18 @@ export interface AppSettings {
   developerMode: boolean;
 }
 
+/** Developer Project binding model */
+export interface DeveloperProject {
+  id: string;
+  name: string;
+  localExtensionId?: string;
+  cwsExtensionId?: string;
+  githubUrl?: string;
+  gaPropertyId?: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
 /** Export/Import data format */
 export interface ExportData {
   version: number;
@@ -128,6 +140,7 @@ export interface ExportData {
   groups: ExtensionGroup[];
   autoStateRules: AutoStateRule[];
   settings: AppSettings;
+  developerProjects?: DeveloperProject[];
 }
 
 /** Messages between service worker and UI */
@@ -158,6 +171,10 @@ export type Message =
   | { type: 'GET_SETTINGS' }
   | { type: 'SETTINGS_DATA'; settings: AppSettings }
   | { type: 'SAVE_SETTINGS'; settings: AppSettings }
+  | { type: 'GET_DEVELOPER_PROJECTS' }
+  | { type: 'DEVELOPER_PROJECTS_LIST'; projects: DeveloperProject[] }
+  | { type: 'SAVE_DEVELOPER_PROJECT'; project: DeveloperProject }
+  | { type: 'DELETE_DEVELOPER_PROJECT'; id: string }
   | { type: 'EXPORT_DATA' }
   | { type: 'EXPORT_RESULT'; data: ExportData }
   | { type: 'IMPORT_DATA'; data: unknown }
@@ -194,6 +211,7 @@ export const STORAGE_KEYS = {
   HISTORY: 'nooboss_history',
   AUTOSTATE_MANAGED: 'nooboss_autostate_managed',
   PENDING_CHANGES: 'nooboss_pending_changes',
+  DEVELOPER_PROJECTS: 'nooboss_developer_projects',
 } as const;
 
 /** Generate a unique ID */

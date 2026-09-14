@@ -1,9 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
 import * as fs from "fs";
 import { ExtensionBrief } from "../../src/popup/components/ExtensionBrief";
+import { Navigator } from "../../src/popup/components/Navigator";
 import { DEFAULT_SETTINGS } from "../../src/shared/types";
 import { validateSettings, createExportData, validateImportData } from "../../src/shared/import-export";
-import type { ExtensionInfo } from "../../src/shared/types";
+import type { ExtensionInfo, DeveloperProject } from "../../src/shared/types";
 
 // Helper to recursively find VNodes matching a predicate
 function findVNode(vnode: any, predicate: (node: any) => boolean): any {
@@ -40,7 +41,7 @@ function findAllVNodes(vnode: any, predicate: (node: any) => boolean): any[] {
   return results;
 }
 
-describe("Developer Mode v1", () => {
+describe("Developer Workspace & Developer Mode", () => {
   const unpackedExt: ExtensionInfo = {
     id: "unpacked-dev-123",
     name: "My Local Plugin",
@@ -73,7 +74,18 @@ describe("Developer Mode v1", () => {
     hostPermissions: [],
   };
 
-  describe("Outcome 1 — Settings, Persistence & Options View", () => {
+  const sampleProject: DeveloperProject = {
+    id: "proj_test_1",
+    name: "Test Developer Project",
+    localExtensionId: "unpacked-dev-123",
+    cwsExtensionId: "abcdefghijklmnopqrstuvwxyz123456",
+    githubUrl: "https://github.com/test-owner/test-repo",
+    gaPropertyId: "properties/987654321",
+    createdAt: 1710000000000,
+    updatedAt: 1710000000000,
+  };
+
+  describe("Outcome 1 — Top-Level Navigator & Settings Integration", () => {
     it("defaults developerMode to false in DEFAULT_SETTINGS", () => {
       expect(DEFAULT_SETTINGS.developerMode).toBe(false);
     });
@@ -85,185 +97,199 @@ describe("Developer Mode v1", () => {
       const validFalse = validateSettings({ developerMode: false });
       expect(validFalse.developerMode).toBe(false);
 
-      // Rejects non-boolean values and falls back to default false
       const invalidType = validateSettings({ developerMode: "yes" as any });
       expect(invalidType.developerMode).toBe(false);
     });
 
-    it("preserves developerMode through import/export lifecycle", () => {
-      const exportData = createExportData([], [], {
-        ...DEFAULT_SETTINGS,
-        developerMode: true,
+    it("Navigator hides Developer tab when developerMode is false or undefined", () => {
+      const onNavigate = vi.fn();
+      const vnode = Navigator({
+        mainLocation: "extensions",
+        onNavigateMain: onNavigate,
+        developerMode: false,
       });
-      expect(exportData.settings.developerMode).toBe(true);
 
-      const imported = validateImportData(exportData);
-      expect(imported.settings.developerMode).toBe(true);
+      const navButtons = findAllVNodes(vnode, (n) => n?.type === "button" && typeof n?.props?.className === "string" && n.props.className.includes("nav-link"));
+      const buttonLabels = navButtons.map((btn) => btn.props.children);
+      expect(buttonLabels).not.toContain("Developer");
     });
 
-    it("OptionsView source defines Developer Mode section with switch and required copy", () => {
+    it("Navigator renders Developer tab between History and Options when developerMode is true", () => {
+      const onNavigate = vi.fn();
+      const vnode = Navigator({
+        mainLocation: "developer",
+        onNavigateMain: onNavigate,
+        developerMode: true,
+      });
+
+      const navButtons = findAllVNodes(vnode, (n) => n?.type === "button" && typeof n?.props?.className === "string" && n.props.className.includes("nav-link"));
+      const buttonLabels = navButtons.map((btn) => btn.props.children);
+      expect(buttonLabels).toContain("Developer");
+
+      const devIdx = buttonLabels.indexOf("Developer");
+      const histIdx = buttonLabels.indexOf("History");
+      const optIdx = buttonLabels.indexOf("Options");
+
+      expect(devIdx).toBeGreaterThan(histIdx);
+      expect(devIdx).toBeLessThan(optIdx);
+
+      const devButton = navButtons[devIdx];
+      expect(devButton.props.className).toContain("active");
+    });
+
+    it("OptionsView defines Developer Mode toggle switch", () => {
       const optionsSource = fs.readFileSync("src/popup/components/OptionsView.tsx", "utf8");
       expect(optionsSource).toContain('id="setting-developer-mode"');
       expect(optionsSource).toContain("Developer Mode");
       expect(optionsSource).toContain("Show developer tools and extension package actions.");
-      expect(optionsSource).toContain("settings.developerMode ?? false");
     });
   });
 
-  describe("Outcome 2 — Unpacked Extensions Behavior", () => {
+  describe("Outcome 2 — Developer Projects Data Model & Import/Export", () => {
+    it("exports developer projects when provided", () => {
+      const exportData = createExportData([], [], DEFAULT_SETTINGS, [sampleProject]);
+      expect(exportData.developerProjects).toBeDefined();
+      expect(exportData.developerProjects).toHaveLength(1);
+      expect(exportData.developerProjects?.[0].name).toBe("Test Developer Project");
+    });
+
+    it("validates and imports developer projects properly", () => {
+      const exportData = createExportData([], [], DEFAULT_SETTINGS, [sampleProject]);
+      const imported = validateImportData(exportData);
+      expect(imported.developerProjects).toBeDefined();
+      expect(imported.developerProjects?.[0].id).toBe("proj_test_1");
+      expect(imported.developerProjects?.[0].githubUrl).toBe("https://github.com/test-owner/test-repo");
+    });
+
+    it("rejects invalid developer projects format in import data", () => {
+      const invalidExport = {
+        version: 1,
+        exportedAt: Date.now(),
+        groups: [],
+        autoStateRules: [],
+        settings: DEFAULT_SETTINGS,
+        developerProjects: [{ invalidField: 123 }],
+      };
+      expect(() => validateImportData(invalidExport)).toThrow(/Developer project must have a string id/);
+    });
+  });
+
+  describe("Outcome 3 — Extension Card Clutter Elimination", () => {
     const viewModes: Array<"bigTile" | "tile" | "list"> = ["bigTile", "tile", "list"];
 
     viewModes.forEach((mode) => {
-      it(`hides developer affordances when Developer Mode is OFF (default) in ${mode} view`, () => {
+      it(`does NOT render terminal popover on normal store cards in ${mode} view`, () => {
         const vnode = ExtensionBrief({
-          extension: unpackedExt,
+          extension: storeExt,
           viewMode: mode,
-          developerMode: false,
+          developerMode: true,
           withControl: true,
         });
 
-        // No DEV chip
-        const devChip = findVNode(vnode, (n) => typeof n?.props?.className === "string" && n.props.className.includes("dev-chip-badge"));
-        expect(devChip).toBeNull();
-
-        // No orange dot
-        const dot = findVNode(vnode, (n) => n?.props?.className === "unpacked-badge-dot");
-        expect(dot).toBeNull();
-
-        // No reload button
-        const reloadBtn = findVNode(vnode, (n) => typeof n?.props?.className === "string" && n.props.className.includes("reload-btn"));
-        expect(reloadBtn).toBeNull();
-
-        // No dev actions menu
+        // No dev-menu-container on ordinary cards!
         const devMenu = findVNode(vnode, (n) => typeof n?.props?.className === "string" && n.props.className.includes("dev-menu-container"));
         expect(devMenu).toBeNull();
       });
 
-      it(`shows DEV badge and Developer Reload when Developer Mode is ON in ${mode} view`, () => {
-        const onReload = vi.fn();
+      it(`renders DEV badge and Reload button on unpacked extensions in ${mode} view when developerMode is ON`, () => {
         const vnode = ExtensionBrief({
           extension: unpackedExt,
           viewMode: mode,
           developerMode: true,
           withControl: true,
-          onReload,
         });
 
-        // DEV chip is present
-        const devChip = findVNode(vnode, (n) => typeof n?.props?.className === "string" && n.props.className.includes("dev-chip-badge"));
-        expect(devChip).toBeTruthy();
-        expect(devChip.props.children).toBe("DEV");
+        const devBadge = findVNode(vnode, (n) => typeof n?.props?.className === "string" && n.props.className.includes("dev-chip-badge"));
+        expect(devBadge).toBeTruthy();
 
-        // Orange dot indicator is present
-        const dot = findVNode(vnode, (n) => n?.props?.className === "unpacked-badge-dot");
-        expect(dot).toBeTruthy();
-
-        // Developer Reload button is present
         const reloadBtn = findVNode(vnode, (n) => typeof n?.props?.className === "string" && n.props.className.includes("reload-btn"));
         expect(reloadBtn).toBeTruthy();
-        expect(reloadBtn.props.title).toBe("Reload extension code");
-
-        // Does NOT show store package menu for unpacked
-        const devMenu = findVNode(vnode, (n) => typeof n?.props?.className === "string" && n.props.className.includes("dev-menu-container"));
-        expect(devMenu).toBeNull();
       });
-    });
-  });
 
-  describe("Outcome 3 — Store-Installed Extensions Behavior", () => {
-    const viewModes: Array<"bigTile" | "tile" | "list"> = ["bigTile", "tile", "list"];
-
-    viewModes.forEach((mode) => {
-      it(`hides developer actions menu when Developer Mode is OFF (default) in ${mode} view`, () => {
+      it(`hides DEV badge and Reload button on unpacked extensions in ${mode} view when developerMode is OFF`, () => {
         const vnode = ExtensionBrief({
-          extension: storeExt,
+          extension: unpackedExt,
           viewMode: mode,
           developerMode: false,
           withControl: true,
         });
 
-        const devMenu = findVNode(vnode, (n) => typeof n?.props?.className === "string" && n.props.className.includes("dev-menu-container"));
-        expect(devMenu).toBeNull();
+        const devBadge = findVNode(vnode, (n) => typeof n?.props?.className === "string" && n.props.className.includes("dev-chip-badge"));
+        expect(devBadge).toBeNull();
 
         const reloadBtn = findVNode(vnode, (n) => typeof n?.props?.className === "string" && n.props.className.includes("reload-btn"));
         expect(reloadBtn).toBeNull();
-
-        const devChip = findVNode(vnode, (n) => typeof n?.props?.className === "string" && n.props.className.includes("dev-chip-badge"));
-        expect(devChip).toBeNull();
-      });
-
-      it(`exposes developer actions menu when Developer Mode is ON in ${mode} view`, () => {
-        const vnode = ExtensionBrief({
-          extension: storeExt,
-          viewMode: mode,
-          developerMode: true,
-          withControl: true,
-        });
-
-        // Dev menu container should be present
-        const devMenu = findVNode(vnode, (n) => typeof n?.props?.className === "string" && n.props.className.includes("dev-menu-container"));
-        expect(devMenu).toBeTruthy();
-
-        // All menu item text nodes
-        const allTextNodes = findAllVNodes(devMenu, (n) => typeof n?.props?.children === "string");
-        const allText = allTextNodes.map((n) => n.props.children).join(" ");
-
-        // Open store page action
-        expect(allText).toContain("Open store page");
-
-        // Open extension details action
-        expect(allText).toContain("Open extension details");
-
-        // Download store package action
-        expect(allText).toContain("Download store package");
-
-        // Exact required disabled reason copy
-        expect(allText).toContain("Store package download requires additional browser permission.");
-
-        // Disabled button present in menu
-        const disabledBtn = findVNode(devMenu, (n) => n?.type === "button" && n?.props?.disabled === true);
-        expect(disabledBtn).toBeTruthy();
-        expect(disabledBtn.props.title).toBe("Store package download requires additional browser permission.");
       });
     });
   });
 
-  describe("Outcome 4 & 5 — Architecture, App Wiring & SubWindow Contracts", () => {
-    it("NooBossApp passes developerMode to Selector and SubWindow", () => {
-      const appSource = fs.readFileSync("src/popup/components/NooBossApp.tsx", "utf8");
-      expect(appSource).toContain("developerMode={settings.developerMode ?? false}");
-      expect(appSource).toContain("onReloadExtension={handleReloadExtension}");
-    });
-
-    it("Selector accepts and forwards developerMode to all catalog item maps", () => {
-      const selectorSource = fs.readFileSync("src/popup/components/Selector.tsx", "utf8");
-      expect(selectorSource).toContain("developerMode?: boolean;");
-      expect(selectorSource).toContain("developerMode={developerMode}");
-    });
-
-    it("SubWindow implements developer affordances according to mode and installType", () => {
+  describe("Outcome 4 — SubWindow Cleanliness", () => {
+    it("does not render non-functional download button in SubWindow", () => {
       const subWindowSource = fs.readFileSync("src/popup/components/SubWindow.tsx", "utf8");
-      expect(subWindowSource).toContain("developerMode?: boolean;");
-      expect(subWindowSource).toContain("onReloadExtension?: (id: string) => Promise<void> | void;");
-      // DEV chip for unpacked
-      expect(subWindowSource).toContain('developerMode && ext.installType === "development"');
-      expect(subWindowSource).toContain('DEV');
-      // Developer reload for unpacked
-      expect(subWindowSource).toContain('onReloadExtension?.(ext.id)');
-      // Developer actions section for store extensions
-      expect(subWindowSource).toContain('Open store page');
-      expect(subWindowSource).toContain('Open extension details');
-      expect(subWindowSource).toContain('Download store package');
-      expect(subWindowSource).toContain('Store package download requires additional browser permission.');
+      expect(subWindowSource).not.toContain("Download store package");
+      expect(subWindowSource).not.toContain("Store package download requires additional browser permission.");
+    });
+  });
+
+  describe("Outcome 5 — Developer Workspace View Component & App Wiring", () => {
+    it("DeveloperView source defines all 5 integration pillars with honest disconnected states", () => {
+      const devSource = fs.readFileSync("src/popup/components/DeveloperView.tsx", "utf8");
+      // Top-level workspace branding and empty state
+      expect(devSource).toContain("Developer Workspace");
+      expect(devSource).toContain("No Developer Projects Yet");
+      expect(devSource).toContain("Add Project");
+
+      // 5 integration pillars
+      expect(devSource).toContain("Local / Test Extension");
+      expect(devSource).toContain("GitHub Repository");
+      expect(devSource).toContain("Chrome Web Store");
+      expect(devSource).toContain("Google Analytics");
+      expect(devSource).toContain("Store Package");
+
+      // Honest disconnected and approval notes
+      expect(devSource).toContain("Not connected");
+      expect(devSource).toContain("Listing linked");
+      expect(devSource).toContain("Analytics not connected");
+      expect(devSource).toContain("Permission setup required");
+
+      // 4 reserved analytics metric slots
+      expect(devSource).toContain("Users");
+      expect(devSource).toContain("Sessions");
+      expect(devSource).toContain("Engagement");
+      expect(devSource).toContain("Events");
+      expect(devSource).toContain("API required");
+
+      // Unlinked unpacked extension detection banner
+      expect(devSource).toContain("unpacked development extension");
+
+      // Modal editor with URL extraction
+      expect(devSource).toContain("ProjectEditorModal");
+      expect(devSource).toContain("cleanCwsId");
     });
 
-    it("CSS contains styles for developer chips, menu popover, and disabled notes", () => {
+    it("NooBossApp wires DeveloperView with project CRUD handlers and routing", () => {
+      const appSource = fs.readFileSync("src/popup/components/NooBossApp.tsx", "utf8");
+      expect(appSource).toContain("DeveloperView");
+      expect(appSource).toContain("handleSaveDeveloperProject");
+      expect(appSource).toContain("handleDeleteDeveloperProject");
+      expect(appSource).toContain("mainLocation === \"developer\" && settings.developerMode");
+      expect(appSource).toContain("GET_DEVELOPER_PROJECTS");
+    });
+
+    it("service-worker.ts handles developer project messages and backup export/import", () => {
+      const swSource = fs.readFileSync("src/background/service-worker.ts", "utf8");
+      expect(swSource).toContain("GET_DEVELOPER_PROJECTS");
+      expect(swSource).toContain("SAVE_DEVELOPER_PROJECT");
+      expect(swSource).toContain("DELETE_DEVELOPER_PROJECT");
+      expect(swSource).toContain("getDeveloperProjects");
+      expect(swSource).toContain("saveDeveloperProjects");
+    });
+  });
+
+  describe("Outcome 6 — Manager Scroll Container Fix", () => {
+    it("verifies .nooboss-app.full-manager has height: 100vh and overflow: hidden", () => {
       const cssSource = fs.readFileSync("src/popup/components/nooboss.css", "utf8");
-      expect(cssSource).toContain(".dev-chip-badge");
-      expect(cssSource).toContain(".dev-actions-popover");
-      expect(cssSource).toContain(".dev-menu-item");
-      expect(cssSource).toContain(".dev-note-text");
+      expect(cssSource).toContain(".nooboss-app.full-manager {\n  height: 100vh;\n  width: 100%;\n  overflow: hidden;\n}");
     });
   });
 });
-

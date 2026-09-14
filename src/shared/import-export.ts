@@ -8,6 +8,7 @@ import {
   type ExtensionGroup,
   type AutoStateRule,
   type AppSettings,
+  type DeveloperProject,
   DEFAULT_SETTINGS,
 } from './types';
 
@@ -19,7 +20,8 @@ const CURRENT_EXPORT_VERSION = 1;
 export function createExportData(
   groups: ExtensionGroup[],
   rules: AutoStateRule[],
-  settings: AppSettings
+  settings: AppSettings,
+  developerProjects?: DeveloperProject[]
 ): ExportData {
   return {
     version: CURRENT_EXPORT_VERSION,
@@ -28,6 +30,7 @@ export function createExportData(
     groups,
     autoStateRules: rules,
     settings,
+    ...(developerProjects ? { developerProjects } : {}),
   };
 }
 
@@ -75,6 +78,18 @@ export function validateImportData(data: unknown): ExportData {
   }
   const settings = validateSettings(obj.settings as Record<string, unknown>);
 
+  // Optional developer projects validation
+  let developerProjects: DeveloperProject[] | undefined;
+  if (obj.developerProjects !== undefined) {
+    if (!Array.isArray(obj.developerProjects)) {
+      throw new Error('developerProjects must be an array');
+    }
+    for (const proj of obj.developerProjects) {
+      validateDeveloperProject(proj);
+    }
+    developerProjects = obj.developerProjects as DeveloperProject[];
+  }
+
   return {
     version: obj.version as number,
     exportedAt: typeof obj.exportedAt === 'number' ? obj.exportedAt : Date.now(),
@@ -82,7 +97,33 @@ export function validateImportData(data: unknown): ExportData {
     groups: obj.groups as ExtensionGroup[],
     autoStateRules: obj.autoStateRules as AutoStateRule[],
     settings,
+    ...(developerProjects ? { developerProjects } : {}),
   };
+}
+
+function validateDeveloperProject(proj: unknown): asserts proj is DeveloperProject {
+  if (!proj || typeof proj !== 'object') {
+    throw new Error('Developer project must be an object');
+  }
+  const p = proj as Record<string, unknown>;
+  if (typeof p.id !== 'string' || !p.id) {
+    throw new Error('Developer project must have a string id');
+  }
+  if (typeof p.name !== 'string' || !p.name) {
+    throw new Error('Developer project must have a string name');
+  }
+  if (p.localExtensionId !== undefined && typeof p.localExtensionId !== 'string') {
+    throw new Error('localExtensionId must be a string if provided');
+  }
+  if (p.cwsExtensionId !== undefined && typeof p.cwsExtensionId !== 'string') {
+    throw new Error('cwsExtensionId must be a string if provided');
+  }
+  if (p.githubUrl !== undefined && typeof p.githubUrl !== 'string') {
+    throw new Error('githubUrl must be a string if provided');
+  }
+  if (p.gaPropertyId !== undefined && typeof p.gaPropertyId !== 'string') {
+    throw new Error('gaPropertyId must be a string if provided');
+  }
 }
 
 function validateGroup(group: unknown): asserts group is ExtensionGroup {

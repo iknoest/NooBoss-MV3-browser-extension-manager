@@ -252,24 +252,7 @@ export function SubWindow({
                   <MaterialSymbol name="settings" size={16} />
                   Open extension details
                 </button>
-                {ext.installType !== "development" && (
-                  <button
-                    type="button"
-                    className="btn btn-secondary dev-subwindow-btn disabled"
-                    disabled
-                    title="Store package download requires additional browser permission."
-                    aria-label="Download store package (requires additional browser permission)"
-                  >
-                    <MaterialSymbol name="download" size={16} />
-                    Download store package
-                  </button>
-                )}
               </div>
-              {ext.installType !== "development" && (
-                <div className="dev-note-text">
-                  Store package download requires additional browser permission.
-                </div>
-              )}
             </div>
           )}
         </div>

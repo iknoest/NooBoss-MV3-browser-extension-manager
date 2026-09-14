@@ -22,6 +22,8 @@ import {
   clearHistory,
   getPendingChanges,
   savePendingChanges,
+  getDeveloperProjects,
+  saveDeveloperProjects,
 } from '../shared/storage';
 import { computeDesiredStates } from '../shared/autostate';
 import { createExportData, validateImportData } from '../shared/import-export';
@@ -275,13 +277,36 @@ async function handleMessage(message: Message): Promise<unknown> {
       }
       return { success: true };
 
+    case 'GET_DEVELOPER_PROJECTS':
+      return getDeveloperProjects();
+
+    case 'SAVE_DEVELOPER_PROJECT': {
+      const projects = await getDeveloperProjects();
+      const idx = projects.findIndex((p) => p.id === message.project.id);
+      if (idx >= 0) {
+        projects[idx] = message.project;
+      } else {
+        projects.push(message.project);
+      }
+      await saveDeveloperProjects(projects);
+      return { success: true };
+    }
+
+    case 'DELETE_DEVELOPER_PROJECT': {
+      const projects = await getDeveloperProjects();
+      const filtered = projects.filter((p) => p.id !== message.id);
+      await saveDeveloperProjects(filtered);
+      return { success: true };
+    }
+
     case 'EXPORT_DATA': {
-      const [groups, rules, settings] = await Promise.all([
+      const [groups, rules, settings, developerProjects] = await Promise.all([
         getGroups(),
         getAutoStateRules(),
         getSettings(),
+        getDeveloperProjects(),
       ]);
-      return createExportData(groups, rules, settings);
+      return createExportData(groups, rules, settings, developerProjects);
     }
 
     case 'IMPORT_DATA':
@@ -635,6 +660,9 @@ async function importData(
     await saveGroups(validated.groups);
     await saveAutoStateRules(validated.autoStateRules);
     await saveSettings(validated.settings);
+    if (validated.developerProjects) {
+      await saveDeveloperProjects(validated.developerProjects);
+    }
     await evaluateAutoState();
     return { success: true };
   } catch (err) {

@@ -11,26 +11,36 @@ Snapshot: 2026-09-13T22:47:00+02:00
 - Current UX work (at `4fbdbcb`, `c12e195`, `f22a1e4`, `e014bf4`, and follow-up commits) is post-1.1.0 local work and must not silently become part of the frozen 1.1.0 release artifact.
 
 ## Work completed
-- **Developer Mode v1 Shell & Developer Actions Milestone**:
-  - **Outcome 1 — Options > Developer Mode Switch**:
-    - Added `developerMode: boolean` to `AppSettings` interface and defaulted it to `false` in `DEFAULT_SETTINGS`.
-    - Added validation for `developerMode` in `validateSettings` and preserved it through export/import round-tripping.
-    - Added standardized Developer Mode row in `OptionsView.tsx` with M3 switch primitive (`#setting-developer-mode`), label `"Developer Mode"`, and supporting text `"Show developer tools and extension package actions."`
-  - **Outcome 2 — Unpacked Extensions Behavior**:
-    - When `developerMode: true`: renders subtle `DEV` chip badge next to extension name, orange status dot on icon slot, and Developer Reload button (`refresh` icon) in control strip and SubWindow header controls.
-    - When `developerMode: false` (default): normal catalog card layout is rendered without any developer badges, dots, or reload buttons.
-    - Unpacked reload checks self-targeting protection and executes safe disable-enable reload cycle with retry recovery.
-  - **Outcome 3 — Store-Installed Extensions Behavior**:
-    - When `developerMode: true`: exposes compact developer actions popover menu (`details.dev-menu-container` with `terminal` icon button).
-    - Popover includes: `Open store page` (`https://chrome.google.com/webstore/detail/${id}`), `Open extension details` (`chrome://extensions/?id=${id}`), and disabled `Download store package` action.
-    - Required copy displayed on disabled package download: `"Store package download requires additional browser permission."`
-    - Does NOT expose store package download on unpacked extensions.
-    - When `developerMode: false`: zero developer affordances or popover menus on store extensions.
-  - **Outcome 4 & 5 — Interaction Grammar & SubWindow Integration**:
-    - Preserved exact base component and layout dimensions: unpacked and store extensions reuse identical `ExtensionBrief` card templates (`bigTile`, `tile`, `list`).
-    - Fixed CSS stacking context (`z-index: 200` on card when `details[open]`) ensuring open popover is never covered by sibling cards or containers.
-    - SubWindow detail modal reflects `developerMode`: shows `DEV` chip and Reload button for unpacked extensions, and adds a dedicated "Developer Actions" section for store extensions with store link, details link, and disabled store package download.
-    - Zero new permissions added: `src/manifest.json` completely untouched. Zero external network calls.
+- **Top-Level Developer Workspace & Clean Interaction Foundation Milestone**:
+  - **Outcome 1 — Top-Level Developer Route & Navigator**:
+    - Added `developer` as a first-class route in `MainLocation` (`extensions | autostate | history | developer | options | about`).
+    - Navigator displays `Developer` tab positioned between `History` and `Options` when `developerMode` is ON, and hides it immediately when OFF.
+    - Added guarded routing and auto-redirection in `NooBossApp.tsx`: if Developer Mode is turned off while on the Developer page, the user is redirected to `extensions`.
+  - **Outcome 2 — Project-Oriented Data Model & Persistence**:
+    - Defined `DeveloperProject` interface (`id`, `name`, `localExtensionId`, `cwsExtensionId`, `githubUrl`, `gaPropertyId`, `createdAt`, `updatedAt`).
+    - Stored under `STORAGE_KEYS.DEVELOPER_PROJECTS` in `chrome.storage.local`.
+    - Added full export/import lifecycle support in `src/shared/import-export.ts` with strict schema validation.
+    - Added service worker message handlers for `GET_DEVELOPER_PROJECTS`, `SAVE_DEVELOPER_PROJECT`, and `DELETE_DEVELOPER_PROJECT`.
+  - **Outcome 3 — Developer Workspace Surface (`DeveloperView.tsx`)**:
+    - Header with workspace title, subtitle, and `+ Add Project` action.
+    - Detected unlinked unpacked development extensions banner with quick-create shortcut buttons.
+    - Clean empty state with primary creation call-to-action when no projects exist.
+    - Project cards featuring 5 structured integration pillars:
+      1. *Local / Test Extension*: Real status for linked unpacked build (`DEV` badge, version, enabled toggle switch, reload action, Chrome details link).
+      2. *GitHub Repository*: Link display, `Open GitHub` button, honest disconnected status ("Status: Not connected").
+      3. *Chrome Web Store*: Link display, `Open Store Listing` button, honest disconnected status ("Status: Listing linked").
+      4. *Google Analytics*: Property ID display, honest disconnected status ("Analytics not connected"), and 4 reserved metric slots (Users, Sessions, Engagement, Events) marked "API required".
+      5. *Store Package*: Scoped package action area with "Permission setup required" badge and explanatory text.
+    - Project Editor Modal (`ProjectEditorModal`): M3-aligned modal for creating/editing projects with auto-extraction of 32-character CWS IDs from pasted URLs.
+  - **Outcome 4 — Card Clutter Elimination**:
+    - Completely removed `renderDevActionsMenu` (the multi-item terminal popover) from ordinary extension cards across all catalog modes (`bigTile`, `list`, `tile`).
+    - Unpacked development extensions retain only the context-appropriate `DEV` chip badge and Developer Reload button.
+  - **Outcome 5 — SubWindow Cleanliness**:
+    - Removed misleading non-functional download button from SubWindow details dialog.
+  - **Outcome 6 — Manager Scroll Container Fix**:
+    - Fixed container layout in manager mode (`.nooboss-app.full-manager { height: 100vh; width: 100%; overflow: hidden; }`), restoring independent scrolling for `.main-content`.
+- **Developer Mode v1 Shell & Developer Actions (Preserved Elements)**:
+  - Preserved `developerMode` toggle in Options, unpacked reload mechanics, and `installType === "development"` detection.
 - **Options Shared-Control Consistency & Grammar Milestone**:
   - **Standardized Row Structure & Tokens**:
     - Established shared tokens in `:root`: `--settings-select-width: 240px;`, `--settings-action-width: 140px;`.
@@ -111,24 +121,28 @@ Snapshot: 2026-09-13T22:47:00+02:00
 ## Recommended next steps
 1. Perform external CWS dashboard check to verify whether 1.1.0 has been submitted/published.
 2. Once 1.1.0 publication is externally confirmed, apply GitHub tag/release `v1.1.0` to commit `f87404a02534d704e00b281a38411f8c204d0cb9`.
-3. Review user feedback on the updated AutoState terminology and group-focus banner.
-4. Keep Developer Workspace proposal parked until security, privacy, and token storage architectures are evaluated.
+3. Review user feedback on Developer Workspace foundation and project bindings.
+4. Review consolidated external integration matrix below for Ava's single approval decision.
+
+## Consolidated External Integration Matrix (Pending Approval)
+| Integration | API / Protocol | Required Manifest Permissions | Required Host Permissions | OAuth2 Scopes | Capabilities / Justification |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Chrome Web Store** | Chrome Web Store Publish API v2 | `identity`, `storage` | `https://www.googleapis.com/chromewebstore/v1.1/items/*` | `https://www.googleapis.com/auth/chromewebstore.readonly` | Fetch published item status, live version, and review state. |
+| **GitHub** | GitHub REST API v3 / GraphQL | `identity` (if OAuth) or fine-grained PAT | `https://api.github.com/*` | `repo` (or PAT `Contents: read`, `Actions: read`) | Fetch repository details, release tags, commit status, and CI workflow runs. |
+| **Google Analytics** | Google Analytics Data API v1beta | `identity`, `storage` | `https://analyticsdata.googleapis.com/*` | `https://www.googleapis.com/auth/analytics.readonly` | Query active users, sessions, engagement rate, and conversion events. |
+| **Store CRX / ZIP Package** | Chromium CRX binary endpoint | `downloads` (optional) | `https://clients2.google.com/service/update2/crx*`, `https://chromewebstore.google.com/*` | None | Direct CRX download and client-side ZIP conversion. |
 
 ## Ongoing tasks
-- Maintain existing high unit test coverage (132 tests) across core features.
+- Maintain existing high unit test coverage (185 tests) across core features.
 - Review remaining browser profile data for compatibility with current Chrome APIs.
 - Validate recovered extension state against managed groups and extension configuration entries.
 - Keep cautious handling of LevelDB and IndexedDB data in local-only recovery steps.
 
 ## Open risks
-- Advanced regular expression rules in AutoState can still match unintended URLs if users supply overly broad patterns (mitigated by default wildcard mode and inline guidance).
-- Chrome profile state may vary by version, channel, or user account.
+- External API calls and OAuth token handling require explicit user permission grants and privacy policy declarations before activation.
+- Chrome Web Store Publish API and Google Analytics Data API require Cloud Console project client IDs.
 
 ## Parked items
-- **PARKED proposal — Developer Workspace**:
-  - *Approved concept*: `local unpacked extension ↔ GitHub repo ↔ Chrome Web Store item ↔ analytics`
-  - *Potential future surface*: local/test extension state, linked GitHub repository/project, published Chrome Web Store version/status, and a small set (maximum roughly four) of useful analytics/store metrics.
-  - *Status & Constraints*: External API/authentication/privacy implications require a separate feasibility investigation; exact APIs, scopes, permissions, token handling, and metric definitions remain unresolved; no implementation is approved.
 - Automated profile recovery for unsupported Chrome builds.
 - Cross-browser migration parity checks.
 - Long-term preservation of any raw exported profile dumps not suitable for git.

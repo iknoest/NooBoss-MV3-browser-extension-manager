@@ -1,16 +1,18 @@
 import { GL } from "./i18n";
 
-export type MainLocation = "extensions" | "autostate" | "history" | "options" | "about";
+export type MainLocation = "extensions" | "autostate" | "history" | "developer" | "options" | "about";
 
 interface NavigatorProps {
   mainLocation: MainLocation;
   onNavigateMain: (loc: MainLocation) => void;
   themeMainColor?: string;
+  developerMode?: boolean;
 }
 
 export function Navigator({
   mainLocation,
   onNavigateMain,
+  developerMode,
 }: NavigatorProps) {
   return (
     <nav className="navigator">
@@ -38,6 +40,16 @@ export function Navigator({
         >
           {GL("history")}
         </button>
+
+        {developerMode && (
+          <button
+            type="button"
+            className={`nav-link ${mainLocation === "developer" ? "active" : ""}`}
+            onClick={() => onNavigateMain("developer")}
+          >
+            {GL("developer")}
+          </button>
+        )}
 
         <button
           type="button"

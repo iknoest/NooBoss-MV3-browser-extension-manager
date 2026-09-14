@@ -6,12 +6,14 @@ import type {
   HistoryRecord,
   AppSettings,
   PendingAutoStateChange,
+  DeveloperProject,
 } from "../../shared/types";
 import { DEFAULT_SETTINGS } from "../../shared/types";
 import { Navigator, type MainLocation } from "./Navigator";
 import { Selector } from "./Selector";
 import { AutoStateView } from "./AutoStateView";
 import { HistoryView } from "./HistoryView";
+import { DeveloperView } from "./DeveloperView";
 import { OptionsView } from "./OptionsView";
 import { AboutView } from "./AboutView";
 import { SubWindow } from "./SubWindow";
@@ -31,6 +33,8 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
   const [historyRecords, setHistoryRecords] = useState<HistoryRecord[]>([]);
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [pendingChanges, setPendingChanges] = useState<PendingAutoStateChange[]>([]);
+  const [developerProjects, setDeveloperProjects] = useState<DeveloperProject[]>([]);
+  const [dataLoaded, setDataLoaded] = useState(false);
 
   const [viewMode, setViewMode] = useState<"tile" | "bigTile" | "list">("bigTile");
   const [focusedGroupId, setFocusedGroupId] = useState<string | null>(null);
@@ -48,6 +52,13 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
   };
 
   const resolvedAccent = settings.accentColor || "#1a73e8";
+
+  // Auto-redirect if developer mode disabled while on developer page
+  useEffect(() => {
+    if (dataLoaded && !settings.developerMode && mainLocation === "developer") {
+      setMainLocation("extensions");
+    }
+  }, [dataLoaded, settings.developerMode, mainLocation]);
 
   // Dynamic Appearance (System / Light / Dark) and Accent Color
   useEffect(() => {
@@ -90,13 +101,14 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
         return;
       }
 
-      const [exts, grps, rls, hist, setts, pending] = await Promise.all([
+      const [exts, grps, rls, hist, setts, pending, projs] = await Promise.all([
         chrome.runtime.sendMessage({ type: "GET_EXTENSIONS" }),
         chrome.runtime.sendMessage({ type: "GET_GROUPS" }),
         chrome.runtime.sendMessage({ type: "GET_AUTOSTATE_RULES" }),
         chrome.runtime.sendMessage({ type: "GET_HISTORY" }),
         chrome.runtime.sendMessage({ type: "GET_SETTINGS" }),
         chrome.runtime.sendMessage({ type: "GET_PENDING_CHANGES" }),
+        chrome.runtime.sendMessage({ type: "GET_DEVELOPER_PROJECTS" }),
       ]);
 
       const resolvedExts = Array.isArray(exts) ? exts : exts?.extensions || [];
@@ -108,6 +120,7 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
           ? (setts.settings || setts)
           : DEFAULT_SETTINGS;
       const resolvedPending = Array.isArray(pending) ? pending : pending?.changes || [];
+      const resolvedProjects = Array.isArray(projs) ? projs : projs?.projects || [];
 
       setExtensions(resolvedExts);
       setGroups(resolvedGrps);
@@ -115,6 +128,8 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
       setHistoryRecords(resolvedHist);
       setSettings(resolvedSetts);
       setPendingChanges(resolvedPending);
+      setDeveloperProjects(resolvedProjects);
+      setDataLoaded(true);
 
       if (resolvedSetts.viewMode === "grid" || resolvedSetts.viewMode === "bigTile") {
         setViewMode("bigTile");
@@ -138,7 +153,9 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
         setMainLocation("extensions");
       } else if (pageParam === "autoState" || pageParam === "autostate") {
         setMainLocation("autostate");
-      } else if (pageParam && ["extensions", "history", "options", "about"].includes(pageParam)) {
+      } else if (pageParam === "developer") {
+        setMainLocation("developer");
+      } else if (pageParam && ["extensions", "history", "developer", "options", "about"].includes(pageParam)) {
         setMainLocation(pageParam as MainLocation);
       }
     }
@@ -321,10 +338,34 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
     await loadData();
   };
 
+  // Developer Projects
+  const handleSaveDeveloperProject = async (project: DeveloperProject) => {
+    setDeveloperProjects((prev) => {
+      const idx = prev.findIndex((p) => p.id === project.id);
+      if (idx >= 0) {
+        const next = [...prev];
+        next[idx] = project;
+        return next;
+      }
+      return [...prev, project];
+    });
+    await chrome.runtime?.sendMessage?.({ type: "SAVE_DEVELOPER_PROJECT", project });
+    await loadData();
+  };
+
+  const handleDeleteDeveloperProject = async (id: string) => {
+    setDeveloperProjects((prev) => prev.filter((p) => p.id !== id));
+    await chrome.runtime?.sendMessage?.({ type: "DELETE_DEVELOPER_PROJECT", id });
+    await loadData();
+  };
+
   // Options & Settings
   const handleSaveSettings = async (newSettings: Partial<AppSettings>) => {
     const updated = { ...settings, ...newSettings };
     setSettings(updated);
+    if (!updated.developerMode && mainLocation === "developer") {
+      setMainLocation("extensions");
+    }
     await chrome.runtime?.sendMessage?.({ type: "SAVE_SETTINGS", settings: updated });
     await loadData();
   };
@@ -401,6 +442,7 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
         mainLocation={mainLocation}
         onNavigateMain={setMainLocation}
         themeMainColor={resolvedAccent}
+        developerMode={settings.developerMode ?? false}
       />
 
       {/* Main Content Area */}
@@ -458,6 +500,21 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
             extensions={extensions}
             onClearHistory={handleClearHistory}
             onOpenSubWindow={handleOpenSubWindow}
+            themeMainColor={resolvedAccent}
+          />
+        )}
+
+        {/* Developer View */}
+        {mainLocation === "developer" && settings.developerMode && (
+          <DeveloperView
+            projects={developerProjects}
+            extensions={extensions}
+            onSaveProject={handleSaveDeveloperProject}
+            onDeleteProject={handleDeleteDeveloperProject}
+            onToggleExtension={handleToggleExtension}
+            onReloadExtension={handleReloadExtension}
+            reloadingIds={reloadingId ? new Set([reloadingId]) : new Set()}
+            onOpenDetails={handleOpenDetails}
             themeMainColor={resolvedAccent}
           />
         )}
