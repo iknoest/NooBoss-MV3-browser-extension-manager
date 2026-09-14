@@ -11,6 +11,29 @@ Snapshot: 2026-09-13T22:47:00+02:00
 - Current UX work (at `4fbdbcb`, `c12e195`, `f22a1e4`, `e014bf4`, and follow-up commits) is post-1.1.0 local work and must not silently become part of the frozen 1.1.0 release artifact.
 
 ## Work completed
+- **Developer Workspace Compact Table & Binding Correction Milestone**:
+  - **Outcome 1 — Compact Data-Grid Dashboard**:
+    - Replaced sprawling 5-card project layout with an aligned, compact data-grid table (`Project | Local / Test | GitHub | Store | Analytics | Package | Actions`, target row height 56–72px).
+    - Established clear row grammar: clicking any project row opens the editor modal; embedded action controls, switches, and external links stop propagation.
+    - Integrated compact cells:
+      - *Project*: Icon, project name, DEV / Published badges.
+      - *Local / Test*: `DEV · v... · ON/OFF` with switch, reload icon button, and Chrome details button.
+      - *GitHub*: Compact `✓ org/repo` link pill opening repository in new tab, or subtle `Link` button.
+      - *Store*: Compact `✓ Listing` link pill opening CWS listing in new tab, or subtle `Link` button.
+      - *Analytics*: Compact `GA4 linked` pill with tooltip and telemetry status, or subtle `Link` button.
+      - *Package*: Honest `Not enabled` chip without misleading non-functional download buttons.
+      - *Actions*: Quick `Edit` and `Delete` action icon buttons.
+  - **Outcome 2 — Unlinked DEV Extensions Resolution (5 vs 3 Fix)**:
+    - Root cause identified and eliminated: removed hardcoded `.slice(0, 3)` in `DeveloperView.tsx`.
+    - Every detected unpacked development extension (`installType === "development"`) not bound to a project is rendered as a dedicated unlinked table row.
+    - Unlinked rows feature full runtime controls (switch, reload, details) and a primary `Set up` action button that opens the project editor pre-filled with the extension's name and ID.
+    - Exported and verified `getUnlinkedDevExtensions` helper to ensure complete zero-clipping parity.
+  - **Outcome 3 — Local/Test Binding Isolation in Project Editor**:
+    - Restricted the `Local Test Extension` dropdown strictly to `(None linked)` and unpacked development extensions (`installType === "development"`).
+    - Removed normal Chrome Web Store extensions from this selector to maintain clear separation between test builds and store items.
+    - Added explanatory copy: *"Only unpacked development extensions can be linked as local test builds."*
+  - **Outcome 4 — Responsive Container Handling**:
+    - Wrapped table in `.dev-table-container` with smooth horizontal scrolling for narrow viewport widths, preserving column alignment at desktop/manager widths.
 - **Top-Level Developer Workspace & Clean Interaction Foundation Milestone**:
   - **Outcome 1 — Top-Level Developer Route & Navigator**:
     - Added `developer` as a first-class route in `MainLocation` (`extensions | autostate | history | developer | options | about`).
@@ -117,23 +140,33 @@ Snapshot: 2026-09-13T22:47:00+02:00
 - Disentangling navigation gestures from configuration actions prevents accidental modal opening and improves keyboard navigability.
 - Preact state updates require new array references for memoized selectors to detect changes when injecting dynamic fixtures during testing.
 - Fixed-width or constrained input fields require compact placeholder copy to avoid visual ellipsis truncation across varying OS font metrics.
+- Slicing collections for quick-action shortcuts (`.slice(0, 3)`) risks hiding valid entities from users; full tabular presentation with inline setup affordances is superior and transparent.
+- Form selector dropdowns must reflect entity semantics: store-installed extensions must never be selectable as "local test builds".
+- Table layouts in manager windows benefit from fixed layout with min-widths and container overflow scrolling to ensure high-density responsiveness across screen sizes.
 
 ## Recommended next steps
-1. Perform external CWS dashboard check to verify whether 1.1.0 has been submitted/published.
-2. Once 1.1.0 publication is externally confirmed, apply GitHub tag/release `v1.1.0` to commit `f87404a02534d704e00b281a38411f8c204d0cb9`.
-3. Review user feedback on Developer Workspace foundation and project bindings.
-4. Review consolidated external integration matrix below for Ava's single approval decision.
+1. Review user feedback on the compact Developer Workspace table.
+2. Ava approval decision on the consolidated external integration matrix below before any manifest permission or OAuth changes are made.
+3. Once 1.1.0 publication is externally confirmed, apply GitHub tag/release `v1.1.0` to commit `f87404a02534d704e00b281a38411f8c204d0cb9`.
+4. Review user feedback on Developer Workspace foundation and project bindings.
 
-## Consolidated External Integration Matrix (Pending Approval)
-| Integration | API / Protocol | Required Manifest Permissions | Required Host Permissions | OAuth2 Scopes | Capabilities / Justification |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **Chrome Web Store** | Chrome Web Store Publish API v2 | `identity`, `storage` | `https://www.googleapis.com/chromewebstore/v1.1/items/*` | `https://www.googleapis.com/auth/chromewebstore.readonly` | Fetch published item status, live version, and review state. |
-| **GitHub** | GitHub REST API v3 / GraphQL | `identity` (if OAuth) or fine-grained PAT | `https://api.github.com/*` | `repo` (or PAT `Contents: read`, `Actions: read`) | Fetch repository details, release tags, commit status, and CI workflow runs. |
-| **Google Analytics** | Google Analytics Data API v1beta | `identity`, `storage` | `https://analyticsdata.googleapis.com/*` | `https://www.googleapis.com/auth/analytics.readonly` | Query active users, sessions, engagement rate, and conversion events. |
-| **Store CRX / ZIP Package** | Chromium CRX binary endpoint | `downloads` (optional) | `https://clients2.google.com/service/update2/crx*`, `https://chromewebstore.google.com/*` | None | Direct CRX download and client-side ZIP conversion. |
+## Consolidated External Integration Matrix (Corrected Spec — Pending Approval)
+| Integration | API / Protocol | Endpoint | Required Manifest Permissions | Required Host Permissions | OAuth2 Scopes | Capabilities / Justification |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Chrome Web Store** | Chrome Web Store API v2 | `https://chromewebstore.googleapis.com/v2/publishers/{PUBLISHER_ID}/items/{EXTENSION_ID}:fetchStatus` | `identity`, `storage` | `https://chromewebstore.googleapis.com/*` | `https://www.googleapis.com/auth/chromewebstore` | Fetch published item status, live version, and review state. |
+| **GitHub** | GitHub REST API v3 / GraphQL | `https://api.github.com/repos/{OWNER}/{REPO}` | `identity` (if OAuth) or PAT | `https://api.github.com/*` | `repo` (or PAT `Contents: read`, `Actions: read`) | Fetch repository details, release tags, commit status, and CI workflow runs. |
+| **Google Analytics** | Google Analytics Data API v1beta | `https://analyticsdata.googleapis.com/v1beta/properties/{PROPERTY_ID}:runReport` | `identity`, `storage` | `https://analyticsdata.googleapis.com/*` | `https://www.googleapis.com/auth/analytics.readonly` | Query active users, sessions, event counts, and conversions. |
+| **Store CRX / ZIP Package** | Chromium CRX binary update service | `https://clients2.google.com/service/update2/crx?response=redirect&prodversion={CHROME_VERSION}&x=id%3D{EXTENSION_ID}%26installsource%3Dondemand%26uc` | `downloads` (optional) | `https://clients2.google.com/service/update2/crx*`, `https://chromewebstore.google.com/*` | None | Direct CRX download and client-side ZIP conversion without third-party services. |
+
+### Analytics Recommended Metrics (Google Analytics Data API v1beta)
+For extension telemetry over the standard rolling 28-day window:
+1. `activeUsers`: Count of distinct active extension users over the period.
+2. `newUsers`: Count of users who launched or interacted with the extension for the first time (install acquisition).
+3. `eventCount`: Total number of user events (feature triggers, popup openings, options changes).
+4. `keyEvents`: Count of key events / primary workflow completions (e.g. group activation, site rule trigger).
 
 ## Ongoing tasks
-- Maintain existing high unit test coverage (185 tests) across core features.
+- Maintain existing high unit test coverage (187 tests) across core features.
 - Review remaining browser profile data for compatibility with current Chrome APIs.
 - Validate recovered extension state against managed groups and extension configuration entries.
 - Keep cautious handling of LevelDB and IndexedDB data in local-only recovery steps.

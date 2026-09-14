@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import * as fs from "fs";
 import { ExtensionBrief } from "../../src/popup/components/ExtensionBrief";
+import { getUnlinkedDevExtensions } from "../../src/popup/components/DeveloperView";
 import { Navigator } from "../../src/popup/components/Navigator";
 import { DEFAULT_SETTINGS } from "../../src/shared/types";
 import { validateSettings, createExportData, validateImportData } from "../../src/shared/import-export";
@@ -231,40 +232,94 @@ describe("Developer Workspace & Developer Mode", () => {
     });
   });
 
-  describe("Outcome 5 — Developer Workspace View Component & App Wiring", () => {
-    it("DeveloperView source defines all 5 integration pillars with honest disconnected states", () => {
+  describe("Outcome 5 — Developer Workspace Compact Table & Binding Semantics", () => {
+    it("DeveloperView defines compact data grid columns and honest integration states", () => {
       const devSource = fs.readFileSync("src/popup/components/DeveloperView.tsx", "utf8");
       // Top-level workspace branding and empty state
       expect(devSource).toContain("Developer Workspace");
       expect(devSource).toContain("No Developer Projects Yet");
       expect(devSource).toContain("Add Project");
 
-      // 5 integration pillars
-      expect(devSource).toContain("Local / Test Extension");
-      expect(devSource).toContain("GitHub Repository");
-      expect(devSource).toContain("Chrome Web Store");
-      expect(devSource).toContain("Google Analytics");
-      expect(devSource).toContain("Store Package");
+      // Compact table data grid headers
+      expect(devSource).toContain("col-project");
+      expect(devSource).toContain("col-local");
+      expect(devSource).toContain("col-github");
+      expect(devSource).toContain("col-store");
+      expect(devSource).toContain("col-analytics");
+      expect(devSource).toContain("col-package");
+      expect(devSource).toContain("col-actions");
 
-      // Honest disconnected and approval notes
-      expect(devSource).toContain("Not connected");
-      expect(devSource).toContain("Listing linked");
-      expect(devSource).toContain("Analytics not connected");
-      expect(devSource).toContain("Permission setup required");
+      // Column titles
+      expect(devSource).toContain("Project");
+      expect(devSource).toContain("Local / Test");
+      expect(devSource).toContain("GitHub");
+      expect(devSource).toContain("Store");
+      expect(devSource).toContain("Analytics");
+      expect(devSource).toContain("Package");
+      expect(devSource).toContain("Actions");
 
-      // 4 reserved analytics metric slots
-      expect(devSource).toContain("Users");
-      expect(devSource).toContain("Sessions");
-      expect(devSource).toContain("Engagement");
-      expect(devSource).toContain("Events");
-      expect(devSource).toContain("API required");
+      // Honest integration states & badges
+      expect(devSource).toContain("GA4 linked");
+      expect(devSource).toContain("Listing");
+      expect(devSource).toContain("Not enabled");
+      expect(devSource).toContain("Missing build");
 
-      // Unlinked unpacked extension detection banner
-      expect(devSource).toContain("unpacked development extension");
+      // Unlinked unpacked extension detection without arbitrary cap
+      expect(devSource).toContain("Unlinked Development Extensions");
+      expect(devSource).not.toContain(".slice(0, 3)");
 
-      // Modal editor with URL extraction
+      // Modal editor with strict unpacked local extension binding
       expect(devSource).toContain("ProjectEditorModal");
+      expect(devSource).toContain("Only unpacked development extensions can be linked as local test builds.");
+      expect(devSource).not.toContain("Other Installed Extensions");
       expect(devSource).toContain("cleanCwsId");
+    });
+
+    it("identifies all unlinked development extensions without arbitrary cap and filters bound projects", () => {
+      // 5 unpacked development extensions
+      const devExtensions: ExtensionInfo[] = Array.from({ length: 5 }, (_, i) => ({
+        id: `unpacked-ext-${i + 1}`,
+        name: `Dev Plugin ${i + 1}`,
+        shortName: `Dev${i + 1}`,
+        description: `Unpacked build ${i + 1}`,
+        version: `0.${i + 1}.0`,
+        enabled: true,
+        mayDisable: true,
+        type: "extension",
+        installType: "development",
+        offlineEnabled: true,
+        optionsUrl: "options.html",
+        permissions: [],
+        hostPermissions: [],
+      }));
+
+      // When no projects are bound, all 5 must be returned (no .slice(0, 3) cap)
+      const unlinked = getUnlinkedDevExtensions([...devExtensions, storeExt], []);
+      expect(unlinked).toHaveLength(5);
+      expect(unlinked.map((e) => e.id)).toEqual([
+        "unpacked-ext-1",
+        "unpacked-ext-2",
+        "unpacked-ext-3",
+        "unpacked-ext-4",
+        "unpacked-ext-5",
+      ]);
+
+      // When one extension is bound to a project, it disappears from unlinked
+      const projectWithExt1: DeveloperProject = {
+        ...sampleProject,
+        localExtensionId: "unpacked-ext-1",
+      };
+      const unlinkedAfterBind = getUnlinkedDevExtensions([...devExtensions, storeExt], [projectWithExt1]);
+      expect(unlinkedAfterBind).toHaveLength(4);
+      expect(unlinkedAfterBind.find((e) => e.id === "unpacked-ext-1")).toBeUndefined();
+    });
+
+    it("excludes normal store extensions from local test selector in ProjectEditorModal", () => {
+      const devSource = fs.readFileSync("src/popup/components/DeveloperView.tsx", "utf8");
+      // Must filter ONLY development extensions for devExtensions
+      expect(devSource).toContain('const devExtensions = extensions.filter((e) => e.installType === "development");');
+      // Must not create an optgroup for other extensions
+      expect(devSource).not.toContain('otherExtensions.map');
     });
 
     it("NooBossApp wires DeveloperView with project CRUD handlers and routing", () => {
