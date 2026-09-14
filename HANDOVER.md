@@ -11,6 +11,19 @@ Snapshot: 2026-09-13T22:47:00+02:00
 - Current UX work (at `4fbdbcb`, `c12e195`, `f22a1e4`, `e014bf4`, and follow-up commits) is post-1.1.0 local work and must not silently become part of the frozen 1.1.0 release artifact.
 
 ## Work completed
+- **Developer Workspace Compact Scanability & Status Chip Milestone**:
+  - **Outcome 1 — 2-Line Project Row Architecture**:
+    - Replaced the compressed 7-column table with a compact, highly scannable 2-line project row model (row height 64–76px).
+    - *Primary Line*: Project icon, name, DEV / Published badges; concise local test state (`DEV · v... · ON/OFF` with switch, reload, and details buttons); trailing `Edit` and `Delete` action buttons.
+    - *Secondary Line*: Aligned compact integration status chips: `GitHub ✓` / `GitHub +`, `Store ✓` / `Store +`, `GA4 · Connect` / `GA4 +`, `Package locked`.
+    - Removed long IDs, repository URLs, CWS IDs, and API explanation text from the main list, reserving them for the project detail/editor surface.
+  - **Outcome 2 — Simplified Unlinked Development Rows**:
+    - Eliminated empty columns with meaningless dashes (`—`).
+    - Unlinked development extensions render as clean, single-line records: icon, name, DEV and Unlinked badges, runtime state (`DEV · v... · ON/OFF` with reload and details), and a prominent `Set up` primary button.
+    - Preserved complete zero-clipping parity for all detected unpacked builds via `getUnlinkedDevExtensions`.
+  - **Outcome 3 — Responsive Presentation Without Horizontal Scrolling**:
+    - Designed specifically for the actual Extension Drawer manager width (760px), fitting 5+ entities simultaneously in one screen with zero horizontal scrollbar.
+    - Expands gracefully to wider viewports (e.g. 1080px) while maintaining legibility and Material-3 design grammar.
 - **Developer Workspace Compact Table & Binding Correction Milestone**:
   - **Outcome 1 — Compact Data-Grid Dashboard**:
     - Replaced sprawling 5-card project layout with an aligned, compact data-grid table (`Project | Local / Test | GitHub | Store | Analytics | Package | Actions`, target row height 56–72px).

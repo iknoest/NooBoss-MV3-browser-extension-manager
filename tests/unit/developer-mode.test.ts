@@ -232,39 +232,47 @@ describe("Developer Workspace & Developer Mode", () => {
     });
   });
 
-  describe("Outcome 5 — Developer Workspace Compact Table & Binding Semantics", () => {
-    it("DeveloperView defines compact data grid columns and honest integration states", () => {
+  describe("Outcome 5 — Developer Workspace Compact Row & Status Chips", () => {
+    it("DeveloperView defines compact 2-line project row with status chips and clean unlinked rows", () => {
       const devSource = fs.readFileSync("src/popup/components/DeveloperView.tsx", "utf8");
       // Top-level workspace branding and empty state
       expect(devSource).toContain("Developer Workspace");
       expect(devSource).toContain("No Developer Projects Yet");
       expect(devSource).toContain("Add Project");
 
-      // Compact table data grid headers
-      expect(devSource).toContain("col-project");
-      expect(devSource).toContain("col-local");
-      expect(devSource).toContain("col-github");
-      expect(devSource).toContain("col-store");
-      expect(devSource).toContain("col-analytics");
-      expect(devSource).toContain("col-package");
-      expect(devSource).toContain("col-actions");
+      // Compact 2-line row architecture (not 7 compressed table columns)
+      expect(devSource).toContain("dev-project-row");
+      expect(devSource).toContain("dev-row-primary");
+      expect(devSource).toContain("dev-row-identity");
+      expect(devSource).toContain("dev-project-name");
+      expect(devSource).toContain("dev-row-local");
+      expect(devSource).toContain("dev-local-tag");
+      expect(devSource).toContain("dev-row-actions");
+      expect(devSource).toContain("dev-row-secondary");
+      expect(devSource).toContain("dev-chips-group");
+      expect(devSource).toContain("dev-status-chip");
 
-      // Column titles
-      expect(devSource).toContain("Project");
-      expect(devSource).toContain("Local / Test");
-      expect(devSource).toContain("GitHub");
-      expect(devSource).toContain("Store");
-      expect(devSource).toContain("Analytics");
-      expect(devSource).toContain("Package");
-      expect(devSource).toContain("Actions");
+      // Replaced squeezed table columns with clean status chips
+      expect(devSource).not.toContain("col-project");
+      expect(devSource).not.toContain("col-local");
+      expect(devSource).not.toContain("col-github");
+      expect(devSource).not.toContain("col-store");
+      expect(devSource).not.toContain("col-analytics");
+      expect(devSource).not.toContain("col-package");
 
-      // Honest integration states & badges
-      expect(devSource).toContain("GA4 linked");
-      expect(devSource).toContain("Listing");
-      expect(devSource).toContain("Not enabled");
-      expect(devSource).toContain("Missing build");
+      // Status chip labels
+      expect(devSource).toContain("GitHub ✓");
+      expect(devSource).toContain("GitHub +");
+      expect(devSource).toContain("Store ✓");
+      expect(devSource).toContain("Store +");
+      expect(devSource).toContain("GA4 · Connect");
+      expect(devSource).toContain("GA4 +");
+      expect(devSource).toContain("Package locked");
 
-      // Unlinked unpacked extension detection without arbitrary cap
+      // Simplified unlinked rows without meaningless dash columns
+      expect(devSource).toContain("dev-unlinked-row");
+      expect(devSource).toContain("dev-setup-btn");
+      expect(devSource).not.toContain("&mdash;");
       expect(devSource).toContain("Unlinked Development Extensions");
       expect(devSource).not.toContain(".slice(0, 3)");
 
