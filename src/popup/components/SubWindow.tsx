@@ -1,5 +1,5 @@
 import { useState } from "preact/hooks";
-import type { ExtensionInfo, ExtensionGroup, GroupIcon } from "../../shared/types";
+import type { ExtensionInfo, ExtensionGroup, GroupIcon, HistoryRecord } from "../../shared/types";
 import { Selector } from "./Selector";
 import { GL } from "./i18n";
 import { Optioney, Removy, Chromey, Closey, Edity } from "./icons";
@@ -13,8 +13,9 @@ import { MaterialSymbol } from "./MaterialSymbols";
 export interface SubWindowProps {
   display: "" | "extension" | "group";
   targetId: string;
-  extensions: ExtensionInfo[];
-  groups: ExtensionGroup[];
+  extensions?: ExtensionInfo[];
+  groups?: ExtensionGroup[];
+  history?: HistoryRecord[];
   onClose: () => void;
   onToggleExtension?: (id: string, enabled: boolean) => void;
   onToggleGroup?: (id: string, enabled: boolean) => void;
@@ -33,6 +34,7 @@ export function SubWindow({
   targetId,
   extensions = [],
   groups = [],
+  history = [],
   onClose,
   onToggleExtension,
   onToggleGroup,
@@ -370,6 +372,7 @@ export function SubWindow({
           <Selector
             extensions={extensions}
             groups={[]}
+            history={history}
             viewMode={editorViewMode}
             onChangeViewMode={(mode) => {
               if (mode === "list" || mode === "bigTile") {

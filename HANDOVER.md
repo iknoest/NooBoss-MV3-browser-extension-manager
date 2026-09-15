@@ -11,6 +11,38 @@ Snapshot: 2026-09-13T22:47:00+02:00
 - Current UX work (at `4fbdbcb`, `c12e195`, `f22a1e4`, `e014bf4`, and follow-up commits) is post-1.1.0 local work and must not silently become part of the frozen 1.1.0 release artifact.
 
 ## Work completed
+- **History Event Filtering, History-Backed Extension Sorting & Developer Status Clarity Milestone**:
+  - **Outcome 1 — History Event Filtering & Search (`HistoryView.tsx`)**:
+    - Added dedicated toolbar (`.history-toolbar`) with event type dropdown (`#historyEventFilter`) and live search input (`#historySearch`).
+    - Supported filter values: `All events`, `Installed` (`installed`), `Uninstalled` (`uninstalled`), `Enabled` (`enabled`), `Disabled` (`disabled`), `Updated` (`updated`).
+    - Filter and search compose seamlessly in reverse-chronological order.
+    - Differentiates between zero total history records ("No history records yet.") and no filter matches ("No events match the current filter.").
+  - **Outcome 2 — History-Backed Extension Sorting (`Selector.tsx`, `NooBossApp.tsx`, `SubWindow.tsx`)**:
+    - Added compact Sort dropdown (`#sortModeSelect`) directly following search input in the Extensions catalog toolbar.
+    - Supported sort modes:
+      - `Default`: Standard catalog order (and assigned-first priority when editing group membership).
+      - `Name A–Z`: Case-insensitive alphabetical sorting via `localeCompare`.
+      - `Recently changed`: Newest management event timestamp first; extensions with no recorded history sort after.
+      - `Most changed`: Event count descending; 0-event extensions sort last. Explicitly labeled `Most changed` (never "Most used" to avoid misleading activity implications).
+      - `First seen`: Earliest `installed` event timestamp, falling back to earliest recorded event, with 0-event extensions sorting last. Does NOT fabricate Chrome install dates, truthfully reflecting only Extension Drawer history.
+    - Preserved independent Type filter (`All`, `Extensions`, `Apps`, `Themes`) and full view mode / group focus compatibility.
+  - **Outcome 3 — Developer Workspace Status Clarity & Direct Actions (`DeveloperView.tsx`)**:
+    - Status-first row wording:
+      - Local/Test: `Runtime ON` / `Runtime OFF` with direct toggle switch, reload icon button, and Chrome details button.
+      - GitHub: `GitHub linked` / `GitHub not linked`.
+      - Store: `Store linked` / `Store not linked`.
+      - Analytics: `Tracking: property linked · not connected` / `Tracking: not linked`.
+      - Package: `Package: not enabled`.
+    - Single configuration entry point: removed redundant settings gear icon from project rows (clicking row or edit button opens project editor; reload and toggle remain direct).
+    - Added `Open CWS Dashboard ↗` button in header linking directly to `https://chrome.google.com/webstore/devconsole/`.
+    - Modal editor additions: added `Open Chrome details` button under Local Test Extension; added integration specification notices explaining upcoming GA4 Data API and Store ZIP download requirements.
+  - **Outcome 4 — Options Workspace Alignment (`OptionsView.tsx`)**:
+    - Renamed section to `Developer Workspace`.
+    - Renamed toggle setting label to `Show Developer workspace` (preserving internal `developerMode` boolean and storage key).
+    - Updated description: *"Show Developer workspace in navigation and reveal developer tools."*
+  - **Integrations Status & Safety Constraints**:
+    - Live Tracking & Store ZIP remain strictly permission-gated (0 new manifest permissions, 0 external network requests, 0 downloads).
+    - Site Rules remains CLOSED.
 - **Developer Workspace Compact Scanability & Status Chip Milestone**:
   - **Outcome 1 — 2-Line Project Row Architecture**:
     - Replaced the compressed 7-column table with a compact, highly scannable 2-line project row model (row height 64–76px).

@@ -382,14 +382,16 @@ ${extensions.map((e) => `<li><a href="https://chrome.google.com/webstore/detail/
         </div>
       </section>
 
-      {/* 5. Developer Mode Section */}
+      {/* 5. Developer Workspace Section */}
       <section className="settings-section">
-        <h2 className="settings-section-title">Developer Mode</h2>
+        <h2 className="settings-section-title">Developer Workspace</h2>
         <div className="settings-card">
           <div className="settings-row">
             <div className="settings-row-text">
-              <span className="settings-label">Developer Mode</span>
-              <span className="settings-description">Show developer tools and extension package actions.</span>
+              <span className="settings-label">Show Developer workspace</span>
+              <span className="settings-description">
+                Adds the Developer tab for managing local builds, source links, store releases, analytics, and packages.
+              </span>
             </div>
             <div className="settings-control">
               <input

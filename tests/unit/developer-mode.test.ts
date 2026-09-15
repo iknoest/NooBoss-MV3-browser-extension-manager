@@ -138,11 +138,11 @@ describe("Developer Workspace & Developer Mode", () => {
       expect(devButton.props.className).toContain("active");
     });
 
-    it("OptionsView defines Developer Mode toggle switch", () => {
+    it("OptionsView defines Developer Workspace toggle switch", () => {
       const optionsSource = fs.readFileSync("src/popup/components/OptionsView.tsx", "utf8");
       expect(optionsSource).toContain('id="setting-developer-mode"');
-      expect(optionsSource).toContain("Developer Mode");
-      expect(optionsSource).toContain("Show developer tools and extension package actions.");
+      expect(optionsSource).toContain("Show Developer workspace");
+      expect(optionsSource).toContain("Adds the Developer tab for managing local builds, source links, store releases, analytics, and packages.");
     });
   });
 
@@ -261,13 +261,16 @@ describe("Developer Workspace & Developer Mode", () => {
       expect(devSource).not.toContain("col-package");
 
       // Status chip labels
-      expect(devSource).toContain("GitHub ✓");
-      expect(devSource).toContain("GitHub +");
-      expect(devSource).toContain("Store ✓");
-      expect(devSource).toContain("Store +");
-      expect(devSource).toContain("GA4 · Connect");
-      expect(devSource).toContain("GA4 +");
-      expect(devSource).toContain("Package locked");
+      expect(devSource).toContain("GitHub linked");
+      expect(devSource).toContain("GitHub not linked");
+      expect(devSource).toContain("Store linked");
+      expect(devSource).toContain("Store not linked");
+      expect(devSource).toContain("Tracking: property linked · not connected");
+      expect(devSource).toContain("Tracking: not linked");
+      expect(devSource).toContain("Package: not enabled");
+      expect(devSource).toContain("Runtime ON");
+      expect(devSource).toContain("Runtime OFF");
+      expect(devSource).toContain("Open CWS Dashboard");
 
       // Simplified unlinked rows without meaningless dash columns
       expect(devSource).toContain("dev-unlinked-row");

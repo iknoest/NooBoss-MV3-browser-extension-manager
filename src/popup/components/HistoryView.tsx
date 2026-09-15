@@ -3,6 +3,8 @@ import type { HistoryRecord, ExtensionInfo } from "../../shared/types";
 import { GL, timeAgo } from "./i18n";
 import { MaterialSymbol } from "./MaterialSymbols";
 
+export type HistoryEventFilter = "all" | "installed" | "uninstalled" | "enabled" | "disabled" | "updated";
+
 export interface HistoryViewProps {
   records: HistoryRecord[];
   extensions?: ExtensionInfo[];
@@ -20,6 +22,8 @@ export function HistoryView({
 }: HistoryViewProps) {
   const [showConfirm, setShowConfirm] = useState(false);
   const [maxDisplay, setMaxDisplay] = useState(40);
+  const [eventFilter, setEventFilter] = useState<HistoryEventFilter>("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const handleEmpty = () => {
     onClearHistory();
@@ -27,7 +31,16 @@ export function HistoryView({
   };
 
   const sortedRecords = [...records].sort((a, b) => b.timestamp - a.timestamp);
-  const displayed = sortedRecords.slice(0, maxDisplay);
+  const filteredRecords = sortedRecords.filter((rec) => {
+    if (eventFilter !== "all" && rec.event !== eventFilter) {
+      return false;
+    }
+    if (searchQuery.trim() && !rec.extensionName.toLowerCase().includes(searchQuery.trim().toLowerCase())) {
+      return false;
+    }
+    return true;
+  });
+  const displayed = filteredRecords.slice(0, maxDisplay);
 
   const getExtensionIcon = (extId: string, name: string) => {
     const ext = extensions.find((e) => e.id === extId);
@@ -52,8 +65,57 @@ export function HistoryView({
 
   return (
     <div className="nb-page">
-      <div style={{ marginBottom: "14px" }}>
-        <button className="btn btn-secondary action-btn" onClick={() => setShowConfirm(true)}>
+      <div className="history-toolbar">
+        <select
+          id="historyEventFilter"
+          className="history-event-filter"
+          value={eventFilter}
+          onChange={(e) => {
+            setEventFilter((e.target as HTMLSelectElement).value as HistoryEventFilter);
+            setMaxDisplay(40);
+          }}
+          aria-label="Filter history by event type"
+        >
+          <option value="all">All events</option>
+          <option value="installed">Installed</option>
+          <option value="uninstalled">Uninstalled</option>
+          <option value="enabled">Enabled</option>
+          <option value="disabled">Disabled</option>
+          <option value="updated">Updated</option>
+        </select>
+
+        <div className="history-search-wrapper">
+          <input
+            id="historySearch"
+            type="text"
+            className="history-search-input"
+            placeholder="Search by extension name..."
+            value={searchQuery}
+            onInput={(e) => {
+              setSearchQuery((e.target as HTMLInputElement).value);
+              setMaxDisplay(40);
+            }}
+            aria-label="Search history by extension name"
+          />
+          {searchQuery && (
+            <span
+              className="clear-history-search"
+              onClick={() => setSearchQuery("")}
+              title="Clear search"
+              role="button"
+              tabIndex={0}
+              aria-label="Clear search"
+            >
+              <MaterialSymbol name="close" size={16} color="var(--text-muted)" />
+            </span>
+          )}
+        </div>
+
+        <button
+          type="button"
+          className="btn btn-secondary action-btn history-clear-btn"
+          onClick={() => setShowConfirm(true)}
+        >
           {GL("empty_history")}
         </button>
       </div>
@@ -93,7 +155,9 @@ export function HistoryView({
             {displayed.length === 0 && (
               <tr>
                 <td colSpan={4} className="history-empty-cell">
-                  No history records yet.
+                  {records.length === 0
+                    ? "No history records yet."
+                    : "No events match the current filter."}
                 </td>
               </tr>
             )}
@@ -101,14 +165,15 @@ export function HistoryView({
         </table>
       </div>
 
-      {sortedRecords.length > maxDisplay && (
+      {filteredRecords.length > maxDisplay && (
         <div style={{ textAlign: "center", marginTop: "16px" }}>
           <button
+            type="button"
             className="btn btn-secondary action-btn"
             style={{ fontSize: "12px", minWidth: "120px" }}
             onClick={() => setMaxDisplay((m) => m + 30)}
           >
-            Load More ({sortedRecords.length - maxDisplay} remaining)
+            Load More ({filteredRecords.length - maxDisplay} remaining)
           </button>
         </div>
       )}

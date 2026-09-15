@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "preact/hooks";
-import type { ExtensionInfo, ExtensionGroup } from "../../shared/types";
+import type { ExtensionInfo, ExtensionGroup, HistoryRecord } from "../../shared/types";
 import { ExtensionBrief } from "./ExtensionBrief";
 import { GroupBrief, renderGroupIcon } from "./GroupBrief";
 import { GL } from "./i18n";
@@ -9,10 +9,134 @@ import { sortGroupMemberExtensions } from "./group-member-utils";
 import { computeGroupRuntimeSummary } from "./group-summary";
 import { GroupCommandControl } from "./GroupCommandControl";
 
+export type SortMode = "default" | "name_asc" | "recently_changed" | "most_changed" | "first_seen";
+
+export function getExtensionHistoryStats(
+  extensions: ExtensionInfo[],
+  history: HistoryRecord[] = []
+): {
+  recentlyChangedMap: Map<string, number>;
+  mostChangedMap: Map<string, number>;
+  firstSeenMap: Map<string, number>;
+} {
+  const recentlyChangedMap = new Map<string, number>();
+  const mostChangedMap = new Map<string, number>();
+  const earliestInstalledMap = new Map<string, number>();
+  const earliestAnyEventMap = new Map<string, number>();
+
+  for (const rec of history) {
+    const id = rec.extensionId;
+    // Recently changed: latest management event timestamp
+    const prevRecent = recentlyChangedMap.get(id) ?? 0;
+    if (rec.timestamp > prevRecent) {
+      recentlyChangedMap.set(id, rec.timestamp);
+    }
+
+    // Most changed: count of recorded management events
+    mostChangedMap.set(id, (mostChangedMap.get(id) ?? 0) + 1);
+
+    // Earliest installed event or fallback to earliest event recorded
+    if (rec.event === "installed") {
+      const prevInst = earliestInstalledMap.get(id);
+      if (prevInst === undefined || rec.timestamp < prevInst) {
+        earliestInstalledMap.set(id, rec.timestamp);
+      }
+    }
+    const prevAny = earliestAnyEventMap.get(id);
+    if (prevAny === undefined || rec.timestamp < prevAny) {
+      earliestAnyEventMap.set(id, rec.timestamp);
+    }
+  }
+
+  const firstSeenMap = new Map<string, number>();
+  for (const ext of extensions) {
+    const installedTime = earliestInstalledMap.get(ext.id);
+    if (installedTime !== undefined) {
+      firstSeenMap.set(ext.id, installedTime);
+    } else {
+      const anyTime = earliestAnyEventMap.get(ext.id);
+      if (anyTime !== undefined) {
+        firstSeenMap.set(ext.id, anyTime);
+      }
+    }
+  }
+
+  return { recentlyChangedMap, mostChangedMap, firstSeenMap };
+}
+
+export function sortExtensions(
+  list: ExtensionInfo[],
+  sortMode: SortMode,
+  history: HistoryRecord[] = [],
+  selectedList?: string[] | null
+): ExtensionInfo[] {
+  if (sortMode === "default") {
+    if (selectedList) {
+      return sortGroupMemberExtensions(list, selectedList);
+    }
+    return list;
+  }
+
+  const { recentlyChangedMap, mostChangedMap, firstSeenMap } = getExtensionHistoryStats(list, history);
+
+  const sorted = [...list];
+
+  switch (sortMode) {
+    case "name_asc":
+      sorted.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
+      break;
+
+    case "recently_changed":
+      sorted.sort((a, b) => {
+        const aTime = recentlyChangedMap.get(a.id) ?? 0;
+        const bTime = recentlyChangedMap.get(b.id) ?? 0;
+        if (aTime > 0 && bTime > 0) {
+          if (bTime !== aTime) return bTime - aTime;
+          return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+        }
+        if (aTime > 0) return -1;
+        if (bTime > 0) return 1;
+        return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+      });
+      break;
+
+    case "most_changed":
+      sorted.sort((a, b) => {
+        const aCount = mostChangedMap.get(a.id) ?? 0;
+        const bCount = mostChangedMap.get(b.id) ?? 0;
+        if (aCount > 0 && bCount > 0) {
+          if (bCount !== aCount) return bCount - aCount;
+          return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+        }
+        if (aCount > 0) return -1;
+        if (bCount > 0) return 1;
+        return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+      });
+      break;
+
+    case "first_seen":
+      sorted.sort((a, b) => {
+        const aTime = firstSeenMap.get(a.id) ?? 0;
+        const bTime = firstSeenMap.get(b.id) ?? 0;
+        if (aTime > 0 && bTime > 0) {
+          if (bTime !== aTime) return bTime - aTime;
+          return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+        }
+        if (aTime > 0) return -1;
+        if (bTime > 0) return 1;
+        return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+      });
+      break;
+  }
+
+  return sorted;
+}
+
 export interface SelectorProps {
   allowedViewModes?: Array<"list" | "bigTile" | "tile">;
   extensions: ExtensionInfo[];
   groups?: ExtensionGroup[];
+  history?: HistoryRecord[];
   viewMode?: "tile" | "bigTile" | "list";
   onChangeViewMode?: (mode: "tile" | "bigTile" | "list") => void;
   actionBar?: boolean;
@@ -73,12 +197,14 @@ export function Selector({
   themeMainColor,
   filterTypeOnly,
   developerMode = false,
+  history = [],
 }: SelectorProps) {
   const [internalFocusedGroupId, setInternalFocusedGroupId] = useState<string | null>(null);
   const activeFocusedGroupId = focusedGroupId !== undefined ? focusedGroupId : internalFocusedGroupId;
   const setActiveFocusedGroupId = onFocusGroup || setInternalFocusedGroupId;
   const [filterAssignedOnly, setFilterAssignedOnly] = useState<boolean>(false);
 
+  const [sortMode, setSortMode] = useState<SortMode>("default");
   const [filterType, setFilterType] = useState<string>("all");
   const [filterName, setFilterName] = useState<string>("");
   const [filterRunningState, setFilterRunningState] = useState<"all" | "enabled" | "attention">("all");
@@ -150,12 +276,7 @@ export function Selector({
       return true;
     });
 
-    // Default ordering:
-    // When editing group membership or picking targets, sort assigned first, running first, alphabetical.
-    if (selectedList) {
-      return sortGroupMemberExtensions(list, selectedList);
-    }
-    return list;
+    return sortExtensions(list, sortMode, history, selectedList);
   }, [
     extensions,
     focusedGroup,
@@ -165,6 +286,8 @@ export function Selector({
     filterName,
     filterRunningState,
     filterType,
+    sortMode,
+    history,
   ]);
 
   // Filtered groups
@@ -283,6 +406,20 @@ export function Selector({
                 </span>
               )}
             </div>
+
+            <select
+              id="sortModeSelect"
+              className="sort-select"
+              value={sortMode}
+              onChange={(e) => setSortMode((e.target as HTMLSelectElement).value as SortMode)}
+              aria-label="Sort extensions"
+            >
+              <option value="default">Default</option>
+              <option value="name_asc">Name A–Z</option>
+              <option value="recently_changed">Recently changed</option>
+              <option value="most_changed">Most changed</option>
+              <option value="first_seen">First seen</option>
+            </select>
 
             {withControl && (
               <div className="action-buttons-group">

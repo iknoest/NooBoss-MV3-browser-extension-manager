@@ -453,6 +453,7 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
             <Selector
               extensions={extensions}
               groups={groups}
+              history={historyRecords}
               viewMode={viewMode}
               onChangeViewMode={handleChangeViewMode}
               actionBar={true}
@@ -542,6 +543,7 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
         targetId={subWindow.targetId}
         extensions={extensions}
         groups={groups}
+        history={historyRecords}
         onClose={handleCloseSubWindow}
         onToggleExtension={handleToggleExtension}
         onToggleGroup={handleToggleGroup}

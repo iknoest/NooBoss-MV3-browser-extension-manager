@@ -93,15 +93,27 @@ export function DeveloperView({
             Connect local test extensions to GitHub repositories, Chrome Web Store items, and Google Analytics.
           </p>
         </div>
-        <button
-          type="button"
-          className="btn btn-primary dev-add-project-btn"
-          onClick={() => handleStartAdd()}
-          style={{ backgroundColor: themeMainColor }}
-        >
-          <MaterialSymbol name="add" size={18} color="#ffffff" />
-          <span>Add Project</span>
-        </button>
+        <div className="dev-header-actions">
+          <a
+            href="https://chrome.google.com/webstore/devconsole/"
+            target="_blank"
+            rel="noreferrer"
+            className="btn btn-secondary dev-cws-dashboard-btn"
+            title="Open Chrome Web Store Developer Dashboard"
+          >
+            <span>Open CWS Dashboard</span>
+            <MaterialSymbol name="open_in_new" size={15} color="currentColor" />
+          </a>
+          <button
+            type="button"
+            className="btn btn-primary dev-add-project-btn"
+            onClick={() => handleStartAdd()}
+            style={{ backgroundColor: themeMainColor }}
+          >
+            <MaterialSymbol name="add" size={18} color="#ffffff" />
+            <span>Add Project</span>
+          </button>
+        </div>
       </header>
 
       {/* Main Content: Compact Project List or Empty State */}
@@ -114,15 +126,27 @@ export function DeveloperView({
           <p className="dev-empty-desc">
             Organize and bridge your extensions across local development, GitHub source repository, Chrome Web Store release listings, and Google Analytics telemetry.
           </p>
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={() => handleStartAdd()}
-            style={{ backgroundColor: themeMainColor }}
-          >
-            <MaterialSymbol name="add" size={18} color="#ffffff" />
-            <span>Create Your First Project</span>
-          </button>
+          <div className="dev-empty-actions">
+            <a
+              href="https://chrome.google.com/webstore/devconsole/"
+              target="_blank"
+              rel="noreferrer"
+              className="btn btn-secondary dev-cws-dashboard-btn"
+              title="Open Chrome Web Store Developer Dashboard"
+            >
+              <span>Open CWS Dashboard</span>
+              <MaterialSymbol name="open_in_new" size={15} color="currentColor" />
+            </a>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => handleStartAdd()}
+              style={{ backgroundColor: themeMainColor }}
+            >
+              <MaterialSymbol name="add" size={18} color="#ffffff" />
+              <span>Create Your First Project</span>
+            </button>
+          </div>
         </div>
       ) : (
         <div className="dev-workspace-content">
@@ -176,11 +200,6 @@ export function DeveloperView({
                               DEV
                             </span>
                           )}
-                          {proj.cwsExtensionId && (
-                            <span className="dev-pill dev-pill-published" title="Store listing configured">
-                              Published
-                            </span>
-                          )}
                         </div>
                       </div>
 
@@ -200,7 +219,7 @@ export function DeveloperView({
                                 <span
                                   className={`status-pill ${localExt.enabled ? "enabled" : "disabled"}`}
                                 >
-                                  {localExt.enabled ? "ON" : "OFF"}
+                                  {localExt.enabled ? "Runtime ON" : "Runtime OFF"}
                                 </span>
                               </div>
                               <div className="dev-local-controls">
@@ -224,19 +243,6 @@ export function DeveloperView({
                                         ? themeMainColor
                                         : "var(--text-muted, #888)"
                                     }
-                                  />
-                                </button>
-                                <button
-                                  type="button"
-                                  className="action-icon-btn"
-                                  onClick={() => onOpenDetails(localExt.id)}
-                                  title="Open Chrome details"
-                                  aria-label="Open Chrome details"
-                                >
-                                  <MaterialSymbol
-                                    name="settings"
-                                    size={16}
-                                    color={themeMainColor}
                                   />
                                 </button>
                               </div>
@@ -298,7 +304,7 @@ export function DeveloperView({
                             title={`GitHub: ${cleanGithubDisplay(proj.githubUrl)} (opens repository)`}
                           >
                             <MaterialSymbol name="code" size={13} color="var(--theme-main, #1a73e8)" />
-                            <span className="dev-chip-label">GitHub ✓</span>
+                            <span className="dev-chip-label">GitHub linked</span>
                             <MaterialSymbol name="open_in_new" size={11} color="var(--text-muted)" />
                           </a>
                         ) : (
@@ -309,7 +315,7 @@ export function DeveloperView({
                             title="Link a GitHub repository"
                           >
                             <MaterialSymbol name="add" size={12} color="var(--text-muted)" />
-                            <span className="dev-chip-label">GitHub +</span>
+                            <span className="dev-chip-label">GitHub not linked</span>
                           </button>
                         )}
 
@@ -323,7 +329,7 @@ export function DeveloperView({
                             title={`Chrome Web Store: ${proj.cwsExtensionId} (opens listing)`}
                           >
                             <MaterialSymbol name="storefront" size={13} color="var(--theme-main, #1a73e8)" />
-                            <span className="dev-chip-label">Store ✓</span>
+                            <span className="dev-chip-label">Store linked</span>
                             <MaterialSymbol name="open_in_new" size={11} color="var(--text-muted)" />
                           </a>
                         ) : (
@@ -334,11 +340,11 @@ export function DeveloperView({
                             title="Link a Chrome Web Store item ID"
                           >
                             <MaterialSymbol name="add" size={12} color="var(--text-muted)" />
-                            <span className="dev-chip-label">Store +</span>
+                            <span className="dev-chip-label">Store not linked</span>
                           </button>
                         )}
 
-                        {/* Analytics Status Chip */}
+                        {/* Tracking Status Chip */}
                         {proj.gaPropertyId ? (
                           <button
                             type="button"
@@ -347,7 +353,7 @@ export function DeveloperView({
                             title={`Google Analytics Property: ${proj.gaPropertyId} (API integration approval required)`}
                           >
                             <MaterialSymbol name="analytics" size={13} color="var(--theme-main, #1a73e8)" />
-                            <span className="dev-chip-label">GA4 · Connect</span>
+                            <span className="dev-chip-label">Tracking: property linked · not connected</span>
                           </button>
                         ) : (
                           <button
@@ -357,7 +363,7 @@ export function DeveloperView({
                             title="Link a Google Analytics Property ID"
                           >
                             <MaterialSymbol name="add" size={12} color="var(--text-muted)" />
-                            <span className="dev-chip-label">GA4 +</span>
+                            <span className="dev-chip-label">Tracking: not linked</span>
                           </button>
                         )}
 
@@ -367,7 +373,7 @@ export function DeveloperView({
                           title="Direct CRX/ZIP package downloading requires additional browser permissions (downloads). Integration pending approval."
                         >
                           <MaterialSymbol name="lock" size={12} color="var(--text-muted)" />
-                          <span className="dev-chip-label">Package locked</span>
+                          <span className="dev-chip-label">Package: not enabled</span>
                         </span>
                       </div>
                     </div>
@@ -432,7 +438,7 @@ export function DeveloperView({
                             <span
                               className={`status-pill ${ext.enabled ? "enabled" : "disabled"}`}
                             >
-                              {ext.enabled ? "ON" : "OFF"}
+                              {ext.enabled ? "Runtime ON" : "Runtime OFF"}
                             </span>
                           </div>
                           <div className="dev-local-controls">
@@ -456,19 +462,6 @@ export function DeveloperView({
                                     ? themeMainColor
                                     : "var(--text-muted, #888)"
                                 }
-                              />
-                            </button>
-                            <button
-                              type="button"
-                              className="action-icon-btn"
-                              onClick={() => onOpenDetails(ext.id)}
-                              title="Open Chrome details"
-                              aria-label="Open Chrome details"
-                            >
-                              <MaterialSymbol
-                                name="settings"
-                                size={16}
-                                color={themeMainColor}
                               />
                             </button>
                           </div>
@@ -512,6 +505,7 @@ export function DeveloperView({
           extensions={extensions}
           onSave={handleSaveModal}
           onClose={() => setEditingProject(null)}
+          onOpenDetails={onOpenDetails}
           themeMainColor={themeMainColor}
         />
       )}
@@ -557,6 +551,7 @@ interface ProjectEditorModalProps {
   extensions: ExtensionInfo[];
   onSave: (proj: Partial<DeveloperProject>) => void;
   onClose: () => void;
+  onOpenDetails?: (id: string) => void;
   themeMainColor: string;
 }
 
@@ -565,6 +560,7 @@ function ProjectEditorModal({
   extensions,
   onSave,
   onClose,
+  onOpenDetails,
   themeMainColor,
 }: ProjectEditorModalProps) {
   const [name, setName] = useState(project.name || "");
@@ -703,6 +699,19 @@ function ProjectEditorModal({
                   </button>
                 </div>
               )}
+              {localExtensionId && onOpenDetails && (
+                <div style={{ marginTop: "8px" }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-xs"
+                    onClick={() => onOpenDetails(localExtensionId)}
+                    title="Open extension details in chrome://extensions"
+                  >
+                    <MaterialSymbol name="open_in_new" size={13} />
+                    <span style={{ marginLeft: "4px" }}>Open Chrome details</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -767,6 +776,22 @@ function ProjectEditorModal({
                 onInput={(e) => setGaPropertyId((e.target as HTMLInputElement).value)}
                 placeholder="e.g. 123456789 or properties/123456789"
               />
+            </div>
+          </div>
+
+          {/* Integration & Packaging Specification Notice */}
+          <div className="dev-modal-spec-notice">
+            <div className="dev-modal-spec-item">
+              <MaterialSymbol name="analytics" size={15} color="var(--text-muted)" />
+              <span>
+                <strong>Google Analytics:</strong> Property linked. Live reporting requires Data API permissions.
+              </span>
+            </div>
+            <div className="dev-modal-spec-item">
+              <MaterialSymbol name="archive" size={15} color="var(--text-muted)" />
+              <span>
+                <strong>Store Package:</strong> Package downloads require additional browser permissions.
+              </span>
             </div>
           </div>
 

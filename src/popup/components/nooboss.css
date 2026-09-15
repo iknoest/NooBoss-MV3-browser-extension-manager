@@ -350,6 +350,10 @@ select:focus,
   box-shadow: 0 0 0 2px var(--theme-main-subtle);
 }
 
+.sort-select {
+  min-width: 135px;
+}
+
 .name-filter-wrapper {
   position: relative;
   display: inline-flex;
@@ -2458,6 +2462,80 @@ input[type="search"]:focus,
   filter: none !important;
 }
 
+/* History Toolbar & Filter Controls */
+.history-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.history-event-filter {
+  height: 34px;
+  padding: 0 32px 0 12px;
+  border: 1px solid var(--border-input);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 13px;
+  outline: none;
+  cursor: pointer;
+  min-width: 140px;
+}
+
+.history-event-filter:focus {
+  border-color: var(--border-input-focus);
+  box-shadow: 0 0 0 2px var(--theme-main-subtle);
+}
+
+.history-search-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 180px;
+  max-width: 320px;
+}
+
+.history-search-input {
+  width: 100%;
+  height: 34px;
+  padding: 0 30px 0 12px;
+  border: 1px solid var(--border-input);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 13px;
+  outline: none;
+}
+
+.history-search-input:focus {
+  border-color: var(--border-input-focus);
+  box-shadow: 0 0 0 2px var(--theme-main-subtle);
+}
+
+.clear-history-search {
+  position: absolute;
+  right: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 3px;
+  border-radius: 50%;
+  color: var(--text-muted);
+}
+
+.clear-history-search:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.history-clear-btn {
+  margin-left: auto;
+}
+
 /* History Table Modernization */
 .history-table-wrapper {
   width: 100%;
@@ -3133,6 +3211,37 @@ details.dev-menu-container > summary::-webkit-details-marker {
   line-height: 1.4;
 }
 
+.dev-header-actions,
+.dev-empty-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.dev-cws-dashboard-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: var(--radius-pill);
+  text-decoration: none;
+  color: var(--text-primary);
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.dev-cws-dashboard-btn:hover {
+  background-color: var(--bg-hover);
+  color: var(--theme-main);
+  text-decoration: none;
+}
+
 .dev-add-project-btn {
   display: inline-flex;
   align-items: center;
@@ -3144,6 +3253,30 @@ details.dev-menu-container > summary::-webkit-details-marker {
   border-radius: var(--radius-pill);
   flex-shrink: 0;
   cursor: pointer;
+}
+
+.dev-modal-spec-notice {
+  margin: 14px 0 20px 0;
+  padding: 12px 14px;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dev-modal-spec-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.dev-modal-spec-item strong {
+  color: var(--text-primary);
 }
 
 .dev-empty-state {
