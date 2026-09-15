@@ -11,6 +11,35 @@ Snapshot: 2026-09-13T22:47:00+02:00
 - Current UX work (at `4fbdbcb`, `c12e195`, `f22a1e4`, `e014bf4`, and follow-up commits) is post-1.1.0 local work and must not silently become part of the frozen 1.1.0 release artifact.
 
 ## Work completed
+- **Extension Sorting UX Clarification & GA4 Read-Only Integration Path Milestone**:
+  - **Outcome A — Clarified Extension Sorting UX (`Selector.tsx`, `nooboss.css`, `tests/unit/sorting-ux.test.ts`)**:
+    - Consolidated sort modes into exactly 5 clear, user-facing modes:
+      1. `Default` (`default`): Standard catalog order (and assigned-first priority when editing group membership).
+      2. `Name A–Z` (`name_asc`): Alphabetical sorting via `localeCompare`.
+      3. `Enabled first` (`enabled_first`): Active extensions at the top, disabled extensions at the bottom, alphabetical tie-break within each group, backed by live `ext.enabled`.
+      4. `Latest change` (`latest_change`): Most recent recorded management event descending, no-history extensions placed last (preserves legacy `recently_changed` alias).
+      5. `Most changes` (`most_changes`): Total count of recorded management events descending, 0-event extensions placed last (preserves legacy `most_changed` alias).
+    - Toolbar Prefix: Added explicit `⇅ Sort:` prefix label before `#sortModeSelect` so the control purpose is immediately apparent.
+    - Contextual Help Popover: Added a `?` help button next to `#sortModeSelect` with floating popover containing verbatim copy:
+      > Changes are install, update, enable and disable events recorded by Extension Drawer. This is not extension usage.
+    - Popover includes a dedicated dismiss button (`×`) and dismisses on outside clicks or toggle.
+  - **Outcome B — Real GA4 Read-Only Integration Path & Honest Metrics Preview (`src/shared/ga4-client.ts`, `DeveloperView.tsx`, `tests/unit/ga4-client.test.ts`)**:
+    - Completed technical investigation for Google Analytics Data API v1beta:
+      - API endpoint: `POST https://analyticsdata.googleapis.com/v1beta/properties/{PROPERTY_ID}:runReport`.
+      - Target metrics: Active users (`activeUsers`), New users (`newUsers`), Event count (`eventCount`), Key events (`keyEvents`).
+      - Target date range: Rolling 28-day window (`startDate: "28daysAgo"`, `endDate: "yesterday"`).
+      - Target OAuth scope: `https://www.googleapis.com/auth/analytics.readonly`.
+    - Created `src/shared/ga4-client.ts` with report payload generator, response parser, and full specification metadata.
+    - Developer Workspace UI update:
+      - For projects with a linked `gaPropertyId`, renders a dedicated `.dev-ga4-metrics-bar` displaying the 4 target metric slots (`Active users: —`, `New users: —`, `Event count: —`, `Key events: —` with subtitle `28d · Not connected (Setup required)`).
+      - Preserved honest disconnected state: zero fake/dummy metrics, zero unauthorized external network requests, zero manifest permission alterations.
+      - Updated Project Editor Modal with clear setup requirements.
+  - **Tests & Live Chrome Visual Verification**:
+    - 14 test files, 219 tests passing (`npm test`).
+    - Added `tests/unit/sorting-ux.test.ts` (10 tests) and `tests/unit/ga4-client.test.ts` (8 tests).
+    - Updated `tests/unit/history-sorting-devclarity.test.ts`.
+    - Clean `npm run typecheck`, `npm run lint`, and `npm run build`.
+    - Visual verification in live Chrome session (`kgenlcljnnalkmbhlolfomnfpdmnnapi`) across 4 verified screenshots.
 - **History Event Filtering, History-Backed Extension Sorting & Developer Status Clarity Milestone**:
   - **Outcome 1 — History Event Filtering & Search (`HistoryView.tsx`)**:
     - Added dedicated toolbar (`.history-toolbar`) with event type dropdown (`#historyEventFilter`) and live search input (`#historySearch`).

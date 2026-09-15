@@ -208,16 +208,19 @@ describe("History Event Filtering, Extension Sorting & Developer Clarity", () =>
       ]);
     });
 
-    it("Selector action-bar includes sort dropdown with exact 5 modes", () => {
+    it("Selector action-bar includes sort dropdown with exact 5 modes and help button", () => {
       const selectorSource = fs.readFileSync("src/popup/components/Selector.tsx", "utf8");
       expect(selectorSource).toContain('id="sortModeSelect"');
       expect(selectorSource).toContain('<option value="default">Default</option>');
       expect(selectorSource).toContain('<option value="name_asc">Name A–Z</option>');
-      expect(selectorSource).toContain('<option value="recently_changed">Recently changed</option>');
-      expect(selectorSource).toContain('<option value="most_changed">Most changed</option>');
-      expect(selectorSource).toContain('<option value="first_seen">First seen</option>');
+      expect(selectorSource).toContain('<option value="enabled_first">Enabled first</option>');
+      expect(selectorSource).toContain('<option value="latest_change">Latest change</option>');
+      expect(selectorSource).toContain('<option value="most_changes">Most changes</option>');
       // Must NOT use misleading labels like "Most used"
       expect(selectorSource).not.toContain("Most used");
+      // Sort wrapper and help
+      expect(selectorSource).toContain('className="sort-control-wrapper"');
+      expect(selectorSource).toContain('className="sort-help-btn"');
     });
   });
 

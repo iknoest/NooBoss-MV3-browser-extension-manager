@@ -350,8 +350,93 @@ select:focus,
   box-shadow: 0 0 0 2px var(--theme-main-subtle);
 }
 
+.sort-control-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sort-control-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.sort-control-label .material-symbol {
+  color: var(--text-secondary);
+}
+
 .sort-select {
-  min-width: 135px;
+  min-width: 125px;
+}
+
+.sort-help-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--border-input, rgba(0, 0, 0, 0.15));
+  background: var(--bg-card, #fff);
+  color: var(--text-secondary, #5f6368);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.sort-help-btn:hover,
+.sort-help-btn:focus {
+  background: var(--bg-hover, rgba(0, 0, 0, 0.04));
+  color: var(--theme-main, #1a73e8);
+  border-color: var(--theme-main, #1a73e8);
+}
+
+.sort-help-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 1000;
+  width: 250px;
+  padding: 8px 10px;
+  border-radius: var(--radius-md, 6px);
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-input, rgba(0, 0, 0, 0.15));
+  box-shadow: var(--shadow-floating, 0 4px 12px rgba(0, 0, 0, 0.15));
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  animation: fadeIn 0.15s ease;
+}
+
+.sort-help-popover-text {
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--text-primary, #202124);
+  flex: 1;
+}
+
+.sort-help-close-btn {
+  border: none;
+  background: transparent;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--text-secondary, #5f6368);
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+}
+
+.sort-help-close-btn:hover {
+  color: var(--text-primary, #202124);
 }
 
 .name-filter-wrapper {
@@ -3549,6 +3634,53 @@ details.dev-menu-container > summary::-webkit-details-marker {
   border: 1px solid var(--border-subtle);
   color: var(--text-muted);
   cursor: help;
+}
+
+/* GA4 Target Metrics Bar */
+.dev-ga4-metrics-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--bg-hover, rgba(0, 0, 0, 0.03));
+  border: 1px dashed var(--border-subtle, rgba(0, 0, 0, 0.12));
+  border-radius: var(--radius-sm, 4px);
+  padding: 4px 10px;
+  margin-top: 3px;
+  font-size: 11px;
+  flex-wrap: wrap;
+}
+
+.dev-ga4-metric-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.dev-ga4-metric-name {
+  color: var(--text-secondary, #5f6368);
+  font-size: 10.5px;
+}
+
+.dev-ga4-metric-value {
+  font-weight: 600;
+  color: var(--text-primary, #202124);
+  font-family: monospace;
+}
+
+.dev-ga4-metric-divider {
+  width: 1px;
+  height: 12px;
+  background-color: var(--border-subtle, rgba(0, 0, 0, 0.15));
+}
+
+.dev-ga4-metric-status {
+  margin-left: auto;
+}
+
+.dev-ga4-status-badge {
+  color: var(--text-muted, #80868b);
+  font-style: italic;
+  font-size: 10.5px;
 }
 
 /* Badges */

@@ -376,6 +376,37 @@ export function DeveloperView({
                           <span className="dev-chip-label">Package: not enabled</span>
                         </span>
                       </div>
+
+                      {/* Google Analytics 4 Target Metrics (28-day rolling window) */}
+                      {proj.gaPropertyId && (
+                        <div
+                          className="dev-ga4-metrics-bar"
+                          title="Google Analytics Data API v1beta (rolling 28-day window). Real tracking requires OAuth setup and permission approval."
+                        >
+                          <div className="dev-ga4-metric-cell">
+                            <span className="dev-ga4-metric-name">Active users</span>
+                            <span className="dev-ga4-metric-value">—</span>
+                          </div>
+                          <div className="dev-ga4-metric-divider" />
+                          <div className="dev-ga4-metric-cell">
+                            <span className="dev-ga4-metric-name">New users</span>
+                            <span className="dev-ga4-metric-value">—</span>
+                          </div>
+                          <div className="dev-ga4-metric-divider" />
+                          <div className="dev-ga4-metric-cell">
+                            <span className="dev-ga4-metric-name">Event count</span>
+                            <span className="dev-ga4-metric-value">—</span>
+                          </div>
+                          <div className="dev-ga4-metric-divider" />
+                          <div className="dev-ga4-metric-cell">
+                            <span className="dev-ga4-metric-name">Key events</span>
+                            <span className="dev-ga4-metric-value">—</span>
+                          </div>
+                          <div className="dev-ga4-metric-status">
+                            <span className="dev-ga4-status-badge">28d · Not connected (Setup required)</span>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </article>
                 );
@@ -784,7 +815,7 @@ function ProjectEditorModal({
             <div className="dev-modal-spec-item">
               <MaterialSymbol name="analytics" size={15} color="var(--text-muted)" />
               <span>
-                <strong>Google Analytics:</strong> Property linked. Live reporting requires Data API permissions.
+                <strong>Google Analytics:</strong> Property linked. Live reporting of <em>Active users</em>, <em>New users</em>, <em>Event count</em>, and <em>Key events</em> (28d rolling window) requires GA4 Data API v1beta OAuth setup (pending user approval).
               </span>
             </div>
             <div className="dev-modal-spec-item">

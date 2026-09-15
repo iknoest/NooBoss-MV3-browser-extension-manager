@@ -9,7 +9,15 @@ import { sortGroupMemberExtensions } from "./group-member-utils";
 import { computeGroupRuntimeSummary } from "./group-summary";
 import { GroupCommandControl } from "./GroupCommandControl";
 
-export type SortMode = "default" | "name_asc" | "recently_changed" | "most_changed" | "first_seen";
+export type SortMode =
+  | "default"
+  | "name_asc"
+  | "enabled_first"
+  | "latest_change"
+  | "most_changes"
+  | "most_changed"
+  | "recently_changed"
+  | "first_seen";
 
 export function getExtensionHistoryStats(
   extensions: ExtensionInfo[],
@@ -86,6 +94,16 @@ export function sortExtensions(
       sorted.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
       break;
 
+    case "enabled_first":
+      sorted.sort((a, b) => {
+        if (a.enabled !== b.enabled) {
+          return a.enabled ? -1 : 1;
+        }
+        return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+      });
+      break;
+
+    case "latest_change":
     case "recently_changed":
       sorted.sort((a, b) => {
         const aTime = recentlyChangedMap.get(a.id) ?? 0;
@@ -100,6 +118,7 @@ export function sortExtensions(
       });
       break;
 
+    case "most_changes":
     case "most_changed":
       sorted.sort((a, b) => {
         const aCount = mostChangedMap.get(a.id) ?? 0;
@@ -205,11 +224,25 @@ export function Selector({
   const [filterAssignedOnly, setFilterAssignedOnly] = useState<boolean>(false);
 
   const [sortMode, setSortMode] = useState<SortMode>("default");
+  const [showSortHelp, setShowSortHelp] = useState<boolean>(false);
   const [filterType, setFilterType] = useState<string>("all");
   const [filterName, setFilterName] = useState<string>("");
   const [filterRunningState, setFilterRunningState] = useState<"all" | "enabled" | "attention">("all");
   const [undoStack, setUndoStack] = useState<Array<Record<string, boolean>>>([]);
   const [redoStack, setRedoStack] = useState<Array<Record<string, boolean>>>([]);
+
+  // Close sort help popover on outside click
+  useEffect(() => {
+    if (!showSortHelp) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest(".sort-control-wrapper")) {
+        setShowSortHelp(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showSortHelp]);
 
   // Keyboard shortcut: Escape clears active group focus
   useEffect(() => {
@@ -407,19 +440,49 @@ export function Selector({
               )}
             </div>
 
-            <select
-              id="sortModeSelect"
-              className="sort-select"
-              value={sortMode}
-              onChange={(e) => setSortMode((e.target as HTMLSelectElement).value as SortMode)}
-              aria-label="Sort extensions"
-            >
-              <option value="default">Default</option>
-              <option value="name_asc">Name A–Z</option>
-              <option value="recently_changed">Recently changed</option>
-              <option value="most_changed">Most changed</option>
-              <option value="first_seen">First seen</option>
-            </select>
+            <div className="sort-control-wrapper">
+              <label htmlFor="sortModeSelect" className="sort-control-label" title="Sort extensions">
+                <MaterialSymbol name="swap_vert" size={16} />
+                <span className="sort-label-text">Sort:</span>
+              </label>
+              <select
+                id="sortModeSelect"
+                className="sort-select"
+                value={sortMode === "recently_changed" ? "latest_change" : sortMode === "first_seen" ? "default" : sortMode}
+                onChange={(e) => setSortMode((e.target as HTMLSelectElement).value as SortMode)}
+                aria-label="Sort extensions"
+              >
+                <option value="default">Default</option>
+                <option value="name_asc">Name A–Z</option>
+                <option value="enabled_first">Enabled first</option>
+                <option value="latest_change">Latest change</option>
+                <option value="most_changes">Most changes</option>
+              </select>
+              <button
+                type="button"
+                className="sort-help-btn"
+                title="Changes are install, update, enable and disable events recorded by Extension Drawer. This is not extension usage."
+                aria-label="Sort information"
+                onClick={() => setShowSortHelp(!showSortHelp)}
+              >
+                <MaterialSymbol name="help" size={15} />
+              </button>
+              {showSortHelp && (
+                <div className="sort-help-popover" role="tooltip">
+                  <div className="sort-help-popover-text">
+                    Changes are install, update, enable and disable events recorded by Extension Drawer. This is not extension usage.
+                  </div>
+                  <button
+                    type="button"
+                    className="sort-help-close-btn"
+                    onClick={() => setShowSortHelp(false)}
+                    aria-label="Close help"
+                  >
+                    ×
+                  </button>
+                </div>
+              )}
+            </div>
 
             {withControl && (
               <div className="action-buttons-group">
