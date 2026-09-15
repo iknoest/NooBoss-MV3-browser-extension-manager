@@ -3819,4 +3819,188 @@ details.dev-menu-container > summary::-webkit-details-marker {
   color: #ffffff !important;
 }
 
+/* GA4 Connected & Action States */
+.dev-ga4-metrics-bar.dev-ga4-metrics-connected {
+  border-style: solid;
+  border-color: rgba(30, 142, 62, 0.3);
+  background-color: rgba(30, 142, 62, 0.05);
+}
+
+.dev-ga4-metrics-bar.dev-ga4-metrics-error {
+  border-style: solid;
+  border-color: rgba(217, 48, 37, 0.3);
+  background-color: rgba(217, 48, 37, 0.05);
+}
+
+.dev-status-chip.dev-chip-connected {
+  background-color: rgba(30, 142, 62, 0.08);
+  border-color: rgba(30, 142, 62, 0.35);
+  color: var(--color-success, #1e8e3e);
+}
+
+.dev-status-chip.dev-chip-connected:hover {
+  background-color: rgba(30, 142, 62, 0.15);
+}
+
+.dev-status-chip.dev-chip-error {
+  background-color: rgba(217, 48, 37, 0.08);
+  border-color: rgba(217, 48, 37, 0.35);
+  color: var(--color-danger, #d93025);
+}
+
+.dev-status-chip.dev-chip-error:hover {
+  background-color: rgba(217, 48, 37, 0.15);
+}
+
+.dev-status-chip.dev-chip-actionable {
+  cursor: pointer;
+}
+
+.dev-status-chip.dev-chip-actionable:hover {
+  background-color: var(--theme-main-subtle, rgba(26, 115, 232, 0.1));
+  border-color: var(--theme-main, #1a73e8);
+}
+
+.dev-ga4-refresh-btn,
+.dev-ga4-connect-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg-card, #fff);
+  border: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.15));
+  border-radius: var(--radius-sm, 4px);
+  padding: 2px 7px;
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--text-secondary, #5f6368);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.dev-ga4-refresh-btn:hover,
+.dev-ga4-connect-btn:hover {
+  color: var(--theme-main, #1a73e8);
+  border-color: var(--theme-main, #1a73e8);
+  background-color: var(--bg-hover, rgba(0, 0, 0, 0.04));
+}
+
+.dev-ga4-connect-btn {
+  color: var(--theme-main, #1a73e8);
+  font-weight: 600;
+}
+
+.dev-ga4-error-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--color-danger, #d93025);
+  font-size: 10.5px;
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.spin-icon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* GA4 Connect Modal */
+.dev-ga4-modal {
+  max-width: 480px;
+}
+
+.dev-ga4-modal-body {
+  margin: 14px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dev-ga4-modal-lead {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-primary, #202124);
+  margin: 0;
+}
+
+.dev-ga4-spec-summary {
+  background-color: var(--bg-hover, rgba(0, 0, 0, 0.03));
+  border: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.12));
+  border-radius: var(--radius-sm, 4px);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 11.5px;
+}
+
+.dev-ga4-spec-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dev-ga4-spec-key {
+  color: var(--text-secondary, #5f6368);
+  font-weight: 500;
+}
+
+.dev-ga4-spec-val {
+  color: var(--text-primary, #202124);
+  font-weight: 600;
+}
+
+.dev-ga4-spec-val code {
+  font-size: 11px;
+  background-color: rgba(0, 0, 0, 0.05);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.dev-ga4-privacy-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--text-secondary, #5f6368);
+  background-color: rgba(30, 142, 62, 0.05);
+  border: 1px solid rgba(30, 142, 62, 0.2);
+  border-radius: var(--radius-sm, 4px);
+  padding: 8px 10px;
+}
+
+.dev-ga4-error-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--color-danger, #d93025);
+  background-color: rgba(217, 48, 37, 0.06);
+  border: 1px solid rgba(217, 48, 37, 0.25);
+  border-radius: var(--radius-sm, 4px);
+  padding: 8px 10px;
+}
+
+.dev-ga4-error-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dev-editor-ga-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+
 

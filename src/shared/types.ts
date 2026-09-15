@@ -212,6 +212,7 @@ export const STORAGE_KEYS = {
   AUTOSTATE_MANAGED: 'nooboss_autostate_managed',
   PENDING_CHANGES: 'nooboss_pending_changes',
   DEVELOPER_PROJECTS: 'nooboss_developer_projects',
+  GA4_METRICS: 'nooboss_ga4_metrics',
 } as const;
 
 /** Generate a unique ID */

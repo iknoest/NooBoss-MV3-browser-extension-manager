@@ -11,6 +11,29 @@ Snapshot: 2026-09-13T22:47:00+02:00
 - Current UX work (at `4fbdbcb`, `c12e195`, `f22a1e4`, `e014bf4`, and follow-up commits) is post-1.1.0 local work and must not silently become part of the frozen 1.1.0 release artifact.
 
 ## Work completed
+- **Live Read-Only NoWebP Google Analytics Data Milestone**:
+  - **Outcome 1 — Manifest Permissions & Extension Identity Alignment (`src/manifest.json`, `dist/manifest.json`)**:
+    - Added `identity` permission, `host_permissions: ["https://analyticsdata.googleapis.com/*"]`, and `oauth2` configuration (`client_id: "799106519083-4abp5ksuf8mmqnh6tjret0guni0dbpt2.apps.googleusercontent.com"`, `scopes: ["https://www.googleapis.com/auth/analytics.readonly"]`).
+    - Added extension `key` in manifest to preserve extension ID `onkcjpfgllpfbimnchjehboikhippnka` across unpacked builds and reloads.
+  - **Outcome 2 — Secure Chrome Identity OAuth Authentication (`src/shared/ga4-client.ts`)**:
+    - User-initiated OAuth prompt via `getAuthToken(interactive: true)` when clicking "Connect" or "Authorize & Connect".
+    - Security invariant: Raw OAuth access tokens are exclusively kept in memory for authenticated requests; tokens are NEVER written to `chrome.storage.local` or disk.
+    - Added token invalidation helpers (`removeCachedAuthToken`, `clearAuthToken`) for 401 recovery and clean disconnection.
+  - **Outcome 3 — Live GA4 Data API v1beta Integration & Metrics Persistence (`src/shared/ga4-client.ts`, `src/shared/storage.ts`, `src/shared/types.ts`)**:
+    - Implemented `fetchGA4Report(propertyId, interactive)` querying Google Analytics Data API v1beta (`https://analyticsdata.googleapis.com/v1beta/properties/{id}:runReport`) over the rolling 28-day window (`startDate: "28daysAgo"`, `endDate: "today"`).
+    - Fetches the 4 approved target metrics: Active users (`activeUsers`), New users (`newUsers`), Event count (`eventCount`), and Key events (`keyEvents`).
+    - Stored parsed metric aggregates under `STORAGE_KEYS.GA4_METRICS` (`nooboss_ga4_metrics`) with `fetchedAt` timestamps.
+  - **Outcome 4 — Developer Workspace Live Telemetry & UI Clarity (`src/popup/components/DeveloperView.tsx`, `nooboss.css`)**:
+    - Integrated `GA4ConnectModal` with detailed permission and scope transparency before connection.
+    - Updated `.dev-status-chip`: when connected, shows green `Tracking connected · 28d` chip with tooltip showing GA4 property ID.
+    - Updated `.dev-ga4-metrics-bar`: displays live numeric metrics (`Active: 6`, `New: 6`, `Events: 23`, `Key: 0` for NoWebP property `553647047`).
+    - Added live `Refresh` action button to fetch fresh data on demand, with animated spin indicator during fetch.
+    - Added `Disconnect` affordance in project editor modal to clear stored metrics and cached token.
+  - **Outcome 5 — Test Suite & Live Verification**:
+    - Added comprehensive unit tests in `tests/unit/ga4-connection.test.ts` (9 tests covering manifest, token lifecycle, error handling, 401 invalidation, 403 handling, and storage security invariant). Total test suite: 15 test files, 228 passing tests.
+    - Static verification: `npm run typecheck` and `npm run lint` clean (0 errors, 0 warnings).
+    - Build: `npm run build` succeeds cleanly.
+    - Live Chrome verification: Verified live in Chrome instance with Extension Drawer (`onkcjpfgllpfbimnchjehboikhippnka`), completing OAuth consent for `iknoest@gmail.com`, enabling Google Analytics Data API in Cloud Console project `799106519083`, fetching live telemetry (Active 6, New 6, Events 23, Key 0) from GA4 property `553647047`, and confirming visual display.
 - **Extension Sorting UX Clarification & GA4 Read-Only Integration Path Milestone**:
   - **Outcome A — Clarified Extension Sorting UX (`Selector.tsx`, `nooboss.css`, `tests/unit/sorting-ux.test.ts`)**:
     - Consolidated sort modes into exactly 5 clear, user-facing modes:
@@ -219,28 +242,27 @@ Snapshot: 2026-09-13T22:47:00+02:00
 - Table layouts in manager windows benefit from fixed layout with min-widths and container overflow scrolling to ensure high-density responsiveness across screen sizes.
 
 ## Recommended next steps
-1. Review user feedback on the compact Developer Workspace table.
-2. Ava approval decision on the consolidated external integration matrix below before any manifest permission or OAuth changes are made.
+1. Gather user feedback on live read-only NoWebP Google Analytics data in Developer Workspace.
+2. Maintain zero write access / zero push boundary; keep frozen 1.1.0 release ZIP untouched.
 3. Once 1.1.0 publication is externally confirmed, apply GitHub tag/release `v1.1.0` to commit `f87404a02534d704e00b281a38411f8c204d0cb9`.
-4. Review user feedback on Developer Workspace foundation and project bindings.
 
-## Consolidated External Integration Matrix (Corrected Spec — Pending Approval)
-| Integration | API / Protocol | Endpoint | Required Manifest Permissions | Required Host Permissions | OAuth2 Scopes | Capabilities / Justification |
+## Consolidated External Integration Matrix (Status Update)
+| Integration | API / Protocol | Endpoint | Required Manifest Permissions | Required Host Permissions | OAuth2 Scopes | Status |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Chrome Web Store** | Chrome Web Store API v2 | `https://chromewebstore.googleapis.com/v2/publishers/{PUBLISHER_ID}/items/{EXTENSION_ID}:fetchStatus` | `identity`, `storage` | `https://chromewebstore.googleapis.com/*` | `https://www.googleapis.com/auth/chromewebstore` | Fetch published item status, live version, and review state. |
-| **GitHub** | GitHub REST API v3 / GraphQL | `https://api.github.com/repos/{OWNER}/{REPO}` | `identity` (if OAuth) or PAT | `https://api.github.com/*` | `repo` (or PAT `Contents: read`, `Actions: read`) | Fetch repository details, release tags, commit status, and CI workflow runs. |
-| **Google Analytics** | Google Analytics Data API v1beta | `https://analyticsdata.googleapis.com/v1beta/properties/{PROPERTY_ID}:runReport` | `identity`, `storage` | `https://analyticsdata.googleapis.com/*` | `https://www.googleapis.com/auth/analytics.readonly` | Query active users, sessions, event counts, and conversions. |
-| **Store CRX / ZIP Package** | Chromium CRX binary update service | `https://clients2.google.com/service/update2/crx?response=redirect&prodversion={CHROME_VERSION}&x=id%3D{EXTENSION_ID}%26installsource%3Dondemand%26uc` | `downloads` (optional) | `https://clients2.google.com/service/update2/crx*`, `https://chromewebstore.google.com/*` | None | Direct CRX download and client-side ZIP conversion without third-party services. |
+| **Google Analytics** | Google Analytics Data API v1beta | `https://analyticsdata.googleapis.com/v1beta/properties/{PROPERTY_ID}:runReport` | `identity`, `storage` | `https://analyticsdata.googleapis.com/*` | `https://www.googleapis.com/auth/analytics.readonly` | **Connected & Live** (Read-only rolling 28-day telemetry for NoWebP property `553647047`) |
+| **Chrome Web Store** | Chrome Web Store API v2 | `https://chromewebstore.googleapis.com/v2/publishers/{PUBLISHER_ID}/items/{EXTENSION_ID}:fetchStatus` | `identity`, `storage` | `https://chromewebstore.googleapis.com/*` | `https://www.googleapis.com/auth/chromewebstore` | Pending approval |
+| **GitHub** | GitHub REST API v3 / GraphQL | `https://api.github.com/repos/{OWNER}/{REPO}` | `identity` (if OAuth) or PAT | `https://api.github.com/*` | `repo` (or PAT `Contents: read`, `Actions: read`) | Pending approval |
+| **Store CRX / ZIP Package** | Chromium CRX binary update service | `https://clients2.google.com/service/update2/crx?response=redirect&prodversion={CHROME_VERSION}&x=id%3D{EXTENSION_ID}%26installsource%3Dondemand%26uc` | `downloads` (optional) | `https://clients2.google.com/service/update2/crx*`, `https://chromewebstore.google.com/*` | None | Pending approval |
 
 ### Analytics Recommended Metrics (Google Analytics Data API v1beta)
 For extension telemetry over the standard rolling 28-day window:
-1. `activeUsers`: Count of distinct active extension users over the period.
-2. `newUsers`: Count of users who launched or interacted with the extension for the first time (install acquisition).
-3. `eventCount`: Total number of user events (feature triggers, popup openings, options changes).
-4. `keyEvents`: Count of key events / primary workflow completions (e.g. group activation, site rule trigger).
+1. `activeUsers`: Count of distinct active extension users over the period (Live: 6).
+2. `newUsers`: Count of users who launched or interacted with the extension for the first time (Live: 6).
+3. `eventCount`: Total number of user events (Live: 23).
+4. `keyEvents`: Count of key events / primary workflow completions (Live: 0).
 
 ## Ongoing tasks
-- Maintain existing high unit test coverage (187 tests) across core features.
+- Maintain existing high unit test coverage (228 tests across 15 test files) across core features.
 - Review remaining browser profile data for compatibility with current Chrome APIs.
 - Validate recovered extension state against managed groups and extension configuration entries.
 - Keep cautious handling of LevelDB and IndexedDB data in local-only recovery steps.

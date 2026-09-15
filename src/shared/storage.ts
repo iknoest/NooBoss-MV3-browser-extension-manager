@@ -123,3 +123,40 @@ export async function saveDeveloperProjects(
 ): Promise<void> {
   await set(STORAGE_KEYS.DEVELOPER_PROJECTS, projects);
 }
+
+// ── Google Analytics 4 Metrics ──────────────────────────────
+
+export interface StoredGA4MetricsRecord {
+  propertyId: string;
+  activeUsers: number | null;
+  newUsers: number | null;
+  eventCount: number | null;
+  keyEvents: number | null;
+  fetchedAt: number;
+}
+
+export async function getGA4MetricsMap(): Promise<Record<string, StoredGA4MetricsRecord>> {
+  return get<Record<string, StoredGA4MetricsRecord>>(STORAGE_KEYS.GA4_METRICS, {});
+}
+
+export async function getProjectGA4Metrics(projectId: string): Promise<StoredGA4MetricsRecord | null> {
+  const map = await getGA4MetricsMap();
+  return map[projectId] ?? null;
+}
+
+export async function saveProjectGA4Metrics(
+  projectId: string,
+  record: StoredGA4MetricsRecord
+): Promise<void> {
+  const map = await getGA4MetricsMap();
+  map[projectId] = record;
+  await set(STORAGE_KEYS.GA4_METRICS, map);
+}
+
+export async function clearProjectGA4Metrics(projectId: string): Promise<void> {
+  const map = await getGA4MetricsMap();
+  if (map[projectId]) {
+    delete map[projectId];
+    await set(STORAGE_KEYS.GA4_METRICS, map);
+  }
+}

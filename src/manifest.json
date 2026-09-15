@@ -7,8 +7,19 @@
     "management",
     "storage",
     "tabs",
-    "notifications"
+    "notifications",
+    "identity"
   ],
+  "host_permissions": [
+    "https://analyticsdata.googleapis.com/*"
+  ],
+  "oauth2": {
+    "client_id": "799106519083-4abp5ksuf8mmqnh6tjret0guni0dbpt2.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/analytics.readonly"
+    ]
+  },
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA5TuVUos7PIEgR5DMHcqimuMkxSjcDKOWFvS/bkZrE+/k+kpKes4wJXJAsCTKG4vvXIIkoXJU4hFqQDmotdpiv3rlvldbAzS3SdiKSGxfV0Vb3Xv6+RKD6q34wvh0kZByeaDhmr7pQ4FuLoeRqanAPWriCVVSmI2Yk57kHSk+7AoLyKbDqu1lCr+Ge5N+aEjvOm1F3Agkkg7C0WCtHwPqGo0s7NMF+K2AGZLAH46GxH0F2vS5v4LQLGwqwVjRIEjwvxypucdR4G2bXjoPRBnDlqr3uCxoa2TWt3yQSaivW0UIzpORR7yps25r5++Mh5mSFtXnHkjaqf4NYy1Af/1r2QIDAQAB",
   "background": {
     "service_worker": "service-worker.js"
   },
