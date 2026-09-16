@@ -41,20 +41,22 @@ describe("GA4 Data API Client Module", () => {
   });
 
   describe("computeCountTrend and computeRateTrend", () => {
-    it("handles zero baseline truthfully as 'New'", () => {
-      expect(computeCountTrend(10, 0)).toBe("New");
+    it("handles zero baseline by returning undefined to avoid repetitive badges", () => {
+      expect(computeCountTrend(10, 0)).toBeUndefined();
       expect(computeCountTrend(0, 0)).toBeUndefined();
+      expect(computeCountTrend(10, null)).toBeUndefined();
+      expect(computeCountTrend(null, 10)).toBeUndefined();
     });
 
     it("computes percentage deltas for non-zero baseline", () => {
-      expect(computeCountTrend(15, 10)).toBe("↑50%");
-      expect(computeCountTrend(5, 10)).toBe("↓50%");
+      expect(computeCountTrend(15, 10)).toBe("+50%");
+      expect(computeCountTrend(5, 10)).toBe("−50%");
       expect(computeCountTrend(10, 10)).toBe("0%");
     });
 
     it("computes rate difference trends", () => {
       expect(computeRateTrend(0.35, 0.25)).toBe("+10pt");
-      expect(computeRateTrend(0.20, 0.25)).toBe("-5pt");
+      expect(computeRateTrend(0.20, 0.25)).toBe("−5pt");
       expect(computeRateTrend(0.20, 0.20)).toBe("0pt");
       expect(computeRateTrend(0.20, 0)).toBeUndefined();
     });
@@ -72,7 +74,7 @@ describe("GA4 Data API Client Module", () => {
   });
 
   describe("parseGA4RunReportResponse", () => {
-    it("parses valid GA4 Data API response rows into typed metrics and trends", () => {
+    it("parses valid GA4 Data API response with zero baseline without per-metric badges", () => {
       const mockResponse = {
         metricHeaders: [
           { name: "activeUsers", type: "TYPE_INTEGER" },
@@ -109,12 +111,52 @@ describe("GA4 Data API Client Module", () => {
       expect(result.views).toBe(62);
       expect(result.engagementRate).toBeCloseTo(0.3025);
       expect(result.newUsers).toBe(33);
-      expect(result.visitorsTrend).toBe("New");
-      expect(result.viewsTrend).toBe("New");
-      expect(result.newUsersTrend).toBe("New");
+      expect(result.hasPreviousBaseline).toBe(false);
+      expect(result.visitorsTrend).toBeUndefined();
+      expect(result.viewsTrend).toBeUndefined();
+      expect(result.newUsersTrend).toBeUndefined();
       // Legacy compatibility
       expect(result.activeUsers).toBe(32);
       expect(result.eventCount).toBe(62);
+    });
+
+    it("parses valid GA4 Data API response with positive baseline into trend badges", () => {
+      const mockResponse = {
+        metricHeaders: [
+          { name: "activeUsers", type: "TYPE_INTEGER" },
+          { name: "screenPageViews", type: "TYPE_INTEGER" },
+          { name: "engagementRate", type: "TYPE_FLOAT" },
+          { name: "newUsers", type: "TYPE_INTEGER" },
+        ],
+        rows: [
+          {
+            dimensionValues: [{ value: "date_range_0" }],
+            metricValues: [
+              { value: "30" },
+              { value: "60" },
+              { value: "0.50" },
+              { value: "15" },
+            ],
+          },
+          {
+            dimensionValues: [{ value: "date_range_1" }],
+            metricValues: [
+              { value: "20" },
+              { value: "80" },
+              { value: "0.40" },
+              { value: "10" },
+            ],
+          },
+        ],
+        rowCount: 2,
+      };
+
+      const result = parseGA4RunReportResponse("552797256", mockResponse);
+      expect(result.hasPreviousBaseline).toBe(true);
+      expect(result.visitorsTrend).toBe("+50%");
+      expect(result.viewsTrend).toBe("−25%");
+      expect(result.engagementTrend).toBe("+10pt");
+      expect(result.newUsersTrend).toBe("+50%");
     });
 
     it("parses empty rows response as zeroes", () => {

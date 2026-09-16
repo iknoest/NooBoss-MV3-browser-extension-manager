@@ -139,6 +139,7 @@ export interface StoredGA4MetricsRecord {
   activeUsers?: number | null;
   eventCount?: number | null;
   keyEvents?: number | null;
+  hasPreviousBaseline?: boolean;
   fetchedAt: number;
 }
 

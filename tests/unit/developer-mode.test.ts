@@ -265,10 +265,10 @@ describe("Developer Workspace & Developer Mode", () => {
       expect(devSource).toContain("GitHub not linked");
       expect(devSource).toContain("Store linked");
       expect(devSource).toContain("Store not linked");
-      expect(devSource).toContain("Analytics · Not connected");
+      expect(devSource).toContain("Store analytics · Not connected");
       expect(devSource).toContain("Analytics not linked");
-      expect(devSource).toContain("Analytics · Connected");
-      expect(devSource).toContain("Analytics · Error");
+      expect(devSource).toContain("Store analytics · Connected");
+      expect(devSource).toContain("Store analytics · Error");
       expect(devSource).toContain("Package: not enabled");
       expect(devSource).toContain("Runtime ON");
       expect(devSource).toContain("Open CWS Dashboard");
@@ -402,4 +402,206 @@ describe("Developer Workspace & Developer Mode", () => {
       expect(cssSource).toContain(".nooboss-app.full-manager {\n  height: 100vh;\n  width: 100%;\n  overflow: hidden;\n}");
     });
   });
+
+  describe("Outcome 7 — Project Deletion Safety and Information Design Simplification", () => {
+    it("verifies service-worker.ts cleans up GA metrics on DELETE_DEVELOPER_PROJECT without touching chrome.management", () => {
+      const swSource = fs.readFileSync("src/background/service-worker.ts", "utf8");
+      const deleteBlock = swSource.slice(
+        swSource.indexOf("case 'DELETE_DEVELOPER_PROJECT':"),
+        swSource.indexOf("case 'EXPORT_DATA':")
+      );
+
+      // Must clean up project GA metrics
+      expect(deleteBlock).toContain("clearProjectGA4Metrics(message.id)");
+      expect(deleteBlock).toContain("saveDeveloperProjects(filtered)");
+
+      // Invariant: MUST NOT invoke chrome.management uninstall or setEnabled
+      expect(deleteBlock).not.toContain("chrome.management.uninstall");
+      expect(deleteBlock).not.toContain("uninstallExtension");
+      expect(deleteBlock).not.toContain("chrome.management.setEnabled");
+      expect(deleteBlock).not.toContain("toggleExtension");
+    });
+
+    it("verifies project deletion semantics preserve installed extension state and clean GA metrics", async () => {
+      const {
+        saveDeveloperProjects,
+        getDeveloperProjects,
+        saveProjectGA4Metrics,
+        getProjectGA4Metrics,
+        clearProjectGA4Metrics,
+      } = await import("../../src/shared/storage");
+
+      let fakeStorage: Record<string, any> = {};
+      (globalThis as any).chrome = {
+        storage: {
+          local: {
+            get: vi.fn((keys: any, cb?: (items: any) => void) => {
+              const res: Record<string, any> = {};
+              if (typeof keys === "string") {
+                res[keys] = fakeStorage[keys];
+              } else if (Array.isArray(keys)) {
+                keys.forEach((k) => (res[k] = fakeStorage[k]));
+              } else if (keys && typeof keys === "object") {
+                Object.keys(keys).forEach((k) => {
+                  res[k] = fakeStorage[k] !== undefined ? fakeStorage[k] : keys[k];
+                });
+              }
+              if (typeof cb === "function") {
+                cb(res);
+                return;
+              }
+              return Promise.resolve(res);
+            }),
+            set: vi.fn((items: Record<string, any>, cb?: () => void) => {
+              Object.assign(fakeStorage, items);
+              if (typeof cb === "function") {
+                cb();
+                return;
+              }
+              return Promise.resolve();
+            }),
+          },
+        },
+        management: {
+          getAll: vi.fn().mockResolvedValue([
+            { id: "ext-1", name: "Local Dev Plugin", installType: "development", enabled: true },
+            { id: "ext-2", name: "Store Ext", installType: "normal", enabled: true },
+          ]),
+          uninstall: vi.fn(),
+          setEnabled: vi.fn(),
+        },
+      };
+
+      const project1: DeveloperProject = {
+        id: "proj-1",
+        name: "Dev Project 1",
+        localExtensionId: "ext-1",
+        createdAt: 1000,
+        updatedAt: 1000,
+      };
+      const project2: DeveloperProject = {
+        id: "proj-2",
+        name: "Dev Project 2",
+        localExtensionId: "ext-2",
+        createdAt: 2000,
+        updatedAt: 2000,
+      };
+
+      await saveDeveloperProjects([project1, project2]);
+      await saveProjectGA4Metrics("proj-1", {
+        propertyId: "553647047",
+        visitors: 10,
+        views: 20,
+        engagementRate: 0.5,
+        newUsers: 5,
+        fetchedAt: Date.now(),
+      });
+      await saveProjectGA4Metrics("proj-2", {
+        propertyId: "552797256",
+        visitors: 30,
+        views: 60,
+        engagementRate: 0.3,
+        newUsers: 15,
+        fetchedAt: Date.now(),
+      });
+
+      // Simulate DELETE_DEVELOPER_PROJECT action for proj-1
+      const currentProjects = await getDeveloperProjects();
+      const filtered = currentProjects.filter((p) => p.id !== "proj-1");
+      await saveDeveloperProjects(filtered);
+      await clearProjectGA4Metrics("proj-1");
+
+      // Verify proj-1 is deleted from projects
+      const remainingProjects = await getDeveloperProjects();
+      expect(remainingProjects).toHaveLength(1);
+      expect(remainingProjects[0].id).toBe("proj-2");
+
+      // Verify proj-1 GA metrics are removed while proj-2 remains
+      const p1Metrics = await getProjectGA4Metrics("proj-1");
+      const p2Metrics = await getProjectGA4Metrics("proj-2");
+      expect(p1Metrics).toBeNull();
+      expect(p2Metrics).not.toBeNull();
+      expect(p2Metrics?.propertyId).toBe("552797256");
+
+      // Invariant: chrome.management.uninstall and setEnabled were NEVER called
+      expect((globalThis as any).chrome.management.uninstall).not.toHaveBeenCalled();
+      expect((globalThis as any).chrome.management.setEnabled).not.toHaveBeenCalled();
+
+      // Installed extensions inventory remains completely intact
+      const installed = await (globalThis as any).chrome.management.getAll();
+      expect(installed).toHaveLength(2);
+      expect(installed[0].id).toBe("ext-1");
+      expect(installed[0].enabled).toBe(true);
+    });
+
+    it("verifies Delete Confirmation Dialog copy, Material-3 actions, and Escape key dismissal", () => {
+      const devSource = fs.readFileSync("src/popup/components/DeveloperView.tsx", "utf8");
+
+      // Modal title and body copy
+      expect(devSource).toContain("Remove project from Developer Workspace?");
+      expect(devSource).toContain(
+        "This removes only the project's Developer Workspace links, analytics settings, and local project metadata. The extension itself will remain installed and unchanged."
+      );
+
+      // Buttons
+      expect(devSource).toContain("Remove project");
+      expect(devSource).toContain("dev-delete-confirm-btn");
+      expect(devSource).toContain("Cancel");
+
+      // Escape key handler
+      expect(devSource).toContain('if (e.key === "Escape")');
+      expect(devSource).toContain("setDeleteConfirmId(null)");
+
+      // Verify M3 CSS styling in nooboss.css
+      const cssSource = fs.readFileSync("src/popup/components/nooboss.css", "utf8");
+      expect(cssSource).toContain(".confirm-modal-box {");
+      expect(cssSource).toContain(".confirm-modal-title {");
+      expect(cssSource).toContain(".confirm-modal-actions {");
+      expect(cssSource).toContain(".dev-delete-confirm-text {");
+      expect(cssSource).toContain(".dev-delete-confirm-btn {");
+      expect(cssSource).toContain("#d93025");
+    });
+
+    it("verifies main row analytics displays 3 KPIs, removes New users, and renders single zero-baseline note", () => {
+      const devSource = fs.readFileSync("src/popup/components/DeveloperView.tsx", "utf8");
+
+      // Locate the main row metrics bar
+      const metricsBarStart = devSource.indexOf('className={`dev-ga4-metrics-bar');
+      const metricsBarEnd = devSource.indexOf('</article>', metricsBarStart);
+      const metricsBarBlock = devSource.slice(metricsBarStart, metricsBarEnd);
+
+      // Main row has exactly 3 primary KPIs
+      expect(metricsBarBlock).toContain("Visitors");
+      expect(metricsBarBlock).toContain("Views");
+      expect(metricsBarBlock).toContain("Engagement");
+
+      // New users MUST NOT be in the compact main row
+      expect(metricsBarBlock).not.toContain("New users");
+
+      // Main row has single zero-baseline note
+      expect(metricsBarBlock).toContain("No previous-period baseline");
+      expect(metricsBarBlock).toContain("dev-ga4-baseline-note");
+
+      // Clarified scope label
+      expect(metricsBarBlock).toContain("Store analytics · 28d");
+
+      // New users IS in ProjectEditorModal under the metrics grid
+      const editorStart = devSource.indexOf("function ProjectEditorModal");
+      const editorBlock = devSource.slice(editorStart);
+      expect(editorBlock).toContain("dev-editor-metrics-grid");
+      expect(editorBlock).toContain("New users");
+      expect(editorBlock).toContain("GA4 property ID for Chrome Web Store listing telemetry.");
+
+      // Neutral styling for connected metrics bar (no green container fill or border)
+      const cssSource = fs.readFileSync("src/popup/components/nooboss.css", "utf8");
+      const connectedBarCss = cssSource.slice(
+        cssSource.indexOf(".dev-ga4-metrics-bar.dev-ga4-metrics-connected {"),
+        cssSource.indexOf(".dev-ga4-metrics-bar.dev-ga4-metrics-error {")
+      );
+      expect(connectedBarCss).not.toContain("rgba(30, 142, 62");
+      expect(connectedBarCss).toContain("var(--border-subtle)");
+      expect(connectedBarCss).toContain("var(--bg-secondary)");
+    });
+  });
 });
+

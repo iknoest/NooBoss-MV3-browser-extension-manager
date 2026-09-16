@@ -241,9 +241,9 @@ describe("History Event Filtering, Extension Sorting & Developer Clarity", () =>
       expect(devSource).toContain("Store not linked");
 
       // Analytics (GA4 Data API integration)
-      expect(devSource).toContain("Analytics · Not connected");
+      expect(devSource).toContain("Store analytics · Not connected");
       expect(devSource).toContain("Analytics not linked");
-      expect(devSource).toContain("Analytics · Connected");
+      expect(devSource).toContain("Store analytics · Connected");
 
       // Package
       expect(devSource).toContain("Package: not enabled");

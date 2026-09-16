@@ -3806,30 +3806,108 @@ details.dev-menu-container > summary::-webkit-details-marker {
   margin-top: 10px;
 }
 
+/* Material-3 Confirmation Modal */
+.confirm-modal-box {
+  background-color: var(--bg-modal);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  width: 90%;
+  max-width: 440px;
+  padding: 24px;
+  position: relative;
+  animation: slideUp 0.15s ease-out;
+  box-sizing: border-box;
+}
+
+.confirm-modal-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 10px 0;
+  line-height: 1.3;
+}
+
+.confirm-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 20px;
+}
+
 .dev-delete-confirm-text {
   font-size: 13px;
   color: var(--text-secondary);
-  margin: 8px 0 16px 0;
-  line-height: 1.4;
+  margin: 0 0 16px 0;
+  line-height: 1.5;
 }
 
 .dev-delete-confirm-btn {
-  background-color: #dc2626 !important;
-  border-color: #dc2626 !important;
+  background-color: #d93025 !important;
+  border-color: #d93025 !important;
   color: #ffffff !important;
+  font-weight: 500;
 }
 
-/* GA4 Connected & Action States */
+.dev-delete-confirm-btn:hover {
+  background-color: #b3261e !important;
+  border-color: #b3261e !important;
+}
+
+/* GA4 Connected & Action States (Neutral Surfaces) */
 .dev-ga4-metrics-bar.dev-ga4-metrics-connected {
   border-style: solid;
-  border-color: rgba(30, 142, 62, 0.3);
-  background-color: rgba(30, 142, 62, 0.05);
+  border-color: var(--border-subtle);
+  background-color: var(--bg-secondary);
 }
 
 .dev-ga4-metrics-bar.dev-ga4-metrics-error {
   border-style: solid;
   border-color: rgba(217, 48, 37, 0.3);
   background-color: rgba(217, 48, 37, 0.05);
+}
+
+.dev-ga4-baseline-note {
+  color: var(--text-muted);
+  font-size: 10.5px;
+  font-style: italic;
+}
+
+.dev-editor-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-top: 12px;
+  padding: 12px;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.dev-editor-metric-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dev-editor-metric-title {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.dev-editor-metric-val {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-family: monospace;
+}
+
+.dev-editor-baseline-note {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
+  margin-top: 6px;
+  grid-column: 1 / -1;
 }
 
 .dev-status-chip.dev-chip-connected {

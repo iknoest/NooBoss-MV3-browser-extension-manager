@@ -93,6 +93,20 @@ export function DeveloperView({
     };
   }, [projects]);
 
+  // Escape key handler for delete confirmation modal
+  useEffect(() => {
+    if (!deleteConfirmId) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setDeleteConfirmId(null);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [deleteConfirmId]);
+
   const handleOpenConnectModal = (project: DeveloperProject) => {
     setConnectModalProject(project);
     setModalError(null);
@@ -472,8 +486,8 @@ export function DeveloperView({
                           type="button"
                           className="action-icon-btn dev-row-action-btn dev-delete-btn"
                           onClick={() => setDeleteConfirmId(proj.id)}
-                          title="Delete project"
-                          aria-label="Delete project"
+                          title="Remove project from Developer Workspace"
+                          aria-label="Remove project"
                         >
                           <MaterialSymbol name="delete" size={16} />
                         </button>
@@ -545,39 +559,39 @@ export function DeveloperView({
                             <span className="dev-chip-label">Analytics not linked</span>
                           </button>
                         ) : isConnecting ? (
-                          <span className="dev-status-chip dev-chip-bound" title="Connecting to Google Analytics...">
+                          <span className="dev-status-chip dev-chip-bound" title="Connecting to Store analytics...">
                             <MaterialSymbol name="sync" size={13} className="spin-icon" color="var(--theme-main, #1a73e8)" />
-                            <span className="dev-chip-label">Analytics · Connecting…</span>
+                            <span className="dev-chip-label">Store analytics · Connecting…</span>
                           </span>
                         ) : isConnected ? (
                           <button
                             type="button"
                             className="dev-status-chip dev-chip-connected"
                             onClick={() => handleStartEdit(proj)}
-                            title={`Google Analytics Property: ${proj.gaPropertyId} · Connected (Last 28 days)`}
+                            title={`Google Analytics Property: ${proj.gaPropertyId} · Store analytics connected (Last 28 days)`}
                           >
                             <span className="dev-status-dot connected" />
-                            <span className="dev-chip-label">Analytics · Connected</span>
+                            <span className="dev-chip-label">Store analytics · Connected</span>
                           </button>
                         ) : projectError ? (
                           <button
                             type="button"
                             className="dev-status-chip dev-chip-error"
                             onClick={() => handleOpenConnectModal(proj)}
-                            title={`Analytics error: ${projectError}`}
+                            title={`Store analytics error: ${projectError}`}
                           >
                             <span className="dev-status-dot error" />
-                            <span className="dev-chip-label">Analytics · Error</span>
+                            <span className="dev-chip-label">Store analytics · Error</span>
                           </button>
                         ) : (
                           <button
                             type="button"
                             className="dev-status-chip dev-chip-bound dev-chip-actionable"
                             onClick={() => handleOpenConnectModal(proj)}
-                            title={`Google Analytics Property: ${proj.gaPropertyId} · Click to connect read-only data`}
+                            title={`Google Analytics Property: ${proj.gaPropertyId} · Click to connect store listing analytics`}
                           >
                             <span className="dev-status-dot idle" />
-                            <span className="dev-chip-label">Analytics · Not connected</span>
+                            <span className="dev-chip-label">Store analytics · Not connected</span>
                           </button>
                         )}
 
@@ -603,13 +617,13 @@ export function DeveloperView({
                           }`}
                           title={
                             isConnected
-                              ? `Google Analytics Data API v1beta (Last 28 days vs Previous 28 days). Last fetched: ${new Date(storedRecord.fetchedAt).toLocaleTimeString()}`
+                              ? `Store listing analytics (Last 28 days vs Previous 28 days via GA4 Data API v1beta). Last fetched: ${new Date(storedRecord.fetchedAt).toLocaleTimeString()}`
                               : projectError
                               ? `Error: ${projectError}`
-                              : "Google Analytics Data API v1beta. Click Connect to authorize read-only reporting."
+                              : "Store listing analytics (GA4 Data API v1beta). Click Connect to authorize read-only reporting."
                           }
                         >
-                          <div className="dev-ga4-period-label">Last 28 days</div>
+                          <div className="dev-ga4-period-label">Store analytics · 28d</div>
                           <div className="dev-ga4-metric-divider" />
                           <div className="dev-ga4-metric-cell">
                             <span className="dev-ga4-metric-name">Visitors</span>
@@ -618,8 +632,8 @@ export function DeveloperView({
                                 ? (storedRecord.visitors ?? storedRecord.activeUsers)
                                 : "—"}
                             </span>
-                            {isConnected && storedRecord?.visitorsTrend && (
-                              <span className={`dev-trend-badge ${storedRecord.visitorsTrend === "—" ? "neutral" : ""}`}>
+                            {isConnected && storedRecord?.hasPreviousBaseline && storedRecord?.visitorsTrend && (
+                              <span className={`dev-trend-badge ${storedRecord.visitorsTrend === "0%" ? "neutral" : ""}`}>
                                 {storedRecord.visitorsTrend}
                               </span>
                             )}
@@ -632,8 +646,8 @@ export function DeveloperView({
                                 ? (storedRecord.views ?? storedRecord.eventCount)
                                 : "—"}
                             </span>
-                            {isConnected && storedRecord?.viewsTrend && (
-                              <span className={`dev-trend-badge ${storedRecord.viewsTrend === "—" ? "neutral" : ""}`}>
+                            {isConnected && storedRecord?.hasPreviousBaseline && storedRecord?.viewsTrend && (
+                              <span className={`dev-trend-badge ${storedRecord.viewsTrend === "0%" ? "neutral" : ""}`}>
                                 {storedRecord.viewsTrend}
                               </span>
                             )}
@@ -646,26 +660,18 @@ export function DeveloperView({
                                 ? `${Math.round(storedRecord.engagementRate * 100)}%`
                                 : "—"}
                             </span>
-                            {isConnected && storedRecord?.engagementTrend && (
-                              <span className={`dev-trend-badge ${storedRecord.engagementTrend === "—" ? "neutral" : ""}`}>
+                            {isConnected && storedRecord?.hasPreviousBaseline && storedRecord?.engagementTrend && (
+                              <span className={`dev-trend-badge ${storedRecord.engagementTrend === "0pt" ? "neutral" : ""}`}>
                                 {storedRecord.engagementTrend}
                               </span>
                             )}
                           </div>
-                          <div className="dev-ga4-metric-divider" />
-                          <div className="dev-ga4-metric-cell">
-                            <span className="dev-ga4-metric-name">New users</span>
-                            <span className="dev-ga4-metric-value">
-                              {isConnected && storedRecord?.newUsers !== undefined && storedRecord?.newUsers !== null
-                                ? storedRecord.newUsers
-                                : "—"}
-                            </span>
-                            {isConnected && storedRecord?.newUsersTrend && (
-                              <span className={`dev-trend-badge ${storedRecord.newUsersTrend === "—" ? "neutral" : ""}`}>
-                                {storedRecord.newUsersTrend}
-                              </span>
-                            )}
-                          </div>
+                          {isConnected && !storedRecord?.hasPreviousBaseline && (
+                            <>
+                              <div className="dev-ga4-metric-divider" />
+                              <span className="dev-ga4-baseline-note">No previous-period baseline</span>
+                            </>
+                          )}
                           <div className="dev-ga4-metric-status">
                             {isConnected ? (
                               <button
@@ -676,7 +682,7 @@ export function DeveloperView({
                                   handleRefreshGA4(proj);
                                 }}
                                 disabled={isConnecting}
-                                title="Refresh 28-day metrics from Google Analytics"
+                                title="Refresh 28-day store listing analytics"
                                 aria-label="Refresh metrics"
                               >
                                 <MaterialSymbol name="refresh" size={12} className={isConnecting ? "spin-icon" : ""} />
@@ -892,11 +898,18 @@ export function DeveloperView({
       {deleteConfirmId && (
         <div className="subwindow-overlay" onClick={() => setDeleteConfirmId(null)}>
           <div className="confirm-modal-box" onClick={(e) => e.stopPropagation()}>
-            <div className="confirm-modal-title">Delete this developer project?</div>
+            <div className="confirm-modal-title">Remove project from Developer Workspace?</div>
             <p className="dev-delete-confirm-text">
-              This will remove the project bindings from Extension Drawer. Installed extensions and external accounts are unaffected.
+              This removes only the project's Developer Workspace links, analytics settings, and local project metadata. The extension itself will remain installed and unchanged.
             </p>
             <div className="confirm-modal-actions">
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setDeleteConfirmId(null)}
+              >
+                Cancel
+              </button>
               <button
                 type="button"
                 className="btn btn-primary dev-delete-confirm-btn"
@@ -905,14 +918,7 @@ export function DeveloperView({
                   setDeleteConfirmId(null);
                 }}
               >
-                Delete Project
-              </button>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => setDeleteConfirmId(null)}
-              >
-                Cancel
+                Remove project
               </button>
             </div>
           </div>
@@ -1181,7 +1187,7 @@ function ProjectEditorModal({
                 Google Analytics Property ID
               </label>
               <span className="settings-description">
-                GA4 property ID for extension telemetry.
+                GA4 property ID for Chrome Web Store listing telemetry.
               </span>
             </div>
             <div className="settings-control">
@@ -1201,32 +1207,72 @@ function ProjectEditorModal({
             <div className="dev-editor-ga-actions">
               {metricsRecord ? (
                 <>
-                  <span className="dev-status-chip dev-chip-connected">
-                    <span className="dev-status-dot connected" />
-                    <span className="dev-chip-label">Analytics · Connected</span>
-                  </span>
-                  <button
-                    type="button"
-                    className="dev-ga4-refresh-btn"
-                    onClick={() => {
-                      const currentProject: DeveloperProject = {
-                        ...(project as DeveloperProject),
-                        gaPropertyId: cleanPropertyId(gaPropertyId.trim()) || undefined,
-                      };
-                      onRefreshGA4?.(currentProject);
-                    }}
-                  >
-                    <MaterialSymbol name="refresh" size={13} />
-                    <span>Refresh data</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="dev-ga4-refresh-btn"
-                    onClick={() => onDisconnectGA4?.(project.id!)}
-                  >
-                    <MaterialSymbol name="link_off" size={13} />
-                    <span>Disconnect</span>
-                  </button>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                    <span className="dev-status-chip dev-chip-connected">
+                      <span className="dev-status-dot connected" />
+                      <span className="dev-chip-label">Store analytics · Connected</span>
+                    </span>
+                    <button
+                      type="button"
+                      className="dev-ga4-refresh-btn"
+                      onClick={() => {
+                        const currentProject: DeveloperProject = {
+                          ...(project as DeveloperProject),
+                          gaPropertyId: cleanPropertyId(gaPropertyId.trim()) || undefined,
+                        };
+                        onRefreshGA4?.(currentProject);
+                      }}
+                    >
+                      <MaterialSymbol name="refresh" size={13} />
+                      <span>Refresh data</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="dev-ga4-refresh-btn"
+                      onClick={() => onDisconnectGA4?.(project.id!)}
+                    >
+                      <MaterialSymbol name="link_off" size={13} />
+                      <span>Disconnect</span>
+                    </button>
+                  </div>
+
+                  <div className="dev-editor-metrics-grid">
+                    <div className="dev-editor-metric-card">
+                      <span className="dev-editor-metric-title">Visitors</span>
+                      <span className="dev-editor-metric-val">
+                        {(metricsRecord.visitors ?? metricsRecord.activeUsers) !== undefined && (metricsRecord.visitors ?? metricsRecord.activeUsers) !== null
+                          ? (metricsRecord.visitors ?? metricsRecord.activeUsers)
+                          : "—"}
+                      </span>
+                    </div>
+                    <div className="dev-editor-metric-card">
+                      <span className="dev-editor-metric-title">Views</span>
+                      <span className="dev-editor-metric-val">
+                        {(metricsRecord.views ?? metricsRecord.eventCount) !== undefined && (metricsRecord.views ?? metricsRecord.eventCount) !== null
+                          ? (metricsRecord.views ?? metricsRecord.eventCount)
+                          : "—"}
+                      </span>
+                    </div>
+                    <div className="dev-editor-metric-card">
+                      <span className="dev-editor-metric-title">Engagement</span>
+                      <span className="dev-editor-metric-val">
+                        {metricsRecord.engagementRate !== undefined && metricsRecord.engagementRate !== null
+                          ? `${Math.round(metricsRecord.engagementRate * 100)}%`
+                          : "—"}
+                      </span>
+                    </div>
+                    <div className="dev-editor-metric-card">
+                      <span className="dev-editor-metric-title">New users</span>
+                      <span className="dev-editor-metric-val">
+                        {metricsRecord.newUsers !== undefined && metricsRecord.newUsers !== null
+                          ? metricsRecord.newUsers
+                          : "—"}
+                      </span>
+                    </div>
+                    {!metricsRecord.hasPreviousBaseline && (
+                      <div className="dev-editor-baseline-note">No previous-period baseline</div>
+                    )}
+                  </div>
                 </>
               ) : (
                 <button
@@ -1235,7 +1281,7 @@ function ProjectEditorModal({
                   onClick={handleConnectClick}
                 >
                   <MaterialSymbol name="login" size={13} />
-                  <span>Connect Google Analytics</span>
+                  <span>Connect Store Analytics</span>
                 </button>
               )}
             </div>
@@ -1246,7 +1292,7 @@ function ProjectEditorModal({
             <div className="dev-modal-spec-item">
               <MaterialSymbol name="analytics" size={15} color="var(--text-muted)" />
               <span>
-                <strong>Google Analytics:</strong> Read-only access queries <em>Visitors</em>, <em>Views</em>, <em>Engagement rate</em>, and <em>New users</em> over the last 28 days vs the previous 28 days via Google Analytics Data API v1beta.
+                <strong>Store analytics:</strong> Read-only access queries <em>Visitors</em>, <em>Views</em>, <em>Engagement rate</em>, and <em>New users</em> over the last 28 days vs the previous 28 days via Google Analytics Data API v1beta.
               </span>
             </div>
             <div className="dev-modal-spec-item">
@@ -1317,7 +1363,7 @@ function GA4ConnectModal({
         <div className="subwindow-header">
           <div className="subwindow-title" id="ga4-modal-title" style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <MaterialSymbol name="analytics" size={20} color={themeMainColor} />
-            <span>Connect Google Analytics (Read-Only)</span>
+            <span>Connect Store Analytics (Read-Only)</span>
           </div>
           <button
             type="button"
@@ -1332,7 +1378,7 @@ function GA4ConnectModal({
 
         <div className="dev-ga4-modal-body">
           <p className="dev-ga4-modal-lead">
-            Extension Drawer will request <strong>read-only access</strong> via Chrome Identity OAuth to fetch 28-day performance metrics for <strong>{project.name}</strong>.
+            Extension Drawer will request <strong>read-only access</strong> via Chrome Identity OAuth to fetch 28-day Chrome Web Store listing telemetry for <strong>{project.name}</strong>.
           </p>
 
           {!propId && (

@@ -47,6 +47,7 @@ export interface GA4MetricValues {
   viewsTrend?: string;
   engagementTrend?: string;
   newUsersTrend?: string;
+  hasPreviousBaseline?: boolean;
   activeUsers: number | null;
   eventCount: number | null;
   keyEvents: number | null;
@@ -74,31 +75,30 @@ export interface GA4ProjectTrackingStatus {
 
 /**
  * Computes trend percentage for count metrics (e.g. Visitors, Views, New users).
- * Truthfully handles zero-denominator periods with "New" rather than Infinity or NaN.
+ * Returns undefined when previous baseline is zero or null to avoid misleading or repetitive badges.
  */
 export function computeCountTrend(curr: number | null, prev: number | null): string | undefined {
-  if (curr === null) return undefined;
-  if (prev === null || prev === 0) {
-    return curr > 0 ? "New" : undefined;
+  if (curr === null || prev === null || prev === 0) {
+    return undefined;
   }
   const diff = curr - prev;
   const pct = Math.round((diff / prev) * 100);
-  if (pct > 0) return `↑${pct}%`;
-  if (pct < 0) return `↓${Math.abs(pct)}%`;
+  if (pct > 0) return `+${pct}%`;
+  if (pct < 0) return `−${Math.abs(pct)}%`;
   return "0%";
 }
 
 /**
  * Computes percentage-point delta for rate metrics (e.g. Engagement rate 0.0-1.0).
+ * Returns undefined when previous baseline is zero or null.
  */
 export function computeRateTrend(curr: number | null, prev: number | null): string | undefined {
-  if (curr === null) return undefined;
-  if (prev === null || prev === 0) {
+  if (curr === null || prev === null || prev === 0) {
     return undefined;
   }
   const ptDiff = Math.round((curr - prev) * 100);
   if (ptDiff > 0) return `+${ptDiff}pt`;
-  if (ptDiff < 0) return `-${Math.abs(ptDiff)}pt`;
+  if (ptDiff < 0) return `−${Math.abs(ptDiff)}pt`;
   return "0pt";
 }
 
@@ -191,6 +191,7 @@ export function parseGA4RunReportResponse(
     result.activeUsers = 0;
     result.eventCount = 0;
     result.keyEvents = 0;
+    result.hasPreviousBaseline = false;
     return result;
   }
 
@@ -211,6 +212,15 @@ export function parseGA4RunReportResponse(
   const views1 = parseVal(mValues1, "screenPageViews");
   const engagement1 = parseVal(mValues1, "engagementRate");
   const newUsers1 = parseVal(mValues1, "newUsers");
+
+  const hasPreviousBaseline = Boolean(
+    row1 &&
+    ((visitors1 ?? 0) > 0 ||
+     (views1 ?? 0) > 0 ||
+     (engagement1 ?? 0) > 0 ||
+     (newUsers1 ?? 0) > 0)
+  );
+  result.hasPreviousBaseline = hasPreviousBaseline;
 
   result.visitors = visitors0;
   result.views = views0;

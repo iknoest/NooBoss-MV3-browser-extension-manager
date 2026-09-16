@@ -24,6 +24,7 @@ import {
   savePendingChanges,
   getDeveloperProjects,
   saveDeveloperProjects,
+  clearProjectGA4Metrics,
 } from '../shared/storage';
 import { computeDesiredStates } from '../shared/autostate';
 import { createExportData, validateImportData } from '../shared/import-export';
@@ -296,9 +297,12 @@ async function handleMessage(message: Message): Promise<unknown> {
     }
 
     case 'DELETE_DEVELOPER_PROJECT': {
+      // Strictly project metadata and integration cleanup.
+      // NEVER touches Chrome extension uninstallation or installed extension state.
       const projects = await getDeveloperProjects();
       const filtered = projects.filter((p) => p.id !== message.id);
       await saveDeveloperProjects(filtered);
+      await clearProjectGA4Metrics(message.id);
       return { success: true };
     }
 

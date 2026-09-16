@@ -1,6 +1,6 @@
 # Handover
 
-Snapshot: 2026-09-13T22:47:00+02:00
+Snapshot: 2026-09-16T15:55:00+02:00
 
 ## Current release state (1.1.0 continuity)
 - `f87404a02534d704e00b281a38411f8c204d0cb9` is the frozen accepted 1.1.0 source and release baseline.
@@ -8,9 +8,38 @@ Snapshot: 2026-09-13T22:47:00+02:00
 - Chrome Web Store 1.1.0 upload / submission / approval / publication is NOT CONFIRMED by current repository evidence.
 - Therefore, the 1.1.0 CWS publication loop remains open until externally verified (do not guess CWS dashboard state).
 - The GitHub `v1.1.0` tag and release should remain pending until public 1.1.0 publication is confirmed.
-- Current UX work (at `4fbdbcb`, `c12e195`, `f22a1e4`, `e014bf4`, and follow-up commits) is post-1.1.0 local work and must not silently become part of the frozen 1.1.0 release artifact.
+- Current UX work (at `4fbdbcb`, `c12e195`, `f22a1e4`, `e014bf4`, `14ff0e0`, and follow-up commits) is post-1.1.0 local work and must not silently become part of the frozen 1.1.0 release artifact.
 
 ## Work completed
+- **Developer Project Deletion Safety & Analytics Information Design Milestone**:
+  - **Outcome 1 — Enforced Project Deletion Safety & Atomic Metadata Cleanup (`src/background/service-worker.ts`)**:
+    - Strictly enforced non-destructive Developer Project removal: `DELETE_DEVELOPER_PROJECT` operates solely on Extension Drawer metadata (`developerProjects` and `nooboss_ga4_metrics`).
+    - Added atomic cleanup via `clearProjectGA4Metrics(id)` to prevent orphan analytics entries upon project deletion.
+    - Non-destructive invariant: strictly guaranteed that project deletion never calls `chrome.management.uninstall`, never disables an extension (`chrome.management.setEnabled`), never removes unpacked extensions, and never emits an `Uninstalled` history record.
+  - **Outcome 2 — Accessible Material-3 Project Removal Confirmation Dialog (`src/popup/components/DeveloperView.tsx`, `nooboss.css`)**:
+    - Replaced unstyled confirmation dialog with full Material-3 modal dialog primitives (`.confirm-modal-box`, `.confirm-modal-title`, `.confirm-modal-actions`, `.dev-delete-confirm-text`, and `.dev-delete-confirm-btn`).
+    - Exact title: *"Remove project from Developer Workspace?"*.
+    - Exact copy: *"This removes only the project's Developer Workspace links, analytics settings, and local project metadata. The extension itself will remain installed and unchanged."*
+    - Actions: Neutral `Cancel` and destructive red `Remove project` button.
+    - Keyboard and interaction ergonomics: Added `Escape` key listener to dismiss the modal, background scrim click dismissal, and high-contrast styling across light and dark themes.
+  - **Outcome 3 — Baseline-Aware Trend Calculations & Zero-Baseline Noise Suppression (`src/shared/ga4-client.ts`, `src/shared/storage.ts`, `tests/unit/ga4-client.test.ts`)**:
+    - Enhanced trend calculations (`computeCountTrend` and `computeRateTrend`) to return `undefined` when the previous 28-day baseline is zero or null.
+    - Eliminated repetitive and distracting `New` badges on zero-baseline metrics, replacing them with a single compact, honest note: *"No previous-period baseline"*.
+    - Formatted active trends with concise unicode prefixes (`+18%`, `−12%`, `+4pt`, `−3pt`).
+    - Stored `hasPreviousBaseline` boolean flag in `StoredGA4MetricsRecord` to indicate baseline availability.
+  - **Outcome 4 — Decision-Useful 3-KPI Main Row & Full 4-Metric Editor Modal (`src/popup/components/DeveloperView.tsx`, `nooboss.css`)**:
+    - Streamlined the project row summary (`.dev-ga4-metrics-bar`) to exactly 3 primary decision KPIs: `Visitors` (`activeUsers`), `Views` (`screenPageViews`), and `Engagement` (`engagementRate`).
+    - Moved acquisition telemetry (`New users`) out of the row into the Project Editor modal (`ProjectEditorModal`) in a dedicated 4-metric grid (`.dev-editor-metrics-grid`).
+    - Preserved high-density scanability (64–76px row height) while making critical engagement insights immediately visible.
+  - **Outcome 5 — Neutral Surface Styling & Honest Status Indicator (`src/popup/components/nooboss.css`, `DeveloperView.tsx`)**:
+    - Removed decorative green background and border styling from `.dev-ga4-metrics-bar.dev-ga4-metrics-connected`, replacing them with neutral surface tokens (`var(--bg-secondary)` and `var(--border-subtle)`).
+    - Preserved semantic green status strictly for the live connection health indicator dot (`● Store analytics · Connected`).
+  - **Outcome 6 — Clarified Store Listing Telemetry Scope (`src/popup/components/DeveloperView.tsx`)**:
+    - Updated row and chip labeling from generic "Tracking" to explicit `Store analytics · 28d` and `Store analytics · Connected`.
+    - Added explanatory copy in both the live row and the project editor clarifying that data represents Chrome Web Store listing telemetry, avoiding user confusion with in-extension runtime activity.
+  - **Outcome 7 — Comprehensive Test Coverage & Live Chrome Verification**:
+    - Expanded unit tests in `tests/unit/ga4-client.test.ts` (12 tests) and `tests/unit/developer-mode.test.ts` (29 tests, including 4 new regression tests for deletion safety, storage invariants, M3 dialog, and KPI layout). Total test suite: 15 test files, 238 passing tests.
+    - Verified live in Chrome instance (Window `12374` / AppleScript `864996558`): confirmed M3 confirmation dialog appearance, Escape key dismissal, Cancel button behavior, temporary project creation, safe project removal with extension remaining installed in Chrome and returned to Unlinked extensions, and zero `Uninstalled` history events.
 - **Live Read-Only NoWebP Google Analytics Data Milestone**:
   - **Outcome 1 — Manifest Permissions & Extension Identity Alignment (`src/manifest.json`, `dist/manifest.json`)**:
     - Added `identity` permission, `host_permissions: ["https://analyticsdata.googleapis.com/*"]`, and `oauth2` configuration (`client_id: "799106519083-4abp5ksuf8mmqnh6tjret0guni0dbpt2.apps.googleusercontent.com"`, `scopes: ["https://www.googleapis.com/auth/analytics.readonly"]`).
@@ -262,7 +291,7 @@ For extension telemetry over the standard rolling 28-day window:
 4. `keyEvents`: Count of key events / primary workflow completions (Live: 0).
 
 ## Ongoing tasks
-- Maintain existing high unit test coverage (228 tests across 15 test files) across core features.
+- Maintain existing high unit test coverage (238 tests across 15 test files) across core features.
 - Review remaining browser profile data for compatibility with current Chrome APIs.
 - Validate recovered extension state against managed groups and extension configuration entries.
 - Keep cautious handling of LevelDB and IndexedDB data in local-only recovery steps.
