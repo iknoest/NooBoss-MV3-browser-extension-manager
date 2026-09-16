@@ -213,6 +213,9 @@ async function handleMessage(message: Message): Promise<unknown> {
     case 'GET_EXTENSIONS':
       return getExtensions();
 
+    case 'GET_SELF':
+      return chrome.management.getSelf();
+
     case 'TOGGLE_EXTENSION':
       return toggleExtension(message.id, message.enabled);
 

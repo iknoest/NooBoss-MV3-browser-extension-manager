@@ -181,7 +181,8 @@ export type Message =
   | { type: 'IMPORT_RESULT'; success: boolean; error?: string }
   | { type: 'STATE_CHANGED' }
   | { type: 'TEST_AUTOSTATE_AUTOMATIC' }
-  | { type: 'AUTOSTATE_TEST_RESULT'; automatic: boolean; details: string };
+  | { type: 'AUTOSTATE_TEST_RESULT'; automatic: boolean; details: string }
+  | { type: 'GET_SELF' };
 
 /** Default settings */
 export const DEFAULT_SETTINGS: AppSettings = {

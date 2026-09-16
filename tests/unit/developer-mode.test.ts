@@ -265,11 +265,12 @@ describe("Developer Workspace & Developer Mode", () => {
       expect(devSource).toContain("GitHub not linked");
       expect(devSource).toContain("Store linked");
       expect(devSource).toContain("Store not linked");
-      expect(devSource).toContain("Tracking: property linked · not connected");
-      expect(devSource).toContain("Tracking: not linked");
+      expect(devSource).toContain("Analytics · Not connected");
+      expect(devSource).toContain("Analytics not linked");
+      expect(devSource).toContain("Analytics · Connected");
+      expect(devSource).toContain("Analytics · Error");
       expect(devSource).toContain("Package: not enabled");
       expect(devSource).toContain("Runtime ON");
-      expect(devSource).toContain("Runtime OFF");
       expect(devSource).toContain("Open CWS Dashboard");
 
       // Simplified unlinked rows without meaningless dash columns
@@ -325,28 +326,71 @@ describe("Developer Workspace & Developer Mode", () => {
       expect(unlinkedAfterBind.find((e) => e.id === "unpacked-ext-1")).toBeUndefined();
     });
 
-    it("excludes normal store extensions from local test selector in ProjectEditorModal", () => {
-      const devSource = fs.readFileSync("src/popup/components/DeveloperView.tsx", "utf8");
-      // Must filter ONLY development extensions for devExtensions
-      expect(devSource).toContain('const devExtensions = extensions.filter((e) => e.installType === "development");');
-      // Must not create an optgroup for other extensions
-      expect(devSource).not.toContain('otherExtensions.map');
+    it("includes self-extension when installType is development and excludes when store/normal", () => {
+      const selfDev: ExtensionInfo = {
+        id: "onkcjpfgllpfbimnchjehboikhippnka",
+        name: "Extension Drawer",
+        shortName: "Extension Drawer",
+        description: "Development build of Extension Drawer",
+        version: "1.1.0",
+        enabled: true,
+        mayDisable: true,
+        type: "extension",
+        installType: "development",
+        offlineEnabled: true,
+        optionsUrl: "options.html",
+        permissions: [],
+        hostPermissions: [],
+      };
+
+      const selfStore: ExtensionInfo = {
+        ...selfDev,
+        installType: "normal",
+      };
+
+      // When self is unpacked/development, it appears in unlinked dev extensions (single appearance, no dups)
+      const unlinkedWithSelfDev = getUnlinkedDevExtensions([unpackedExt], [], selfDev);
+      expect(unlinkedWithSelfDev).toHaveLength(2);
+      expect(unlinkedWithSelfDev.some((e) => e.id === selfDev.id)).toBe(true);
+
+      // Deduplication check: if already in extensions list, should not duplicate
+      const unlinkedDedupe = getUnlinkedDevExtensions([unpackedExt, selfDev], [], selfDev);
+      expect(unlinkedDedupe).toHaveLength(2);
+
+      // When self is normal/store install, it must NOT appear in dev extensions
+      const unlinkedWithSelfStore = getUnlinkedDevExtensions([unpackedExt], [], selfStore);
+      expect(unlinkedWithSelfStore).toHaveLength(1);
+      expect(unlinkedWithSelfStore.some((e) => e.id === selfStore.id)).toBe(false);
     });
 
-    it("NooBossApp wires DeveloperView with project CRUD handlers and routing", () => {
+    it("excludes normal store extensions from local test selector in ProjectEditorModal", () => {
+      const devSource = fs.readFileSync("src/popup/components/DeveloperView.tsx", "utf8");
+      // Must filter ONLY development extensions using getAllDevExtensions
+      expect(devSource).toContain("const devExtensions = getAllDevExtensions(extensions, selfExtension);");
+      // Must not create an optgroup for other extensions
+      expect(devSource).not.toContain("otherExtensions.map");
+    });
+
+    it("NooBossApp wires DeveloperView with project CRUD handlers, selfExtension, and routing", () => {
       const appSource = fs.readFileSync("src/popup/components/NooBossApp.tsx", "utf8");
       expect(appSource).toContain("DeveloperView");
+      expect(appSource).toContain("selfExtension={selfExtension}");
       expect(appSource).toContain("handleSaveDeveloperProject");
       expect(appSource).toContain("handleDeleteDeveloperProject");
       expect(appSource).toContain("mainLocation === \"developer\" && settings.developerMode");
       expect(appSource).toContain("GET_DEVELOPER_PROJECTS");
+      // Safeguard self from accidental disabling
+      expect(appSource).toContain("selfExtension && id === selfExtension.id");
+      // Reload self routes to chrome.runtime.reload()
+      expect(appSource).toContain("chrome.runtime.reload()");
     });
 
-    it("service-worker.ts handles developer project messages and backup export/import", () => {
+    it("service-worker.ts handles developer project messages, GET_SELF, and backup export/import", () => {
       const swSource = fs.readFileSync("src/background/service-worker.ts", "utf8");
       expect(swSource).toContain("GET_DEVELOPER_PROJECTS");
       expect(swSource).toContain("SAVE_DEVELOPER_PROJECT");
       expect(swSource).toContain("DELETE_DEVELOPER_PROJECT");
+      expect(swSource).toContain("GET_SELF");
       expect(swSource).toContain("getDeveloperProjects");
       expect(swSource).toContain("saveDeveloperProjects");
     });

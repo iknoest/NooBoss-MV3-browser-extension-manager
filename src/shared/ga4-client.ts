@@ -16,14 +16,17 @@ export const GA4_READONLY_SCOPE = "https://www.googleapis.com/auth/analytics.rea
 export const GA4_OAUTH_CLIENT_ID = "799106519083-4abp5ksuf8mmqnh6tjret0guni0dbpt2.apps.googleusercontent.com";
 export const GA4_EXTENSION_ID = "onkcjpfgllpfbimnchjehboikhippnka";
 
-export const GA4_TARGET_METRICS = [
-  { name: "activeUsers", label: "Active users", description: "Distinct active users over the past 28 days" },
-  { name: "newUsers", label: "New users", description: "New users acquired over the past 28 days" },
-  { name: "eventCount", label: "Event count", description: "Total events logged over the past 28 days" },
-  { name: "keyEvents", label: "Key events", description: "Important actions/conversions completed over the past 28 days" },
+export const GA4_PRIMARY_KPIS = [
+  { name: "activeUsers", label: "Visitors", description: "Distinct active users over the past 28 days" },
+  { name: "screenPageViews", label: "Views", description: "Total page and extension views over the past 28 days" },
+  { name: "engagementRate", label: "Engagement", description: "Engaged session rate over the past 28 days" },
+  { name: "newUsers", label: "New users", description: "First-time users acquired over the past 28 days" },
 ] as const;
 
-export type GA4MetricName = typeof GA4_TARGET_METRICS[number]["name"];
+// Backward-compatible alias
+export const GA4_TARGET_METRICS = GA4_PRIMARY_KPIS;
+
+export type GA4MetricName = typeof GA4_PRIMARY_KPIS[number]["name"];
 
 export interface GA4DateRange {
   startDate: string;
@@ -36,8 +39,15 @@ export interface GA4ReportRequest {
 }
 
 export interface GA4MetricValues {
-  activeUsers: number | null;
+  visitors: number | null;
+  views: number | null;
+  engagementRate: number | null;
   newUsers: number | null;
+  visitorsTrend?: string;
+  viewsTrend?: string;
+  engagementTrend?: string;
+  newUsersTrend?: string;
+  activeUsers: number | null;
   eventCount: number | null;
   keyEvents: number | null;
 }
@@ -63,29 +73,71 @@ export interface GA4ProjectTrackingStatus {
 }
 
 /**
- * Normalizes user-entered GA4 property ID to numeric format (e.g. "properties/123456789" -> "123456789").
+ * Computes trend percentage for count metrics (e.g. Visitors, Views, New users).
+ * Truthfully handles zero-denominator periods with "New" rather than Infinity or NaN.
+ */
+export function computeCountTrend(curr: number | null, prev: number | null): string | undefined {
+  if (curr === null) return undefined;
+  if (prev === null || prev === 0) {
+    return curr > 0 ? "New" : undefined;
+  }
+  const diff = curr - prev;
+  const pct = Math.round((diff / prev) * 100);
+  if (pct > 0) return `↑${pct}%`;
+  if (pct < 0) return `↓${Math.abs(pct)}%`;
+  return "0%";
+}
+
+/**
+ * Computes percentage-point delta for rate metrics (e.g. Engagement rate 0.0-1.0).
+ */
+export function computeRateTrend(curr: number | null, prev: number | null): string | undefined {
+  if (curr === null) return undefined;
+  if (prev === null || prev === 0) {
+    return undefined;
+  }
+  const ptDiff = Math.round((curr - prev) * 100);
+  if (ptDiff > 0) return `+${ptDiff}pt`;
+  if (ptDiff < 0) return `-${Math.abs(ptDiff)}pt`;
+  return "0pt";
+}
+
+/**
+ * Normalizes user-entered GA4 property ID to numeric format.
+ * Accepts both "552797256" and "properties/552797256" with optional whitespace or slashes.
  */
 export function cleanPropertyId(raw: string | undefined | null): string {
   if (!raw) return "";
   const trimmed = raw.trim();
-  const match = trimmed.match(/^(?:properties\/)?([0-9]+)$/);
-  return match ? match[1] : trimmed.replace(/^properties\//, "").trim();
+  const match = trimmed.replace(/\/+$/, "").match(/^(?:properties\/)?([0-9]+)$/);
+  return match ? match[1] : "";
 }
 
 /**
  * Builds the canonical GA4 Data API v1beta runReport request payload.
- * Rolling window: 28 days ("28daysAgo" to "yesterday").
- * Target metrics: activeUsers, newUsers, eventCount, keyEvents.
+ * Rolling window: 28 days ("28daysAgo" to "today") compared with previous 28 days ("56daysAgo" to "29daysAgo").
+ * Primary KPIs: activeUsers (Visitors), screenPageViews (Views), engagementRate (Engagement), newUsers.
  */
 export function buildGA4RunReportPayload(): GA4ReportRequest {
   return {
     dateRanges: [
       {
         startDate: "28daysAgo",
-        endDate: "yesterday",
+        endDate: "today",
+      },
+      {
+        startDate: "56daysAgo",
+        endDate: "29daysAgo",
       },
     ],
-    metrics: GA4_TARGET_METRICS.map((m) => ({ name: m.name })),
+    metrics: [
+      { name: "activeUsers" },
+      { name: "screenPageViews" },
+      { name: "engagementRate" },
+      { name: "newUsers" },
+      { name: "eventCount" },
+      { name: "keyEvents" },
+    ],
   };
 }
 
@@ -99,8 +151,11 @@ export function parseGA4RunReportResponse(
   const result: GA4ReportResult = {
     propertyId: cleanPropertyId(propertyId),
     dateRangeDescription: "Last 28 days",
-    activeUsers: null,
+    visitors: null,
+    views: null,
+    engagementRate: null,
     newUsers: null,
+    activeUsers: null,
     eventCount: null,
     keyEvents: null,
     fetchedAt: Date.now(),
@@ -116,31 +171,62 @@ export function parseGA4RunReportResponse(
     headerIndices.set(h.name, idx);
   });
 
-  // Data can be in rows[0].metricValues or totals[0].metricValues
-  const metricValues: Array<{ value: string }> | undefined =
-    data.rows?.[0]?.metricValues ?? data.totals?.[0]?.metricValues;
+  const parseVal = (metricValues: Array<{ value: string }> | undefined, name: string): number | null => {
+    if (!metricValues) return null;
+    const idx = headerIndices.get(name);
+    if (idx !== undefined && metricValues[idx]) {
+      const parsed = parseFloat(metricValues[idx].value);
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+    return null;
+  };
 
-  if (metricValues && Array.isArray(metricValues)) {
-    const parseVal = (name: string): number | null => {
-      const idx = headerIndices.get(name);
-      if (idx !== undefined && metricValues[idx]) {
-        const parsed = parseInt(metricValues[idx].value, 10);
-        return Number.isFinite(parsed) ? parsed : null;
-      }
-      return null;
-    };
+  const rows: any[] = Array.isArray(data.rows) ? data.rows : [];
 
-    result.activeUsers = parseVal("activeUsers");
-    result.newUsers = parseVal("newUsers");
-    result.eventCount = parseVal("eventCount");
-    result.keyEvents = parseVal("keyEvents");
-  } else if (Array.isArray(data.rows) && data.rows.length === 0) {
-    // 0 rows returned indicates property has 0 recorded events in the window
-    result.activeUsers = 0;
+  if (rows.length === 0) {
+    result.visitors = 0;
+    result.views = 0;
+    result.engagementRate = 0;
     result.newUsers = 0;
+    result.activeUsers = 0;
     result.eventCount = 0;
     result.keyEvents = 0;
+    return result;
   }
+
+  // Find row corresponding to date_range_0 (current 28 days)
+  const row0 = rows.find((r) => r.dimensionValues?.[0]?.value === "date_range_0") || rows[0];
+  // Find row corresponding to date_range_1 (previous 28 days)
+  const row1 = rows.find((r) => r.dimensionValues?.[0]?.value === "date_range_1");
+
+  const mValues0 = row0?.metricValues;
+  const mValues1 = row1?.metricValues;
+
+  const visitors0 = parseVal(mValues0, "activeUsers");
+  const views0 = parseVal(mValues0, "screenPageViews");
+  const engagement0 = parseVal(mValues0, "engagementRate");
+  const newUsers0 = parseVal(mValues0, "newUsers");
+
+  const visitors1 = parseVal(mValues1, "activeUsers");
+  const views1 = parseVal(mValues1, "screenPageViews");
+  const engagement1 = parseVal(mValues1, "engagementRate");
+  const newUsers1 = parseVal(mValues1, "newUsers");
+
+  result.visitors = visitors0;
+  result.views = views0;
+  result.engagementRate = engagement0;
+  result.newUsers = newUsers0;
+
+  // Backward compatibility
+  result.activeUsers = visitors0;
+  result.eventCount = parseVal(mValues0, "eventCount") ?? views0;
+  result.keyEvents = parseVal(mValues0, "keyEvents") ?? 0;
+
+  // Trend context
+  result.visitorsTrend = computeCountTrend(visitors0, visitors1);
+  result.viewsTrend = computeCountTrend(views0, views1);
+  result.engagementTrend = computeRateTrend(engagement0, engagement1);
+  result.newUsersTrend = computeCountTrend(newUsers0, newUsers1);
 
   return result;
 }
@@ -236,6 +322,9 @@ async function extractErrorMessage(response: Response, propertyId: string): Prom
     return apiMsg ? `Authentication expired or invalid: ${apiMsg}` : "Authentication expired or invalid. Please reconnect.";
   }
   if (response.status === 403) {
+    if (apiMsg.includes("SERVICE_DISABLED") || apiMsg.includes("is disabled") || apiMsg.includes("has not been used in project")) {
+      return "Google Analytics Data API is disabled in Google Cloud project. Enable analyticsdata.googleapis.com in Google Cloud Console.";
+    }
     return apiMsg ? `Access denied: ${apiMsg}` : `Access denied for property ${propertyId}. Ensure your Google account has at least Viewer role.`;
   }
   if (response.status === 404) {

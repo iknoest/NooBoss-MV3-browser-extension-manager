@@ -240,11 +240,10 @@ describe("History Event Filtering, Extension Sorting & Developer Clarity", () =>
       expect(devSource).toContain("Store linked");
       expect(devSource).toContain("Store not linked");
 
-      // Tracking (GA4 Data API not connected)
-      expect(devSource).toContain("Tracking: property linked · not connected");
-      expect(devSource).toContain("Tracking: not linked");
-      // Must NOT present GA property binding as live analytics
-      expect(devSource).not.toContain("GA4 · Connect");
+      // Analytics (GA4 Data API integration)
+      expect(devSource).toContain("Analytics · Not connected");
+      expect(devSource).toContain("Analytics not linked");
+      expect(devSource).toContain("Analytics · Connected");
 
       // Package
       expect(devSource).toContain("Package: not enabled");

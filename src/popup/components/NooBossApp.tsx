@@ -34,6 +34,7 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [pendingChanges, setPendingChanges] = useState<PendingAutoStateChange[]>([]);
   const [developerProjects, setDeveloperProjects] = useState<DeveloperProject[]>([]);
+  const [selfExtension, setSelfExtension] = useState<ExtensionInfo | null>(null);
   const [dataLoaded, setDataLoaded] = useState(false);
 
   const [viewMode, setViewMode] = useState<"tile" | "bigTile" | "list">("bigTile");
@@ -129,6 +130,21 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
       setSettings(resolvedSetts);
       setPendingChanges(resolvedPending);
       setDeveloperProjects(resolvedProjects);
+
+      try {
+        let selfInfo: ExtensionInfo | null = null;
+        if (typeof chrome !== "undefined" && chrome.management?.getSelf) {
+          selfInfo = (await chrome.management.getSelf()) as ExtensionInfo;
+        } else if (typeof chrome !== "undefined" && chrome.runtime?.sendMessage) {
+          selfInfo = (await chrome.runtime.sendMessage({ type: "GET_SELF" })) as ExtensionInfo;
+        }
+        if (selfInfo) {
+          setSelfExtension(selfInfo);
+        }
+      } catch {
+        // Ignore in test environments
+      }
+
       setDataLoaded(true);
 
       if (resolvedSetts.viewMode === "grid" || resolvedSetts.viewMode === "bigTile") {
@@ -179,6 +195,10 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
 
   // Extension actions: direct management call preserves user-gesture context in popup
   const handleToggleExtension = async (id: string, enabled: boolean) => {
+    if ((selfExtension && id === selfExtension.id) || (typeof chrome !== "undefined" && chrome.runtime?.id && id === chrome.runtime.id)) {
+      console.warn("[NooBoss] Cannot toggle running extension self build");
+      return;
+    }
     setExtensions((prev) =>
       prev.map((ext) => (ext.id === id ? { ...ext, enabled } : ext))
     );
@@ -196,7 +216,12 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
   };
 
   const handleReloadExtension = async (id: string) => {
-    if (typeof chrome !== "undefined" && chrome.runtime?.id && id === chrome.runtime.id) {
+    const isSelf = (selfExtension && id === selfExtension.id) || (typeof chrome !== "undefined" && chrome.runtime?.id && id === chrome.runtime.id);
+    if (isSelf) {
+      if (typeof chrome !== "undefined" && chrome.runtime?.reload) {
+        chrome.runtime.reload();
+        return;
+      }
       return;
     }
     const ext = extensions.find((e) => e.id === id);
@@ -510,6 +535,7 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
           <DeveloperView
             projects={developerProjects}
             extensions={extensions}
+            selfExtension={selfExtension}
             onSaveProject={handleSaveDeveloperProject}
             onDeleteProject={handleDeleteDeveloperProject}
             onToggleExtension={handleToggleExtension}

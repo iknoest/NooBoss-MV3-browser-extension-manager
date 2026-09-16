@@ -5,7 +5,6 @@ import { MaterialSymbol } from "./MaterialSymbols";
 import { ExtensionSwitch } from "./ExtensionBrief";
 import {
   fetchGA4Report,
-  clearAuthToken,
   cleanPropertyId,
   type GA4ReportResult,
 } from "../../shared/ga4-client";
@@ -19,6 +18,7 @@ import {
 export interface DeveloperViewProps {
   projects: DeveloperProject[];
   extensions: ExtensionInfo[];
+  selfExtension?: ExtensionInfo | null;
   onSaveProject: (project: DeveloperProject) => void;
   onDeleteProject: (id: string) => void;
   onToggleExtension: (id: string, enabled: boolean) => void;
@@ -28,21 +28,37 @@ export interface DeveloperViewProps {
   themeMainColor?: string;
 }
 
+export function getAllDevExtensions(
+  extensions: ExtensionInfo[],
+  selfExtension?: ExtensionInfo | null
+): ExtensionInfo[] {
+  const dev = extensions.filter((e) => e.installType === "development");
+  if (
+    selfExtension &&
+    selfExtension.installType === "development" &&
+    !dev.some((e) => e.id === selfExtension.id)
+  ) {
+    dev.push(selfExtension);
+  }
+  return dev;
+}
+
 export function getUnlinkedDevExtensions(
   extensions: ExtensionInfo[],
-  projects: DeveloperProject[]
+  projects: DeveloperProject[],
+  selfExtension?: ExtensionInfo | null
 ): ExtensionInfo[] {
   const linkedLocalIds = new Set(
     projects.map((p) => p.localExtensionId).filter(Boolean) as string[]
   );
-  return extensions.filter(
-    (e) => e.installType === "development" && !linkedLocalIds.has(e.id)
-  );
+  const allDev = getAllDevExtensions(extensions, selfExtension);
+  return allDev.filter((e) => !linkedLocalIds.has(e.id));
 }
 
 export function DeveloperView({
   projects,
   extensions,
+  selfExtension,
   onSaveProject,
   onDeleteProject,
   onToggleExtension,
@@ -96,8 +112,15 @@ export function DeveloperView({
       const result = await fetchGA4Report(propId, true);
       const record: StoredGA4MetricsRecord = {
         propertyId: propId,
-        activeUsers: result.activeUsers,
+        visitors: result.visitors,
+        views: result.views,
+        engagementRate: result.engagementRate,
         newUsers: result.newUsers,
+        visitorsTrend: result.visitorsTrend,
+        viewsTrend: result.viewsTrend,
+        engagementTrend: result.engagementTrend,
+        newUsersTrend: result.newUsersTrend,
+        activeUsers: result.activeUsers,
         eventCount: result.eventCount,
         keyEvents: result.keyEvents,
         fetchedAt: result.fetchedAt,
@@ -138,8 +161,15 @@ export function DeveloperView({
       }
       const record: StoredGA4MetricsRecord = {
         propertyId: propId,
-        activeUsers: result.activeUsers,
+        visitors: result.visitors,
+        views: result.views,
+        engagementRate: result.engagementRate,
         newUsers: result.newUsers,
+        visitorsTrend: result.visitorsTrend,
+        viewsTrend: result.viewsTrend,
+        engagementTrend: result.engagementTrend,
+        newUsersTrend: result.newUsersTrend,
+        activeUsers: result.activeUsers,
         eventCount: result.eventCount,
         keyEvents: result.keyEvents,
         fetchedAt: result.fetchedAt,
@@ -165,7 +195,6 @@ export function DeveloperView({
 
   const handleDisconnectGA4 = async (projectId: string) => {
     await clearProjectGA4Metrics(projectId);
-    await clearAuthToken();
     setMetricsMap((prev) => {
       const copy = { ...prev };
       delete copy[projectId];
@@ -179,7 +208,7 @@ export function DeveloperView({
   };
 
   // Unlinked unpacked extensions detection (no arbitrary cap)
-  const unlinkedDevExtensions = getUnlinkedDevExtensions(extensions, projects);
+  const unlinkedDevExtensions = getUnlinkedDevExtensions(extensions, projects, selfExtension);
 
   const handleStartAdd = (prefill?: Partial<DeveloperProject>) => {
     setEditingProject(
@@ -291,8 +320,11 @@ export function DeveloperView({
             <div className="dev-project-list" aria-label="Developer Projects">
               {projects.map((proj) => {
                 const localExt = proj.localExtensionId
-                  ? extensions.find((e) => e.id === proj.localExtensionId)
+                  ? (selfExtension && proj.localExtensionId === selfExtension.id
+                      ? selfExtension
+                      : extensions.find((e) => e.id === proj.localExtensionId))
                   : null;
+                const isSelf = Boolean(selfExtension && proj.localExtensionId === selfExtension.id);
                 const isLocalReloading = proj.localExtensionId
                   ? reloadingIds.has(proj.localExtensionId)
                   : false;
@@ -352,28 +384,41 @@ export function DeveloperView({
                         {proj.localExtensionId ? (
                           localExt ? (
                             <div className="dev-local-state-group">
-                              <span className="dev-local-tag">DEV · v{localExt.version}</span>
-                              <div className="dev-switch-wrap">
-                                <ExtensionSwitch
-                                  id={localExt.id}
-                                  enabled={localExt.enabled}
-                                  onToggle={onToggleExtension}
-                                  size="small"
-                                />
+                              <span className={`dev-local-tag ${isSelf ? "dev-self-tag" : ""}`}>
+                                {isSelf ? `DEV · v${localExt.version} · This extension` : `DEV · v${localExt.version}`}
+                              </span>
+                              {isSelf ? (
                                 <span
-                                  className={`status-pill ${localExt.enabled ? "enabled" : "disabled"}`}
+                                  className="status-pill enabled dev-self-runtime-pill"
+                                  title="Extension Drawer is the active runtime and cannot be disabled"
                                 >
-                                  {localExt.enabled ? "Runtime ON" : "Runtime OFF"}
+                                  Runtime ON · Active build
                                 </span>
-                              </div>
+                              ) : (
+                                <div className="dev-switch-wrap">
+                                  <ExtensionSwitch
+                                    id={localExt.id}
+                                    enabled={localExt.enabled}
+                                    onToggle={onToggleExtension}
+                                    size="small"
+                                  />
+                                  <span
+                                    className={`status-pill ${localExt.enabled ? "enabled" : "disabled"}`}
+                                  >
+                                    {localExt.enabled ? "Runtime ON" : "Runtime OFF"}
+                                  </span>
+                                </div>
+                              )}
                               <div className="dev-local-controls">
                                 <button
                                   type="button"
-                                  className={`action-icon-btn reload-btn ${!localExt.enabled ? "disabled" : ""} ${isLocalReloading ? "is-reloading" : ""}`}
-                                  disabled={!localExt.enabled || isLocalReloading}
+                                  className={`action-icon-btn reload-btn ${!localExt.enabled && !isSelf ? "disabled" : ""} ${isLocalReloading ? "is-reloading" : ""}`}
+                                  disabled={(!localExt.enabled && !isSelf) || isLocalReloading}
                                   onClick={() => onReloadExtension(localExt.id)}
                                   title={
-                                    localExt.enabled
+                                    isSelf
+                                      ? "Reload Extension Drawer runtime (calls chrome.runtime.reload())"
+                                      : localExt.enabled
                                       ? "Reload extension code"
                                       : "Enable this extension before reloading"
                                   }
@@ -383,7 +428,7 @@ export function DeveloperView({
                                     name="refresh"
                                     size={16}
                                     color={
-                                      localExt.enabled
+                                      localExt.enabled || isSelf
                                         ? themeMainColor
                                         : "var(--text-muted, #888)"
                                     }
@@ -488,7 +533,7 @@ export function DeveloperView({
                           </button>
                         )}
 
-                        {/* Tracking Status Chip */}
+                        {/* Analytics Status Chip */}
                         {!proj.gaPropertyId ? (
                           <button
                             type="button"
@@ -497,12 +542,12 @@ export function DeveloperView({
                             title="Link a Google Analytics Property ID"
                           >
                             <MaterialSymbol name="add" size={12} color="var(--text-muted)" />
-                            <span className="dev-chip-label">Tracking: not linked</span>
+                            <span className="dev-chip-label">Analytics not linked</span>
                           </button>
                         ) : isConnecting ? (
                           <span className="dev-status-chip dev-chip-bound" title="Connecting to Google Analytics...">
                             <MaterialSymbol name="sync" size={13} className="spin-icon" color="var(--theme-main, #1a73e8)" />
-                            <span className="dev-chip-label">Tracking: Connecting…</span>
+                            <span className="dev-chip-label">Analytics · Connecting…</span>
                           </span>
                         ) : isConnected ? (
                           <button
@@ -511,18 +556,18 @@ export function DeveloperView({
                             onClick={() => handleStartEdit(proj)}
                             title={`Google Analytics Property: ${proj.gaPropertyId} · Connected (Last 28 days)`}
                           >
-                            <MaterialSymbol name="analytics" size={13} color="var(--color-success, #1e8e3e)" />
-                            <span className="dev-chip-label">Tracking connected · 28d</span>
+                            <span className="dev-status-dot connected" />
+                            <span className="dev-chip-label">Analytics · Connected</span>
                           </button>
                         ) : projectError ? (
                           <button
                             type="button"
                             className="dev-status-chip dev-chip-error"
                             onClick={() => handleOpenConnectModal(proj)}
-                            title={`Tracking error: ${projectError}`}
+                            title={`Analytics error: ${projectError}`}
                           >
-                            <MaterialSymbol name="warning" size={13} color="var(--color-danger, #d93025)" />
-                            <span className="dev-chip-label">Tracking error</span>
+                            <span className="dev-status-dot error" />
+                            <span className="dev-chip-label">Analytics · Error</span>
                           </button>
                         ) : (
                           <button
@@ -531,8 +576,8 @@ export function DeveloperView({
                             onClick={() => handleOpenConnectModal(proj)}
                             title={`Google Analytics Property: ${proj.gaPropertyId} · Click to connect read-only data`}
                           >
-                            <MaterialSymbol name="analytics" size={13} color="var(--theme-main, #1a73e8)" />
-                            <span className="dev-chip-label">Tracking: property linked · not connected</span>
+                            <span className="dev-status-dot idle" />
+                            <span className="dev-chip-label">Analytics · Not connected</span>
                           </button>
                         )}
 
@@ -546,7 +591,7 @@ export function DeveloperView({
                         </span>
                       </div>
 
-                      {/* Google Analytics 4 Target Metrics (28-day rolling window) */}
+                      {/* Google Analytics 4 Performance Summary Line */}
                       {proj.gaPropertyId && (
                         <div
                           className={`dev-ga4-metrics-bar ${
@@ -558,46 +603,68 @@ export function DeveloperView({
                           }`}
                           title={
                             isConnected
-                              ? `Google Analytics Data API v1beta (Last 28 days). Last fetched: ${new Date(storedRecord.fetchedAt).toLocaleTimeString()}`
+                              ? `Google Analytics Data API v1beta (Last 28 days vs Previous 28 days). Last fetched: ${new Date(storedRecord.fetchedAt).toLocaleTimeString()}`
                               : projectError
                               ? `Error: ${projectError}`
-                              : "Google Analytics Data API v1beta (rolling 28-day window). Click Connect to authorize read-only reporting."
+                              : "Google Analytics Data API v1beta. Click Connect to authorize read-only reporting."
                           }
                         >
+                          <div className="dev-ga4-period-label">Last 28 days</div>
+                          <div className="dev-ga4-metric-divider" />
                           <div className="dev-ga4-metric-cell">
-                            <span className="dev-ga4-metric-name">{isConnected ? "Active" : "Active users"}</span>
+                            <span className="dev-ga4-metric-name">Visitors</span>
                             <span className="dev-ga4-metric-value">
-                              {isConnected && storedRecord?.activeUsers !== null && storedRecord?.activeUsers !== undefined
-                                ? storedRecord.activeUsers
+                              {isConnected && (storedRecord?.visitors ?? storedRecord?.activeUsers) !== undefined && (storedRecord?.visitors ?? storedRecord?.activeUsers) !== null
+                                ? (storedRecord.visitors ?? storedRecord.activeUsers)
                                 : "—"}
                             </span>
+                            {isConnected && storedRecord?.visitorsTrend && (
+                              <span className={`dev-trend-badge ${storedRecord.visitorsTrend === "—" ? "neutral" : ""}`}>
+                                {storedRecord.visitorsTrend}
+                              </span>
+                            )}
                           </div>
                           <div className="dev-ga4-metric-divider" />
                           <div className="dev-ga4-metric-cell">
-                            <span className="dev-ga4-metric-name">{isConnected ? "New" : "New users"}</span>
+                            <span className="dev-ga4-metric-name">Views</span>
                             <span className="dev-ga4-metric-value">
-                              {isConnected && storedRecord?.newUsers !== null && storedRecord?.newUsers !== undefined
+                              {isConnected && (storedRecord?.views ?? storedRecord?.eventCount) !== undefined && (storedRecord?.views ?? storedRecord?.eventCount) !== null
+                                ? (storedRecord.views ?? storedRecord.eventCount)
+                                : "—"}
+                            </span>
+                            {isConnected && storedRecord?.viewsTrend && (
+                              <span className={`dev-trend-badge ${storedRecord.viewsTrend === "—" ? "neutral" : ""}`}>
+                                {storedRecord.viewsTrend}
+                              </span>
+                            )}
+                          </div>
+                          <div className="dev-ga4-metric-divider" />
+                          <div className="dev-ga4-metric-cell">
+                            <span className="dev-ga4-metric-name">Engagement</span>
+                            <span className="dev-ga4-metric-value">
+                              {isConnected && storedRecord?.engagementRate !== undefined && storedRecord?.engagementRate !== null
+                                ? `${Math.round(storedRecord.engagementRate * 100)}%`
+                                : "—"}
+                            </span>
+                            {isConnected && storedRecord?.engagementTrend && (
+                              <span className={`dev-trend-badge ${storedRecord.engagementTrend === "—" ? "neutral" : ""}`}>
+                                {storedRecord.engagementTrend}
+                              </span>
+                            )}
+                          </div>
+                          <div className="dev-ga4-metric-divider" />
+                          <div className="dev-ga4-metric-cell">
+                            <span className="dev-ga4-metric-name">New users</span>
+                            <span className="dev-ga4-metric-value">
+                              {isConnected && storedRecord?.newUsers !== undefined && storedRecord?.newUsers !== null
                                 ? storedRecord.newUsers
                                 : "—"}
                             </span>
-                          </div>
-                          <div className="dev-ga4-metric-divider" />
-                          <div className="dev-ga4-metric-cell">
-                            <span className="dev-ga4-metric-name">{isConnected ? "Events" : "Event count"}</span>
-                            <span className="dev-ga4-metric-value">
-                              {isConnected && storedRecord?.eventCount !== null && storedRecord?.eventCount !== undefined
-                                ? storedRecord.eventCount
-                                : "—"}
-                            </span>
-                          </div>
-                          <div className="dev-ga4-metric-divider" />
-                          <div className="dev-ga4-metric-cell">
-                            <span className="dev-ga4-metric-name">{isConnected ? "Key" : "Key events"}</span>
-                            <span className="dev-ga4-metric-value">
-                              {isConnected && storedRecord?.keyEvents !== null && storedRecord?.keyEvents !== undefined
-                                ? storedRecord.keyEvents
-                                : "—"}
-                            </span>
+                            {isConnected && storedRecord?.newUsersTrend && (
+                              <span className={`dev-trend-badge ${storedRecord.newUsersTrend === "—" ? "neutral" : ""}`}>
+                                {storedRecord.newUsersTrend}
+                              </span>
+                            )}
                           </div>
                           <div className="dev-ga4-metric-status">
                             {isConnected ? (
@@ -669,6 +736,7 @@ export function DeveloperView({
               <div className="dev-unlinked-list">
                 {unlinkedDevExtensions.map((ext) => {
                   const isLocalReloading = reloadingIds.has(ext.id);
+                  const isSelf = Boolean(selfExtension && ext.id === selfExtension.id);
 
                   return (
                     <article key={ext.id} className="dev-unlinked-row">
@@ -691,34 +759,52 @@ export function DeveloperView({
                         <span className="dev-chip-badge" title="Unpacked development extension">
                           DEV
                         </span>
+                        {isSelf && (
+                          <span className="dev-chip-badge dev-self-tag" title="Extension Drawer runtime">
+                            This extension
+                          </span>
+                        )}
                         <span className="dev-pill dev-pill-neutral">Unlinked</span>
                       </div>
 
                       {/* Middle: Concise Local State */}
                       <div className="dev-row-local">
                         <div className="dev-local-state-group">
-                          <span className="dev-local-tag">DEV · v{ext.version}</span>
-                          <div className="dev-switch-wrap">
-                            <ExtensionSwitch
-                              id={ext.id}
-                              enabled={ext.enabled}
-                              onToggle={onToggleExtension}
-                              size="small"
-                            />
+                          <span className={`dev-local-tag ${isSelf ? "dev-self-tag" : ""}`}>
+                            {isSelf ? `DEV · v${ext.version} · This extension` : `DEV · v${ext.version}`}
+                          </span>
+                          {isSelf ? (
                             <span
-                              className={`status-pill ${ext.enabled ? "enabled" : "disabled"}`}
+                              className="status-pill enabled dev-self-runtime-pill"
+                              title="Extension Drawer is the active runtime and cannot be disabled"
                             >
-                              {ext.enabled ? "Runtime ON" : "Runtime OFF"}
+                              Runtime ON · Active build
                             </span>
-                          </div>
+                          ) : (
+                            <div className="dev-switch-wrap">
+                              <ExtensionSwitch
+                                id={ext.id}
+                                enabled={ext.enabled}
+                                onToggle={onToggleExtension}
+                                size="small"
+                              />
+                              <span
+                                className={`status-pill ${ext.enabled ? "enabled" : "disabled"}`}
+                              >
+                                {ext.enabled ? "Runtime ON" : "Runtime OFF"}
+                              </span>
+                            </div>
+                          )}
                           <div className="dev-local-controls">
                             <button
                               type="button"
-                              className={`action-icon-btn reload-btn ${!ext.enabled ? "disabled" : ""} ${isLocalReloading ? "is-reloading" : ""}`}
-                              disabled={!ext.enabled || isLocalReloading}
+                              className={`action-icon-btn reload-btn ${!ext.enabled && !isSelf ? "disabled" : ""} ${isLocalReloading ? "is-reloading" : ""}`}
+                              disabled={(!ext.enabled && !isSelf) || isLocalReloading}
                               onClick={() => onReloadExtension(ext.id)}
                               title={
-                                ext.enabled
+                                isSelf
+                                  ? "Reload Extension Drawer runtime (calls chrome.runtime.reload())"
+                                  : ext.enabled
                                   ? "Reload extension code"
                                   : "Enable this extension before reloading"
                               }
@@ -728,7 +814,7 @@ export function DeveloperView({
                                 name="refresh"
                                 size={16}
                                 color={
-                                  ext.enabled
+                                  ext.enabled || isSelf
                                     ? themeMainColor
                                     : "var(--text-muted, #888)"
                                 }
@@ -773,6 +859,7 @@ export function DeveloperView({
         <ProjectEditorModal
           project={editingProject}
           extensions={extensions}
+          selfExtension={selfExtension}
           metricsRecord={editingProject.id ? metricsMap[editingProject.id] : undefined}
           onSave={handleSaveModal}
           onClose={() => setEditingProject(null)}
@@ -840,6 +927,7 @@ export function DeveloperView({
 interface ProjectEditorModalProps {
   project: Partial<DeveloperProject>;
   extensions: ExtensionInfo[];
+  selfExtension?: ExtensionInfo | null;
   metricsRecord?: StoredGA4MetricsRecord | null;
   onSave: (proj: Partial<DeveloperProject>) => void;
   onClose: () => void;
@@ -853,6 +941,7 @@ interface ProjectEditorModalProps {
 function ProjectEditorModal({
   project,
   extensions,
+  selfExtension,
   metricsRecord,
   onSave,
   onClose,
@@ -870,7 +959,7 @@ function ProjectEditorModal({
   const [customLocalId, setCustomLocalId] = useState(false);
 
   // ONLY unpacked development extensions are eligible as local test builds
-  const devExtensions = extensions.filter((e) => e.installType === "development");
+  const devExtensions = getAllDevExtensions(extensions, selfExtension);
 
   const handleSubmit = (e: Event) => {
     e.preventDefault();
@@ -881,8 +970,23 @@ function ProjectEditorModal({
       localExtensionId: localExtensionId.trim() || undefined,
       cwsExtensionId: cleanCwsId(cwsExtensionId.trim()),
       githubUrl: githubUrl.trim() || undefined,
-      gaPropertyId: gaPropertyId.trim() || undefined,
+      gaPropertyId: cleanPropertyId(gaPropertyId.trim()) || undefined,
     });
+  };
+
+  const handleConnectClick = () => {
+    const currentProject: DeveloperProject = {
+      id: project.id || `devproj_${generateId()}`,
+      name: name.trim() || project.name || "Untitled Project",
+      localExtensionId: localExtensionId.trim() || undefined,
+      cwsExtensionId: cleanCwsId(cwsExtensionId.trim()),
+      githubUrl: githubUrl.trim() || undefined,
+      gaPropertyId: cleanPropertyId(gaPropertyId.trim()) || undefined,
+      createdAt: project.createdAt || Date.now(),
+      updatedAt: Date.now(),
+    };
+    onSave(currentProject);
+    onConnectGA4?.(currentProject);
   };
 
   const handleCwsInput = (val: string) => {
@@ -971,11 +1075,16 @@ function ProjectEditorModal({
                   <option value="">(None linked)</option>
                   {devExtensions.length > 0 && (
                     <optgroup label="Unpacked / Development Extensions">
-                      {devExtensions.map((e) => (
-                        <option key={e.id} value={e.id}>
-                          [DEV] {e.name} ({e.id.slice(0, 8)}...)
-                        </option>
-                      ))}
+                      {devExtensions.map((e) => {
+                        const isThisSelf = Boolean(selfExtension && e.id === selfExtension.id);
+                        return (
+                          <option key={e.id} value={e.id}>
+                            {isThisSelf
+                              ? `[DEV] ${e.name} · This extension`
+                              : `[DEV] ${e.name} (${e.id.slice(0, 8)}...)`}
+                          </option>
+                        );
+                      })}
                     </optgroup>
                   )}
                   <option value="__custom__">Enter custom extension ID...</option>
@@ -1093,13 +1202,19 @@ function ProjectEditorModal({
               {metricsRecord ? (
                 <>
                   <span className="dev-status-chip dev-chip-connected">
-                    <MaterialSymbol name="analytics" size={13} color="var(--color-success, #1e8e3e)" />
-                    <span className="dev-chip-label">Connected · 28d</span>
+                    <span className="dev-status-dot connected" />
+                    <span className="dev-chip-label">Analytics · Connected</span>
                   </span>
                   <button
                     type="button"
                     className="dev-ga4-refresh-btn"
-                    onClick={() => onRefreshGA4?.(project as DeveloperProject)}
+                    onClick={() => {
+                      const currentProject: DeveloperProject = {
+                        ...(project as DeveloperProject),
+                        gaPropertyId: cleanPropertyId(gaPropertyId.trim()) || undefined,
+                      };
+                      onRefreshGA4?.(currentProject);
+                    }}
                   >
                     <MaterialSymbol name="refresh" size={13} />
                     <span>Refresh data</span>
@@ -1117,7 +1232,7 @@ function ProjectEditorModal({
                 <button
                   type="button"
                   className="dev-ga4-connect-btn"
-                  onClick={() => onConnectGA4?.(project as DeveloperProject)}
+                  onClick={handleConnectClick}
                 >
                   <MaterialSymbol name="login" size={13} />
                   <span>Connect Google Analytics</span>
@@ -1131,7 +1246,7 @@ function ProjectEditorModal({
             <div className="dev-modal-spec-item">
               <MaterialSymbol name="analytics" size={15} color="var(--text-muted)" />
               <span>
-                <strong>Google Analytics:</strong> Read-only access queries <em>Active users</em>, <em>New users</em>, <em>Event count</em>, and <em>Key events</em> over the last 28 days via Google Analytics Data API v1beta.
+                <strong>Google Analytics:</strong> Read-only access queries <em>Visitors</em>, <em>Views</em>, <em>Engagement rate</em>, and <em>New users</em> over the last 28 days vs the previous 28 days via Google Analytics Data API v1beta.
               </span>
             </div>
             <div className="dev-modal-spec-item">
@@ -1188,6 +1303,8 @@ function GA4ConnectModal({
 }: GA4ConnectModalProps) {
   if (!isOpen) return null;
 
+  const propId = cleanPropertyId(project.gaPropertyId);
+
   return (
     <div className="subwindow-overlay" onClick={onClose}>
       <div
@@ -1218,18 +1335,27 @@ function GA4ConnectModal({
             Extension Drawer will request <strong>read-only access</strong> via Chrome Identity OAuth to fetch 28-day performance metrics for <strong>{project.name}</strong>.
           </p>
 
+          {!propId && (
+            <div className="dev-ga4-warning-box">
+              <MaterialSymbol name="warning" size={16} color="#b06000" />
+              <span>A valid Google Analytics Property ID (numeric) is required before connecting. Please edit the project to set the property ID.</span>
+            </div>
+          )}
+
           <div className="dev-ga4-spec-summary">
             <div className="dev-ga4-spec-row">
               <span className="dev-ga4-spec-key">Target GA4 Property</span>
-              <span className="dev-ga4-spec-val"><code>properties/{cleanPropertyId(project.gaPropertyId)}</code></span>
+              <span className="dev-ga4-spec-val">
+                <code>{propId ? `properties/${propId}` : "Not specified"}</code>
+              </span>
             </div>
             <div className="dev-ga4-spec-row">
               <span className="dev-ga4-spec-key">Reporting Period</span>
-              <span className="dev-ga4-spec-val">Last 28 days (rolling)</span>
+              <span className="dev-ga4-spec-val">Last 28 days vs Previous 28 days</span>
             </div>
             <div className="dev-ga4-spec-row">
-              <span className="dev-ga4-spec-key">Retrieved Metrics</span>
-              <span className="dev-ga4-spec-val">Active users, New users, Event count, Key events</span>
+              <span className="dev-ga4-spec-key">Primary KPIs</span>
+              <span className="dev-ga4-spec-val">Visitors, Views, Engagement rate, New users</span>
             </div>
             <div className="dev-ga4-spec-row">
               <span className="dev-ga4-spec-key">OAuth Permission Scope</span>
@@ -1268,7 +1394,7 @@ function GA4ConnectModal({
             type="button"
             className="btn btn-primary"
             onClick={onConfirmConnect}
-            disabled={isConnecting}
+            disabled={isConnecting || !propId}
             style={{ backgroundColor: themeMainColor, display: "inline-flex", alignItems: "center", gap: 6 }}
           >
             {isConnecting ? (

@@ -4,33 +4,59 @@ import {
   buildGA4RunReportPayload,
   parseGA4RunReportResponse,
   getGA4RunReportUrl,
+  computeCountTrend,
+  computeRateTrend,
   GA4_TARGET_METRICS,
+  GA4_PRIMARY_KPIS,
   GA4_READONLY_SCOPE,
 } from "../../src/shared/ga4-client";
 
 describe("GA4 Data API Client Module", () => {
   describe("cleanPropertyId", () => {
-    it("strips properties/ prefix and trims whitespace", () => {
+    it("strips properties/ prefix and trims whitespace and trailing slashes", () => {
       expect(cleanPropertyId("123456789")).toBe("123456789");
       expect(cleanPropertyId("properties/123456789")).toBe("123456789");
-      expect(cleanPropertyId("  properties/987654321  ")).toBe("987654321");
+      expect(cleanPropertyId("  properties/987654321/  ")).toBe("987654321");
       expect(cleanPropertyId("")).toBe("");
       expect(cleanPropertyId(null as any)).toBe("");
     });
   });
 
   describe("buildGA4RunReportPayload", () => {
-    it("builds correct 28-day rolling window request with target metrics", () => {
+    it("builds correct 28-day rolling window request with target metrics and comparison period", () => {
       const payload = buildGA4RunReportPayload();
       expect(payload.dateRanges).toEqual([
-        { startDate: "28daysAgo", endDate: "yesterday" },
+        { startDate: "28daysAgo", endDate: "today" },
+        { startDate: "56daysAgo", endDate: "29daysAgo" },
       ]);
       expect(payload.metrics.map((m) => m.name)).toEqual([
         "activeUsers",
+        "screenPageViews",
+        "engagementRate",
         "newUsers",
         "eventCount",
         "keyEvents",
       ]);
+    });
+  });
+
+  describe("computeCountTrend and computeRateTrend", () => {
+    it("handles zero baseline truthfully as 'New'", () => {
+      expect(computeCountTrend(10, 0)).toBe("New");
+      expect(computeCountTrend(0, 0)).toBeUndefined();
+    });
+
+    it("computes percentage deltas for non-zero baseline", () => {
+      expect(computeCountTrend(15, 10)).toBe("↑50%");
+      expect(computeCountTrend(5, 10)).toBe("↓50%");
+      expect(computeCountTrend(10, 10)).toBe("0%");
+    });
+
+    it("computes rate difference trends", () => {
+      expect(computeRateTrend(0.35, 0.25)).toBe("+10pt");
+      expect(computeRateTrend(0.20, 0.25)).toBe("-5pt");
+      expect(computeRateTrend(0.20, 0.20)).toBe("0pt");
+      expect(computeRateTrend(0.20, 0)).toBeUndefined();
     });
   });
 
@@ -46,61 +72,77 @@ describe("GA4 Data API Client Module", () => {
   });
 
   describe("parseGA4RunReportResponse", () => {
-    it("parses valid GA4 Data API response rows into typed metrics", () => {
+    it("parses valid GA4 Data API response rows into typed metrics and trends", () => {
       const mockResponse = {
         metricHeaders: [
           { name: "activeUsers", type: "TYPE_INTEGER" },
+          { name: "screenPageViews", type: "TYPE_INTEGER" },
+          { name: "engagementRate", type: "TYPE_FLOAT" },
           { name: "newUsers", type: "TYPE_INTEGER" },
-          { name: "eventCount", type: "TYPE_INTEGER" },
-          { name: "keyEvents", type: "TYPE_INTEGER" },
         ],
         rows: [
           {
+            dimensionValues: [{ value: "date_range_0" }],
             metricValues: [
-              { value: "1420" },
-              { value: "310" },
-              { value: "89450" },
-              { value: "480" },
+              { value: "32" },
+              { value: "62" },
+              { value: "0.3025" },
+              { value: "33" },
+            ],
+          },
+          {
+            dimensionValues: [{ value: "date_range_1" }],
+            metricValues: [
+              { value: "0" },
+              { value: "0" },
+              { value: "0" },
+              { value: "0" },
             ],
           },
         ],
-        rowCount: 1,
+        rowCount: 2,
       };
 
-      const result = parseGA4RunReportResponse("123456789", mockResponse);
-      expect(result.propertyId).toBe("123456789");
-      expect(result.dateRangeDescription).toBe("Last 28 days");
-      expect(result.activeUsers).toBe(1420);
-      expect(result.newUsers).toBe(310);
-      expect(result.eventCount).toBe(89450);
-      expect(result.keyEvents).toBe(480);
+      const result = parseGA4RunReportResponse("552797256", mockResponse);
+      expect(result.propertyId).toBe("552797256");
+      expect(result.visitors).toBe(32);
+      expect(result.views).toBe(62);
+      expect(result.engagementRate).toBeCloseTo(0.3025);
+      expect(result.newUsers).toBe(33);
+      expect(result.visitorsTrend).toBe("New");
+      expect(result.viewsTrend).toBe("New");
+      expect(result.newUsersTrend).toBe("New");
+      // Legacy compatibility
+      expect(result.activeUsers).toBe(32);
+      expect(result.eventCount).toBe(62);
     });
 
     it("parses empty rows response as zeroes", () => {
       const mockResponse = {
         metricHeaders: [
           { name: "activeUsers", type: "TYPE_INTEGER" },
+          { name: "screenPageViews", type: "TYPE_INTEGER" },
+          { name: "engagementRate", type: "TYPE_FLOAT" },
           { name: "newUsers", type: "TYPE_INTEGER" },
-          { name: "eventCount", type: "TYPE_INTEGER" },
-          { name: "keyEvents", type: "TYPE_INTEGER" },
         ],
         rows: [],
         rowCount: 0,
       };
 
       const result = parseGA4RunReportResponse("123456789", mockResponse);
-      expect(result.activeUsers).toBe(0);
+      expect(result.visitors).toBe(0);
+      expect(result.views).toBe(0);
+      expect(result.engagementRate).toBe(0);
       expect(result.newUsers).toBe(0);
-      expect(result.eventCount).toBe(0);
-      expect(result.keyEvents).toBe(0);
+      expect(result.visitorsTrend).toBeUndefined();
     });
 
     it("handles null / malformed response gracefully", () => {
       const result = parseGA4RunReportResponse("123456789", null);
-      expect(result.activeUsers).toBeNull();
+      expect(result.visitors).toBeNull();
+      expect(result.views).toBeNull();
+      expect(result.engagementRate).toBeNull();
       expect(result.newUsers).toBeNull();
-      expect(result.eventCount).toBeNull();
-      expect(result.keyEvents).toBeNull();
     });
   });
 
@@ -109,14 +151,15 @@ describe("GA4 Data API Client Module", () => {
       expect(GA4_READONLY_SCOPE).toBe("https://www.googleapis.com/auth/analytics.readonly");
     });
 
-    it("has 4 target metrics defined", () => {
-      expect(GA4_TARGET_METRICS.length).toBe(4);
-      expect(GA4_TARGET_METRICS.map((m) => m.name)).toEqual([
+    it("has 4 primary KPIs defined", () => {
+      expect(GA4_PRIMARY_KPIS.length).toBe(4);
+      expect(GA4_PRIMARY_KPIS.map((m) => m.name)).toEqual([
         "activeUsers",
+        "screenPageViews",
+        "engagementRate",
         "newUsers",
-        "eventCount",
-        "keyEvents",
       ]);
+      expect(GA4_TARGET_METRICS).toBe(GA4_PRIMARY_KPIS);
     });
   });
 });

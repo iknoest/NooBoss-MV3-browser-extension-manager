@@ -133,17 +133,18 @@ describe("GA4 Connection, Auth & Storage Subsystem", () => {
       const mockGA4Response = {
         metricHeaders: [
           { name: "activeUsers", type: "TYPE_INTEGER" },
+          { name: "screenPageViews", type: "TYPE_INTEGER" },
+          { name: "engagementRate", type: "TYPE_FLOAT" },
           { name: "newUsers", type: "TYPE_INTEGER" },
-          { name: "eventCount", type: "TYPE_INTEGER" },
-          { name: "keyEvents", type: "TYPE_INTEGER" },
         ],
         rows: [
           {
+            dimensionValues: [{ value: "date_range_0" }],
             metricValues: [
               { value: "520" },
-              { value: "85" },
               { value: "12300" },
-              { value: "42" },
+              { value: "0.42" },
+              { value: "85" },
             ],
           },
         ],
@@ -158,10 +159,11 @@ describe("GA4 Connection, Auth & Storage Subsystem", () => {
 
       const report = await fetchGA4Report("553647047", true);
       expect(report.propertyId).toBe("553647047");
-      expect(report.activeUsers).toBe(520);
+      expect(report.visitors).toBe(520);
+      expect(report.views).toBe(12300);
+      expect(report.engagementRate).toBe(0.42);
       expect(report.newUsers).toBe(85);
-      expect(report.eventCount).toBe(12300);
-      expect(report.keyEvents).toBe(42);
+      expect(report.activeUsers).toBe(520);
       expect(report.fetchedAt).toBeGreaterThan(0);
     });
 
@@ -206,12 +208,19 @@ describe("GA4 Connection, Auth & Storage Subsystem", () => {
     });
   });
 
-  describe("Storage Subsystem Safety", () => {
+  describe("Storage Subsystem Safety & Multi-Project Independence", () => {
     it("stores only parsed metric aggregates, NEVER raw tokens", async () => {
       const record = {
         propertyId: "553647047",
-        activeUsers: 100,
+        visitors: 100,
+        views: 5000,
+        engagementRate: 0.25,
         newUsers: 20,
+        visitorsTrend: "+10%",
+        viewsTrend: "+5%",
+        engagementTrend: "+1%",
+        newUsersTrend: "New",
+        activeUsers: 100,
         eventCount: 5000,
         keyEvents: 10,
         fetchedAt: Date.now(),
@@ -237,6 +246,47 @@ describe("GA4 Connection, Auth & Storage Subsystem", () => {
       await clearProjectGA4Metrics("proj-nowebp");
       const cleared = await getProjectGA4Metrics("proj-nowebp");
       expect(cleared).toBeNull();
+    });
+
+    it("supports independent multi-project metrics without cross-clearing", async () => {
+      const recordA = {
+        propertyId: "553647047",
+        visitors: 6,
+        views: 9,
+        engagementRate: 0.125,
+        newUsers: 6,
+        visitorsTrend: "New",
+        viewsTrend: "New",
+        engagementTrend: "New",
+        newUsersTrend: "New",
+        fetchedAt: Date.now(),
+      };
+
+      const recordB = {
+        propertyId: "552797256",
+        visitors: 32,
+        views: 62,
+        engagementRate: 0.302,
+        newUsers: 33,
+        visitorsTrend: "New",
+        viewsTrend: "New",
+        engagementTrend: "New",
+        newUsersTrend: "New",
+        fetchedAt: Date.now(),
+      };
+
+      await saveProjectGA4Metrics("proj-a", recordA);
+      await saveProjectGA4Metrics("proj-b", recordB);
+
+      const both = await getGA4MetricsMap();
+      expect(both["proj-a"]).toEqual(recordA);
+      expect(both["proj-b"]).toEqual(recordB);
+
+      // Disconnect project A only
+      await clearProjectGA4Metrics("proj-a");
+      const afterClear = await getGA4MetricsMap();
+      expect(afterClear["proj-a"]).toBeUndefined();
+      expect(afterClear["proj-b"]).toEqual(recordB);
     });
   });
 });

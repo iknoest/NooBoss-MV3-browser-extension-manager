@@ -128,10 +128,17 @@ export async function saveDeveloperProjects(
 
 export interface StoredGA4MetricsRecord {
   propertyId: string;
-  activeUsers: number | null;
+  visitors: number | null;
+  views: number | null;
+  engagementRate: number | null;
   newUsers: number | null;
-  eventCount: number | null;
-  keyEvents: number | null;
+  visitorsTrend?: string;
+  viewsTrend?: string;
+  engagementTrend?: string;
+  newUsersTrend?: string;
+  activeUsers?: number | null;
+  eventCount?: number | null;
+  keyEvents?: number | null;
   fetchedAt: number;
 }
 
