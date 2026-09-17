@@ -270,7 +270,7 @@ export function DeveloperView({
         <div className="developer-header-title-block">
           <h2 className="developer-title">Developer Workspace</h2>
           <p className="developer-subtitle">
-            Connect local test extensions to GitHub repositories, Chrome Web Store items, and Google Analytics.
+            Connect local test extensions to GitHub repositories, Chrome Web Store items, and Google Analytics. Analytics shows the last 28 days of Chrome Web Store listing performance.
           </p>
         </div>
         <div className="dev-header-actions">
@@ -642,13 +642,11 @@ export function DeveloperView({
                               : "Store listing telemetry (GA4 Data API v1beta). Click Connect to authorize read-only reporting."
                           }
                         >
-                          <div className="dev-ga4-period-label">STORE LISTING · LAST 28 DAYS</div>
-                          <div className="dev-ga4-metric-divider" />
                           <div className="dev-ga4-metric-cell">
-                            <span className="dev-ga4-metric-name">Visitors</span>
+                            <span className="dev-ga4-metric-name">Active users</span>
                             <span className="dev-ga4-metric-value">
-                              {isConnected && (storedRecord?.visitors ?? storedRecord?.activeUsers) !== undefined && (storedRecord?.visitors ?? storedRecord?.activeUsers) !== null
-                                ? (storedRecord.visitors ?? storedRecord.activeUsers)
+                              {isConnected && (storedRecord?.activeUsers ?? storedRecord?.visitors) !== undefined && (storedRecord?.activeUsers ?? storedRecord?.visitors) !== null
+                                ? (storedRecord.activeUsers ?? storedRecord.visitors)
                                 : "—"}
                             </span>
                             {isConnected && storedRecord?.hasPreviousBaseline && storedRecord?.visitorsTrend && (
@@ -659,7 +657,7 @@ export function DeveloperView({
                           </div>
                           <div className="dev-ga4-metric-divider" />
                           <div className="dev-ga4-metric-cell">
-                            <span className="dev-ga4-metric-name">New visitors</span>
+                            <span className="dev-ga4-metric-name">New users</span>
                             <span className="dev-ga4-metric-value">
                               {isConnected && storedRecord?.newUsers !== undefined && storedRecord?.newUsers !== null
                                 ? storedRecord.newUsers
@@ -722,18 +720,6 @@ export function DeveloperView({
                                   <MaterialSymbol name="refresh" size={12} className={isConnecting ? "spin-icon" : ""} />
                                   <span>Refresh</span>
                                 </button>
-                                <a
-                                  href={getGA4PropertyReportsUrl(proj.gaPropertyId)}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="dev-ga4-external-btn"
-                                  onClick={(e) => e.stopPropagation()}
-                                  title={`Open Google Analytics reports for property ${cleanPropertyId(proj.gaPropertyId)} in new tab`}
-                                  aria-label="Open Google Analytics reports"
-                                >
-                                  <MaterialSymbol name="open_in_new" size={12} />
-                                  <span>Analytics</span>
-                                </a>
                               </div>
                             ) : isConnecting ? (
                               <span className="dev-ga4-status-badge">Connecting…</span>
@@ -1285,10 +1271,18 @@ function ProjectEditorModal({
 
                   <div className="dev-editor-metrics-grid">
                     <div className="dev-editor-metric-card">
-                      <span className="dev-editor-metric-title">Visitors</span>
+                      <span className="dev-editor-metric-title">Active users</span>
                       <span className="dev-editor-metric-val">
-                        {(metricsRecord.visitors ?? metricsRecord.activeUsers) !== undefined && (metricsRecord.visitors ?? metricsRecord.activeUsers) !== null
-                          ? (metricsRecord.visitors ?? metricsRecord.activeUsers)
+                        {(metricsRecord.activeUsers ?? metricsRecord.visitors) !== undefined && (metricsRecord.activeUsers ?? metricsRecord.visitors) !== null
+                          ? (metricsRecord.activeUsers ?? metricsRecord.visitors)
+                          : "—"}
+                      </span>
+                    </div>
+                    <div className="dev-editor-metric-card">
+                      <span className="dev-editor-metric-title">New users</span>
+                      <span className="dev-editor-metric-val">
+                        {metricsRecord.newUsers !== undefined && metricsRecord.newUsers !== null
+                          ? metricsRecord.newUsers
                           : "—"}
                       </span>
                     </div>
@@ -1305,14 +1299,6 @@ function ProjectEditorModal({
                       <span className="dev-editor-metric-val">
                         {metricsRecord.engagementRate !== undefined && metricsRecord.engagementRate !== null
                           ? `${Math.round(metricsRecord.engagementRate * 100)}%`
-                          : "—"}
-                      </span>
-                    </div>
-                    <div className="dev-editor-metric-card">
-                      <span className="dev-editor-metric-title">New users</span>
-                      <span className="dev-editor-metric-val">
-                        {metricsRecord.newUsers !== undefined && metricsRecord.newUsers !== null
-                          ? metricsRecord.newUsers
                           : "—"}
                       </span>
                     </div>
@@ -1339,7 +1325,7 @@ function ProjectEditorModal({
             <div className="dev-modal-spec-item">
               <MaterialSymbol name="analytics" size={15} color="var(--text-muted)" />
               <span>
-                <strong>Store analytics:</strong> Read-only access queries <em>Visitors</em>, <em>Views</em>, <em>Engagement rate</em>, and <em>New users</em> over the last 28 days vs the previous 28 days via Google Analytics Data API v1beta.
+                <strong>Store analytics:</strong> Read-only access queries <em>Active users</em>, <em>New users</em>, <em>Views</em>, and <em>Engagement</em> over the last 28 days vs the previous 28 days via Google Analytics Data API v1beta.
               </span>
             </div>
             <div className="dev-modal-spec-item">
@@ -1448,7 +1434,7 @@ function GA4ConnectModal({
             </div>
             <div className="dev-ga4-spec-row">
               <span className="dev-ga4-spec-key">Primary KPIs</span>
-              <span className="dev-ga4-spec-val">Visitors, Views, Engagement rate, New users</span>
+              <span className="dev-ga4-spec-val">Active users, New users, Views, Engagement</span>
             </div>
             <div className="dev-ga4-spec-row">
               <span className="dev-ga4-spec-key">OAuth Permission Scope</span>

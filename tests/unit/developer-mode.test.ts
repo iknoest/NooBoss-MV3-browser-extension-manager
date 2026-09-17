@@ -562,32 +562,40 @@ describe("Developer Workspace & Developer Mode", () => {
       expect(cssSource).toContain("#d93025");
     });
 
-    it("verifies main row analytics displays 3 KPIs, removes New users, and renders single zero-baseline note", () => {
+    it("verifies main row analytics displays canonical GA4 metrics, removes redundant scope heading, and renders single zero-baseline note", () => {
       const devSource = fs.readFileSync("src/popup/components/DeveloperView.tsx", "utf8");
+
+      // Global description communicates the analytics reporting scope once
+      expect(devSource).toContain("Connect local test extensions to GitHub repositories, Chrome Web Store items, and Google Analytics. Analytics shows the last 28 days of Chrome Web Store listing performance.");
 
       // Locate the main row metrics bar
       const metricsBarStart = devSource.indexOf('className={`dev-ga4-metrics-bar');
       const metricsBarEnd = devSource.indexOf('</article>', metricsBarStart);
       const metricsBarBlock = devSource.slice(metricsBarStart, metricsBarEnd);
 
-      // Main row has exactly 4 primary store-listing metrics
-      expect(metricsBarBlock).toContain("Visitors");
-      expect(metricsBarBlock).toContain("New visitors");
+      // Main row has canonical Google Analytics metrics
+      expect(metricsBarBlock).toContain("Active users");
+      expect(metricsBarBlock).toContain("New users");
       expect(metricsBarBlock).toContain("Views");
       expect(metricsBarBlock).toContain("Engagement");
+      expect(metricsBarBlock).not.toContain("Visitors");
+      expect(metricsBarBlock).not.toContain("New visitors");
 
       // Main row has single zero-baseline note
       expect(metricsBarBlock).toContain("No previous-period baseline");
       expect(metricsBarBlock).toContain("dev-ga4-baseline-note");
 
-      // Clarified scope heading without abbreviation 28D
-      expect(metricsBarBlock).toContain("STORE LISTING · LAST 28 DAYS");
+      // No redundant scope heading in project row
+      expect(metricsBarBlock).not.toContain("STORE LISTING · LAST 28 DAYS");
+      expect(metricsBarBlock).not.toContain("STORE LISTING");
 
-      // New users is also in ProjectEditorModal under the metrics grid
+      // ProjectEditorModal also uses canonical Active users and New users
       const editorStart = devSource.indexOf("function ProjectEditorModal");
       const editorBlock = devSource.slice(editorStart);
       expect(editorBlock).toContain("dev-editor-metrics-grid");
+      expect(editorBlock).toContain("Active users");
       expect(editorBlock).toContain("New users");
+      expect(editorBlock).not.toContain("Visitors");
       expect(editorBlock).toContain("GA4 property ID for Chrome Web Store listing telemetry.");
 
       // Neutral styling for metrics bar (no nested bordered card box, transparent bg, subtle divider)
@@ -612,20 +620,24 @@ describe("Developer Workspace & Developer Mode", () => {
       expect(cssSource).toContain(".dev-chip-package-status");
     });
 
-    it("verifies direct Google Analytics property navigation helper and external link affordance", async () => {
+    it("verifies direct Google Analytics property navigation helper and non-duplicated link affordance", async () => {
       const { getGA4PropertyReportsUrl } = await import("../../src/shared/ga4-client");
       expect(getGA4PropertyReportsUrl("552797256")).toBe("https://analytics.google.com/analytics/web/#/p552797256/reports");
       expect(getGA4PropertyReportsUrl("properties/553647047")).toBe("https://analytics.google.com/analytics/web/#/p553647047/reports");
       expect(getGA4PropertyReportsUrl("")).toBe("https://analytics.google.com/analytics/web/");
 
       const devSource = fs.readFileSync("src/popup/components/DeveloperView.tsx", "utf8");
-      // External link action adjacent to Analytics connected
+      // External link action adjacent to Analytics connected chip
       expect(devSource).toContain("dev-chip-external-group");
       expect(devSource).toContain("dev-chip-action-btn");
       expect(devSource).toContain("getGA4PropertyReportsUrl(proj.gaPropertyId)");
 
-      // External link also available in metrics actions
-      expect(devSource).toContain("dev-ga4-external-btn");
+      // In metrics row, Refresh is the single action (duplicate navigation removed)
+      const metricsBarStart = devSource.indexOf('className={`dev-ga4-metrics-bar');
+      const metricsBarEnd = devSource.indexOf('</article>', metricsBarStart);
+      const metricsBarBlock = devSource.slice(metricsBarStart, metricsBarEnd);
+      expect(metricsBarBlock).toContain("dev-ga4-refresh-btn");
+      expect(metricsBarBlock).not.toContain("dev-ga4-external-btn");
     });
 
     it("verifies HistoryView provides explicit Export history action", () => {
@@ -634,6 +646,15 @@ describe("Developer Workspace & Developer Mode", () => {
       expect(historySource).toContain("historyExportBtn");
       expect(historySource).toContain("exportHistoryCSV");
       expect(historySource).toContain("history-actions-group");
+    });
+
+    it("verifies OptionsView provides explicit Export History CSV entry in Backup & Data", () => {
+      const optionsSource = fs.readFileSync("src/popup/components/OptionsView.tsx", "utf8");
+      expect(optionsSource).toContain("Export History");
+      expect(optionsSource).toContain("Export Extension Drawer history records to CSV");
+      expect(optionsSource).toContain("Export CSV");
+      expect(optionsSource).toContain("optionsExportHistoryBtn");
+      expect(optionsSource).toContain("exportHistoryCSV");
     });
   });
 });

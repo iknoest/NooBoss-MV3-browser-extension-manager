@@ -1,12 +1,15 @@
 import { useState } from "preact/hooks";
-import type { AppSettings, ExtensionInfo } from "../../shared/types";
+import type { AppSettings, ExtensionInfo, HistoryRecord } from "../../shared/types";
+import { exportHistoryCSV } from "../../shared/history-export";
 
 export interface OptionsViewProps {
   settings: AppSettings;
   extensions?: ExtensionInfo[];
+  historyRecords?: HistoryRecord[];
   onSaveSettings: (settings: AppSettings) => void;
   onClearHistory: () => void;
   onExportData: () => void;
+  onExportHistory?: () => void;
   onImportData: (file: File) => void;
   themeMainColor?: string;
 }
@@ -22,13 +25,38 @@ const ACCENT_PRESETS: Record<string, string> = {
 export function OptionsView({
   settings,
   extensions = [],
+  historyRecords = [],
   onSaveSettings,
   onClearHistory,
   onExportData,
+  onExportHistory,
   onImportData,
   themeMainColor = "#1a73e8",
 }: OptionsViewProps) {
   const [confirmClearHistory, setConfirmClearHistory] = useState(false);
+
+  const handleExportHistory = async () => {
+    if (onExportHistory) {
+      onExportHistory();
+      return;
+    }
+    if (historyRecords && historyRecords.length > 0) {
+      exportHistoryCSV(historyRecords);
+      return;
+    }
+    if (typeof chrome !== "undefined" && chrome.runtime?.sendMessage) {
+      try {
+        const res = await chrome.runtime.sendMessage({ type: "GET_HISTORY" });
+        if (Array.isArray(res)) {
+          exportHistoryCSV(res);
+          return;
+        }
+      } catch {
+        // fallback
+      }
+    }
+    exportHistoryCSV(historyRecords || []);
+  };
 
   const handleUpdateSetting = <K extends keyof AppSettings>(key: K, val: AppSettings[K]) => {
     onSaveSettings({ ...settings, [key]: val });
@@ -433,6 +461,22 @@ ${extensions.map((e) => `<li><a href="https://chrome.google.com/webstore/detail/
             <div className="settings-control">
               <button className="btn btn-secondary settings-action-btn" onClick={handleExportHtml}>
                 Export HTML
+              </button>
+            </div>
+          </div>
+
+          <div className="settings-row">
+            <div className="settings-row-text">
+              <span className="settings-label">Export History</span>
+              <span className="settings-description">Export Extension Drawer history records to CSV</span>
+            </div>
+            <div className="settings-control">
+              <button
+                id="optionsExportHistoryBtn"
+                className="btn btn-secondary settings-action-btn"
+                onClick={handleExportHistory}
+              >
+                Export CSV
               </button>
             </div>
           </div>

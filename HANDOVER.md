@@ -1,6 +1,6 @@
 # Handover
 
-Snapshot: 2026-09-17T21:50:00+02:00
+Snapshot: 2026-09-18T00:18:00+02:00
 
 ## Current release state (1.1.0 continuity)
 - `f87404a02534d704e00b281a38411f8c204d0cb9` is the frozen accepted 1.1.0 source and release baseline.
@@ -11,6 +11,22 @@ Snapshot: 2026-09-17T21:50:00+02:00
 - Current UX work (at `4fbdbcb`, `c12e195`, `f22a1e4`, `e014bf4`, `14ff0e0`, and follow-up commits) is post-1.1.0 local work and must not silently become part of the frozen 1.1.0 release artifact.
 
 ## Work completed
+- **Developer Analytics Canonical Terminology, Global Reporting Scope & Options History Export Milestone**:
+  - **Outcome 1 — Canonical Google Analytics Terminology**:
+    - Replaced all instances of `Visitors` with canonical GA4 term `Active users` (`activeUsers`).
+    - Replaced all instances of `New visitors` with canonical GA4 term `New users` (`newUsers`).
+    - Standardized metric taxonomy across Developer Workspace (`DeveloperView.tsx`), GA4 client (`ga4-client.ts`), and modal specifications: `Active users`, `Views` (`screenPageViews`), `Engagement` (`engagementRate`), and `New users` (`newUsers`).
+  - **Outcome 2 — Global Reporting Scope Context**:
+    - Removed repeated per-project section heading `STORE LISTING · LAST 28 DAYS` and redundant divider lines.
+    - Communicated reporting scope once globally in Developer Workspace description: `Connect local test extensions to GitHub repositories, Chrome Web Store items, and Google Analytics. Analytics shows the last 28 days of Chrome Web Store listing performance.`.
+  - **Outcome 3 — Dual-Surface History CSV Export in Backup & Data (`OptionsView.tsx`)**:
+    - Added explicit `Export History` settings row under `Backup & Data` with description `Export Extension Drawer history records to CSV` and button `Export CSV` (`#optionsExportHistoryBtn`).
+    - Directly calls canonical `exportHistoryCSV(historyRecords)` implementation from `src/shared/history-export.ts` without formatting duplication.
+    - Preserves clean decoupling between Configuration backup (`Export JSON`) and History export (`Export CSV`).
+    - Preserves existing History-page `Export history` button.
+  - **Outcome 4 — Analytics Action Streamlining**:
+    - Retained `Analytics connected ↗` chip as the direct external navigation affordance.
+    - Simplified the metrics action row to contain `Refresh` as the sole action (eliminating duplicate `Analytics` navigation button).
 - **Final Developer Workspace UX Closure & History CSV Export Milestone**:
   - **Outcome 8 — Final Developer Workspace UX Closure & Explicit History CSV Export**:
     - *Simplified Developer Analytics Hierarchy*: Cleanly separated connection status (`● Analytics connected`, `Analytics not linked`, `Analytics not connected`, `Analytics connecting…`, `Analytics error`) with adjacent external-link affordance from the reporting context heading (`STORE LISTING · LAST 28 DAYS`, eliminating duplicate "Store analytics" labels and "28D" abbreviation).
@@ -263,12 +279,14 @@ Snapshot: 2026-09-17T21:50:00+02:00
   - *Unsupported cases*: Unpacked/dev extensions (no CWS package), extensions removed/delisted from CWS, enterprise policy-installed extensions without public store URLs.
 
 ## Tests and verification
-- **Unit test suite**: 16 test files, 251 tests passing (`npm test` via Vitest), including `tests/unit/history-export.test.ts` (11 tests covering RFC-4180 formatting, ISO 8601 timestamps, header preservation, edge case escaping), `tests/unit/developer-mode.test.ts` (31 tests covering default OFF, persistence, Options row, unpacked vs store behavior, deletion safety, M3 modal, SubWindow contracts), `tests/unit/sorting-ux.test.ts` (10 tests), `tests/unit/history-sorting-devclarity.test.ts` (14 tests), and `tests/unit/unpacked-reload.test.ts` (35 tests).
+- **Unit test suite**: 16 test files, 252 tests passing (`npm test` via Vitest), including `tests/unit/developer-mode.test.ts` (32 tests covering default OFF, persistence, Options row, unpacked vs store behavior, deletion safety, M3 modal, SubWindow contracts, canonical GA4 metric terms, global description, single refresh button, and Options history export row), `tests/unit/ga4-client.test.ts` (12 tests covering canonical metric labels and payloads), `tests/unit/history-export.test.ts` (11 tests covering RFC-4180 formatting, ISO 8601 timestamps, header preservation, edge case escaping), `tests/unit/sorting-ux.test.ts` (10 tests), `tests/unit/history-sorting-devclarity.test.ts` (14 tests), and `tests/unit/unpacked-reload.test.ts` (35 tests).
 - **Static verification**: `npm run typecheck` (`tsc --noEmit`) and `npm run lint` (`eslint src/`) pass with 0 errors and 0 warnings.
 - **Production build**: `npm run build` generates production assets cleanly (`dist/`) in ~155ms.
-- **Visual inspection**: Live visual inspection in dedicated Chrome window `864997611` (Quartz `2598`):
-  - `developer_workspace_full.png`: Aligned 24px integration chips, direct GA4 reports link affordances, `STORE LISTING · LAST 28 DAYS` header, restored 4 primary decision metrics, transparent metrics row without nested card frame.
-  - `history_clean_full.png` & `history_view_export_button.png`: Material Design 3 `Export history` button alongside `Empty history`, clean CSV export download to `extension-drawer-history-YYYY-MM-DD.csv` with full RFC-4180 compliance.
+- **Visual inspection**: Live visual inspection in test Chrome window `864997649` (Quartz `4122`):
+  - `developer_workspace_canonical.png`: Canonical GA4 metric terms (`Active users`, `New users`, `Views`, `Engagement`), global 28-day store listing reporting scope in workspace subtitle, single `Refresh` button in metrics row, aligned `Analytics connected ↗` chip.
+  - `options_backup_and_data_clean.png`: `Export History` row under Backup & Data alongside `Export Configuration`, `Export Extension List`, and `Import Backup`.
+  - Tested `#optionsExportHistoryBtn` click: cleanly downloaded `extension-drawer-history-YYYY-MM-DD.csv` to `~/Downloads`.
+  - `history_export_action.png`: Verified preserved `Export history` button on History page.
 - **Gate receipt**: Recorded and validated via `agentos_final_gate.py record` and `agentos_final_gate.py validate --session a61582c5-ddf9-422d-8e81-0925bfcf4db8 --agent AGY` (`decision: allow`, code: `OK`).
 - **Baseline safety**: Release baseline `f87404a02534d704e00b281a38411f8c204d0cb9` and `release/extension-drawer-1.1.0.zip` preserved frozen; zero permission additions; no version bumps; strictly zero git push.
 
@@ -303,7 +321,7 @@ For extension telemetry over the standard rolling 28-day window:
 4. `keyEvents`: Count of key events / primary workflow completions (Live: 0).
 
 ## Ongoing tasks
-- Maintain existing high unit test coverage (251 tests across 16 test files) across core features.
+- Maintain existing high unit test coverage (252 tests across 16 test files) across core features.
 - Review remaining browser profile data for compatibility with current Chrome APIs.
 - Validate recovered extension state against managed groups and extension configuration entries.
 - Keep cautious handling of LevelDB and IndexedDB data in local-only recovery steps.

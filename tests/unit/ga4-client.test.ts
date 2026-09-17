@@ -193,13 +193,19 @@ describe("GA4 Data API Client Module", () => {
       expect(GA4_READONLY_SCOPE).toBe("https://www.googleapis.com/auth/analytics.readonly");
     });
 
-    it("has 4 primary KPIs defined", () => {
+    it("has 4 primary KPIs defined with canonical GA4 labels", () => {
       expect(GA4_PRIMARY_KPIS.length).toBe(4);
       expect(GA4_PRIMARY_KPIS.map((m) => m.name)).toEqual([
         "activeUsers",
         "screenPageViews",
         "engagementRate",
         "newUsers",
+      ]);
+      expect(GA4_PRIMARY_KPIS.map((m) => m.label)).toEqual([
+        "Active users",
+        "Views",
+        "Engagement",
+        "New users",
       ]);
       expect(GA4_TARGET_METRICS).toBe(GA4_PRIMARY_KPIS);
     });

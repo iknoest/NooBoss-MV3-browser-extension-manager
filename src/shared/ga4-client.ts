@@ -17,7 +17,7 @@ export const GA4_OAUTH_CLIENT_ID = "799106519083-4abp5ksuf8mmqnh6tjret0guni0dbpt
 export const GA4_EXTENSION_ID = "onkcjpfgllpfbimnchjehboikhippnka";
 
 export const GA4_PRIMARY_KPIS = [
-  { name: "activeUsers", label: "Visitors", description: "Distinct active users over the past 28 days" },
+  { name: "activeUsers", label: "Active users", description: "Distinct active users over the past 28 days" },
   { name: "screenPageViews", label: "Views", description: "Total page and extension views over the past 28 days" },
   { name: "engagementRate", label: "Engagement", description: "Engaged session rate over the past 28 days" },
   { name: "newUsers", label: "New users", description: "First-time users acquired over the past 28 days" },
@@ -74,7 +74,7 @@ export interface GA4ProjectTrackingStatus {
 }
 
 /**
- * Computes trend percentage for count metrics (e.g. Visitors, Views, New users).
+ * Computes trend percentage for count metrics (e.g. Active users, Views, New users).
  * Returns undefined when previous baseline is zero or null to avoid misleading or repetitive badges.
  */
 export function computeCountTrend(curr: number | null, prev: number | null): string | undefined {
@@ -127,7 +127,7 @@ export function getGA4PropertyReportsUrl(propertyId: string | undefined | null):
 /**
  * Builds the canonical GA4 Data API v1beta runReport request payload.
  * Rolling window: 28 days ("28daysAgo" to "today") compared with previous 28 days ("56daysAgo" to "29daysAgo").
- * Primary KPIs: activeUsers (Visitors), screenPageViews (Views), engagementRate (Engagement), newUsers.
+ * Primary KPIs: activeUsers (Active users), screenPageViews (Views), engagementRate (Engagement), newUsers (New users).
  */
 export function buildGA4RunReportPayload(): GA4ReportRequest {
   return {

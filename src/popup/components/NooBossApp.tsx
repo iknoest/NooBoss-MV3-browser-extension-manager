@@ -17,6 +17,7 @@ import { DeveloperView } from "./DeveloperView";
 import { OptionsView } from "./OptionsView";
 import { AboutView } from "./AboutView";
 import { SubWindow } from "./SubWindow";
+import { exportHistoryCSV } from "../../shared/history-export";
 import "./nooboss.css";
 
 export interface NooBossAppProps {
@@ -551,9 +552,11 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
           <OptionsView
             settings={settings}
             extensions={extensions}
+            historyRecords={historyRecords}
             onSaveSettings={handleSaveSettings}
             onClearHistory={handleClearHistory}
             onExportData={handleExportData}
+            onExportHistory={() => exportHistoryCSV(historyRecords)}
             onImportData={handleImportData}
             themeMainColor={resolvedAccent}
           />
