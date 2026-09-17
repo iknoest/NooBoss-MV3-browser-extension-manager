@@ -1,5 +1,6 @@
 import { useState } from "preact/hooks";
 import type { HistoryRecord, ExtensionInfo } from "../../shared/types";
+import { exportHistoryCSV } from "../../shared/history-export";
 import { GL, timeAgo } from "./i18n";
 import { MaterialSymbol } from "./MaterialSymbols";
 
@@ -28,6 +29,10 @@ export function HistoryView({
   const handleEmpty = () => {
     onClearHistory();
     setShowConfirm(false);
+  };
+
+  const handleExportHistory = () => {
+    exportHistoryCSV(records);
   };
 
   const sortedRecords = [...records].sort((a, b) => b.timestamp - a.timestamp);
@@ -111,13 +116,27 @@ export function HistoryView({
           )}
         </div>
 
-        <button
-          type="button"
-          className="btn btn-secondary action-btn history-clear-btn"
-          onClick={() => setShowConfirm(true)}
-        >
-          {GL("empty_history")}
-        </button>
+        <div className="history-actions-group">
+          <button
+            type="button"
+            id="historyExportBtn"
+            className="btn btn-secondary action-btn history-export-btn"
+            onClick={handleExportHistory}
+            title="Export all history records as CSV"
+            aria-label="Export history"
+          >
+            <MaterialSymbol name="download" size={16} />
+            <span>Export history</span>
+          </button>
+
+          <button
+            type="button"
+            className="btn btn-secondary action-btn history-clear-btn"
+            onClick={() => setShowConfirm(true)}
+          >
+            {GL("empty_history")}
+          </button>
+        </div>
       </div>
 
       <div className="history-table-wrapper">

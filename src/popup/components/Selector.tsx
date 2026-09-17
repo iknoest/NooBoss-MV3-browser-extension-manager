@@ -461,7 +461,7 @@ export function Selector({
               <button
                 type="button"
                 className="sort-help-btn"
-                title="Changes are install, update, enable and disable events recorded by Extension Drawer. This is not extension usage."
+                title="Based on Extension Drawer history."
                 aria-label="Sort information"
                 onClick={() => setShowSortHelp(!showSortHelp)}
               >
@@ -470,7 +470,7 @@ export function Selector({
               {showSortHelp && (
                 <div className="sort-help-popover" role="tooltip">
                   <div className="sort-help-popover-text">
-                    Changes are install, update, enable and disable events recorded by Extension Drawer. This is not extension usage.
+                    Based on Extension Drawer history.
                   </div>
                   <button
                     type="button"

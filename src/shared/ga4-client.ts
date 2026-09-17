@@ -114,6 +114,17 @@ export function cleanPropertyId(raw: string | undefined | null): string {
 }
 
 /**
+ * Builds the canonical Google Analytics web console reports URL for a given GA4 property.
+ * Accepts numeric ID or "properties/ID".
+ * E.g., "552797256" -> "https://analytics.google.com/analytics/web/#/p552797256/reports"
+ */
+export function getGA4PropertyReportsUrl(propertyId: string | undefined | null): string {
+  const cleanId = cleanPropertyId(propertyId);
+  if (!cleanId) return "https://analytics.google.com/analytics/web/";
+  return `https://analytics.google.com/analytics/web/#/p${cleanId}/reports`;
+}
+
+/**
  * Builds the canonical GA4 Data API v1beta runReport request payload.
  * Rolling window: 28 days ("28daysAgo" to "today") compared with previous 28 days ("56daysAgo" to "29daysAgo").
  * Primary KPIs: activeUsers (Visitors), screenPageViews (Views), engagementRate (Engagement), newUsers.

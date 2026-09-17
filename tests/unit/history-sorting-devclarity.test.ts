@@ -241,12 +241,12 @@ describe("History Event Filtering, Extension Sorting & Developer Clarity", () =>
       expect(devSource).toContain("Store not linked");
 
       // Analytics (GA4 Data API integration)
-      expect(devSource).toContain("Store analytics · Not connected");
+      expect(devSource).toContain("Analytics not connected");
       expect(devSource).toContain("Analytics not linked");
-      expect(devSource).toContain("Store analytics · Connected");
+      expect(devSource).toContain("Analytics connected");
 
       // Package
-      expect(devSource).toContain("Package: not enabled");
+      expect(devSource).toContain("Package not enabled");
     });
 
     it("DeveloperView eliminates duplicate gear icon from project row", () => {

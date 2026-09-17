@@ -6,6 +6,7 @@ import { ExtensionSwitch } from "./ExtensionBrief";
 import {
   fetchGA4Report,
   cleanPropertyId,
+  getGA4PropertyReportsUrl,
   type GA4ReportResult,
 } from "../../shared/ga4-client";
 import {
@@ -506,9 +507,9 @@ export function DeveloperView({
                             className="dev-status-chip dev-chip-linked"
                             title={`GitHub: ${cleanGithubDisplay(proj.githubUrl)} (opens repository)`}
                           >
-                            <MaterialSymbol name="code" size={13} color="var(--theme-main, #1a73e8)" />
+                            <MaterialSymbol name="code" size={16} color="var(--theme-main, #1a73e8)" />
                             <span className="dev-chip-label">GitHub linked</span>
-                            <MaterialSymbol name="open_in_new" size={11} color="var(--text-muted)" />
+                            <MaterialSymbol name="open_in_new" size={16} color="var(--text-muted)" />
                           </a>
                         ) : (
                           <button
@@ -517,7 +518,7 @@ export function DeveloperView({
                             onClick={() => handleStartEdit(proj)}
                             title="Link a GitHub repository"
                           >
-                            <MaterialSymbol name="add" size={12} color="var(--text-muted)" />
+                            <MaterialSymbol name="add" size={16} color="var(--text-muted)" />
                             <span className="dev-chip-label">GitHub not linked</span>
                           </button>
                         )}
@@ -531,9 +532,9 @@ export function DeveloperView({
                             className="dev-status-chip dev-chip-linked"
                             title={`Chrome Web Store: ${proj.cwsExtensionId} (opens listing)`}
                           >
-                            <MaterialSymbol name="storefront" size={13} color="var(--theme-main, #1a73e8)" />
+                            <MaterialSymbol name="storefront" size={16} color="var(--theme-main, #1a73e8)" />
                             <span className="dev-chip-label">Store linked</span>
-                            <MaterialSymbol name="open_in_new" size={11} color="var(--text-muted)" />
+                            <MaterialSymbol name="open_in_new" size={16} color="var(--text-muted)" />
                           </a>
                         ) : (
                           <button
@@ -542,7 +543,7 @@ export function DeveloperView({
                             onClick={() => handleStartEdit(proj)}
                             title="Link a Chrome Web Store item ID"
                           >
-                            <MaterialSymbol name="add" size={12} color="var(--text-muted)" />
+                            <MaterialSymbol name="add" size={16} color="var(--text-muted)" />
                             <span className="dev-chip-label">Store not linked</span>
                           </button>
                         )}
@@ -555,53 +556,71 @@ export function DeveloperView({
                             onClick={() => handleStartEdit(proj)}
                             title="Link a Google Analytics Property ID"
                           >
-                            <MaterialSymbol name="add" size={12} color="var(--text-muted)" />
+                            <MaterialSymbol name="add" size={16} color="var(--text-muted)" />
                             <span className="dev-chip-label">Analytics not linked</span>
                           </button>
                         ) : isConnecting ? (
-                          <span className="dev-status-chip dev-chip-bound" title="Connecting to Store analytics...">
-                            <MaterialSymbol name="sync" size={13} className="spin-icon" color="var(--theme-main, #1a73e8)" />
-                            <span className="dev-chip-label">Store analytics · Connecting…</span>
+                          <span className="dev-status-chip dev-chip-bound" title="Connecting to Google Analytics...">
+                            <MaterialSymbol name="sync" size={16} className="spin-icon" color="var(--theme-main, #1a73e8)" />
+                            <span className="dev-chip-label">Analytics connecting…</span>
                           </span>
                         ) : isConnected ? (
-                          <button
-                            type="button"
-                            className="dev-status-chip dev-chip-connected"
-                            onClick={() => handleStartEdit(proj)}
-                            title={`Google Analytics Property: ${proj.gaPropertyId} · Store analytics connected (Last 28 days)`}
-                          >
-                            <span className="dev-status-dot connected" />
-                            <span className="dev-chip-label">Store analytics · Connected</span>
-                          </button>
+                          <div className="dev-chip-external-group">
+                            <button
+                              type="button"
+                              className="dev-status-chip dev-chip-connected"
+                              onClick={() => handleStartEdit(proj)}
+                              title={`Google Analytics Property: ${cleanPropertyId(proj.gaPropertyId)} · Analytics connected`}
+                            >
+                              <span className="dev-status-dot-frame">
+                                <span className="dev-status-dot connected" />
+                              </span>
+                              <span className="dev-chip-label">Analytics connected</span>
+                            </button>
+                            <a
+                              href={getGA4PropertyReportsUrl(proj.gaPropertyId)}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="dev-chip-action-btn"
+                              title={`Open Google Analytics reports for property ${cleanPropertyId(proj.gaPropertyId)} (new tab)`}
+                              aria-label="Open Google Analytics reports"
+                            >
+                              <MaterialSymbol name="open_in_new" size={16} color="var(--text-secondary)" />
+                            </a>
+                          </div>
                         ) : projectError ? (
                           <button
                             type="button"
                             className="dev-status-chip dev-chip-error"
                             onClick={() => handleOpenConnectModal(proj)}
-                            title={`Store analytics error: ${projectError}`}
+                            title={`Analytics error: ${projectError}`}
                           >
-                            <span className="dev-status-dot error" />
-                            <span className="dev-chip-label">Store analytics · Error</span>
+                            <span className="dev-status-dot-frame">
+                              <span className="dev-status-dot error" />
+                            </span>
+                            <span className="dev-chip-label">Analytics error</span>
                           </button>
                         ) : (
                           <button
                             type="button"
                             className="dev-status-chip dev-chip-bound dev-chip-actionable"
                             onClick={() => handleOpenConnectModal(proj)}
-                            title={`Google Analytics Property: ${proj.gaPropertyId} · Click to connect store listing analytics`}
+                            title={`Google Analytics Property: ${cleanPropertyId(proj.gaPropertyId)} · Click to connect store listing analytics`}
                           >
-                            <span className="dev-status-dot idle" />
-                            <span className="dev-chip-label">Store analytics · Not connected</span>
+                            <span className="dev-status-dot-frame">
+                              <span className="dev-status-dot idle" />
+                            </span>
+                            <span className="dev-chip-label">Analytics not connected</span>
                           </button>
                         )}
 
                         {/* Package Status Chip */}
                         <span
-                          className="dev-status-chip dev-chip-locked"
+                          className="dev-status-chip dev-chip-package-status"
                           title="Direct CRX/ZIP package downloading requires additional browser permissions (downloads). Integration pending approval."
                         >
-                          <MaterialSymbol name="lock" size={12} color="var(--text-muted)" />
-                          <span className="dev-chip-label">Package: not enabled</span>
+                          <MaterialSymbol name="inventory_2" size={16} color="var(--text-muted)" />
+                          <span className="dev-chip-label">Package not enabled</span>
                         </span>
                       </div>
 
@@ -617,13 +636,13 @@ export function DeveloperView({
                           }`}
                           title={
                             isConnected
-                              ? `Store listing analytics (Last 28 days vs Previous 28 days via GA4 Data API v1beta). Last fetched: ${new Date(storedRecord.fetchedAt).toLocaleTimeString()}`
+                              ? `Store listing telemetry (Last 28 days vs Previous 28 days via GA4 Data API v1beta). Last fetched: ${new Date(storedRecord.fetchedAt).toLocaleTimeString()}`
                               : projectError
                               ? `Error: ${projectError}`
-                              : "Store listing analytics (GA4 Data API v1beta). Click Connect to authorize read-only reporting."
+                              : "Store listing telemetry (GA4 Data API v1beta). Click Connect to authorize read-only reporting."
                           }
                         >
-                          <div className="dev-ga4-period-label">Store analytics · 28d</div>
+                          <div className="dev-ga4-period-label">STORE LISTING · LAST 28 DAYS</div>
                           <div className="dev-ga4-metric-divider" />
                           <div className="dev-ga4-metric-cell">
                             <span className="dev-ga4-metric-name">Visitors</span>
@@ -635,6 +654,20 @@ export function DeveloperView({
                             {isConnected && storedRecord?.hasPreviousBaseline && storedRecord?.visitorsTrend && (
                               <span className={`dev-trend-badge ${storedRecord.visitorsTrend === "0%" ? "neutral" : ""}`}>
                                 {storedRecord.visitorsTrend}
+                              </span>
+                            )}
+                          </div>
+                          <div className="dev-ga4-metric-divider" />
+                          <div className="dev-ga4-metric-cell">
+                            <span className="dev-ga4-metric-name">New visitors</span>
+                            <span className="dev-ga4-metric-value">
+                              {isConnected && storedRecord?.newUsers !== undefined && storedRecord?.newUsers !== null
+                                ? storedRecord.newUsers
+                                : "—"}
+                            </span>
+                            {isConnected && storedRecord?.hasPreviousBaseline && storedRecord?.newUsersTrend && (
+                              <span className={`dev-trend-badge ${storedRecord.newUsersTrend === "0%" ? "neutral" : ""}`}>
+                                {storedRecord.newUsersTrend}
                               </span>
                             )}
                           </div>
@@ -674,20 +707,34 @@ export function DeveloperView({
                           )}
                           <div className="dev-ga4-metric-status">
                             {isConnected ? (
-                              <button
-                                type="button"
-                                className="dev-ga4-refresh-btn"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleRefreshGA4(proj);
-                                }}
-                                disabled={isConnecting}
-                                title="Refresh 28-day store listing analytics"
-                                aria-label="Refresh metrics"
-                              >
-                                <MaterialSymbol name="refresh" size={12} className={isConnecting ? "spin-icon" : ""} />
-                                <span>Refresh</span>
-                              </button>
+                              <div className="dev-ga4-metric-actions">
+                                <button
+                                  type="button"
+                                  className="dev-ga4-refresh-btn"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleRefreshGA4(proj);
+                                  }}
+                                  disabled={isConnecting}
+                                  title="Refresh 28-day store listing analytics"
+                                  aria-label="Refresh metrics"
+                                >
+                                  <MaterialSymbol name="refresh" size={12} className={isConnecting ? "spin-icon" : ""} />
+                                  <span>Refresh</span>
+                                </button>
+                                <a
+                                  href={getGA4PropertyReportsUrl(proj.gaPropertyId)}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="dev-ga4-external-btn"
+                                  onClick={(e) => e.stopPropagation()}
+                                  title={`Open Google Analytics reports for property ${cleanPropertyId(proj.gaPropertyId)} in new tab`}
+                                  aria-label="Open Google Analytics reports"
+                                >
+                                  <MaterialSymbol name="open_in_new" size={12} />
+                                  <span>Analytics</span>
+                                </a>
+                              </div>
                             ) : isConnecting ? (
                               <span className="dev-ga4-status-badge">Connecting…</span>
                             ) : projectError ? (

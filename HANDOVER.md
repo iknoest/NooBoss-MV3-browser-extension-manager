@@ -1,6 +1,6 @@
 # Handover
 
-Snapshot: 2026-09-16T15:55:00+02:00
+Snapshot: 2026-09-17T21:50:00+02:00
 
 ## Current release state (1.1.0 continuity)
 - `f87404a02534d704e00b281a38411f8c204d0cb9` is the frozen accepted 1.1.0 source and release baseline.
@@ -11,6 +11,16 @@ Snapshot: 2026-09-16T15:55:00+02:00
 - Current UX work (at `4fbdbcb`, `c12e195`, `f22a1e4`, `e014bf4`, `14ff0e0`, and follow-up commits) is post-1.1.0 local work and must not silently become part of the frozen 1.1.0 release artifact.
 
 ## Work completed
+- **Final Developer Workspace UX Closure & History CSV Export Milestone**:
+  - **Outcome 8 — Final Developer Workspace UX Closure & Explicit History CSV Export**:
+    - *Simplified Developer Analytics Hierarchy*: Cleanly separated connection status (`● Analytics connected`, `Analytics not linked`, `Analytics not connected`, `Analytics connecting…`, `Analytics error`) with adjacent external-link affordance from the reporting context heading (`STORE LISTING · LAST 28 DAYS`, eliminating duplicate "Store analytics" labels and "28D" abbreviation).
+    - *Restored 4 Primary Decision Metrics in Main Row*: `Visitors` (`activeUsers`), `New visitors` (`newUsers`), `Views` (`screenPageViews`), and `Engagement` (`engagementRate`), with a single honest "No previous-period baseline" note when applicable.
+    - *Eliminated Nested-Card Appearance*: Neutral surface, transparent background, subtle divider (`border-top: 1px solid var(--border-subtle)`), normal text hierarchy, and zero green container fill or borders.
+    - *Standardized Integration Chips*: GitHub linked, Store linked, Analytics connected, and Package status. Shared 24px height, consistent radius, 0 8px horizontal padding, 16px leading/trailing icon treatment, aligned baseline, and 8px gap. `Package not enabled` styled as informational status, not a disabled button.
+    - *Direct Google Analytics Navigation*: Centralized `getGA4PropertyReportsUrl(propertyId)` generating `https://analytics.google.com/analytics/web/#/p<PROPERTY_ID>/reports`. Direct external link affordances placed adjacent to the connection status chip and in the metrics action group next to `Refresh`.
+    - *Simplified Extension Sorting Help*: Replaced verbose copy with concise popover text: `Based on Extension Drawer history.`.
+    - *Explicit History Export*: Added `Export history` button on History page exporting ALL stored records as CSV (`timestamp,event,extension_name,extension_id,version`) with ISO 8601 timestamps and RFC-4180 escaping to `extension-drawer-history-YYYY-MM-DD.csv`. Not truncated by active filter or search.
+    - *Configuration Backup vs History Export Boundary*: Configuration backup (`Export settings`) strictly excludes history records (`nooboss_history`) to preserve compact and reliable configuration portability; History maintains its own independent and explicit CSV export path via the `Export history` affordance.
 - **Developer Project Deletion Safety & Analytics Information Design Milestone**:
   - **Outcome 1 — Enforced Project Deletion Safety & Atomic Metadata Cleanup (`src/background/service-worker.ts`)**:
     - Strictly enforced non-destructive Developer Project removal: `DELETE_DEVELOPER_PROJECT` operates solely on Extension Drawer metadata (`developerProjects` and `nooboss_ga4_metrics`).
@@ -253,13 +263,14 @@ Snapshot: 2026-09-16T15:55:00+02:00
   - *Unsupported cases*: Unpacked/dev extensions (no CWS package), extensions removed/delisted from CWS, enterprise policy-installed extensions without public store URLs.
 
 ## Tests and verification
-- **Unit test suite**: 11 test files, 183 tests passing (`npm test` via Vitest), including `tests/unit/developer-mode.test.ts` (20 tests covering default OFF, persistence, Options row, unpacked vs store behavior, SubWindow contracts) and `tests/unit/unpacked-reload.test.ts` (35 tests).
+- **Unit test suite**: 16 test files, 251 tests passing (`npm test` via Vitest), including `tests/unit/history-export.test.ts` (11 tests covering RFC-4180 formatting, ISO 8601 timestamps, header preservation, edge case escaping), `tests/unit/developer-mode.test.ts` (31 tests covering default OFF, persistence, Options row, unpacked vs store behavior, deletion safety, M3 modal, SubWindow contracts), `tests/unit/sorting-ux.test.ts` (10 tests), `tests/unit/history-sorting-devclarity.test.ts` (14 tests), and `tests/unit/unpacked-reload.test.ts` (35 tests).
 - **Static verification**: `npm run typecheck` (`tsc --noEmit`) and `npm run lint` (`eslint src/`) pass with 0 errors and 0 warnings.
-- **Production build**: `npm run build` generates production assets cleanly (`dist/`) in ~150ms.
-- **Visual inspection**: 7 high-fidelity Developer Mode v1 screenshots captured via Puppeteer harness and visually inspected (`devmode_01_options_mode_off.png` through `devmode_07_card_layout_reuse.png`), bundled into `/private/tmp/agent-review/20260913_2246_AGY_developer-mode-v1_7files.zip`.
-- **Gate receipt**: Recorded and validated via `agentos_final_gate.py record` and `agentos_final_gate.py validate --agent AGY` (`decision: allow`, code: `OK`).
-- **Baseline safety**: Release baseline `f87404a02534d704e00b281a38411f8c204d0cb9` and `release/extension-drawer-1.1.0.zip` preserved frozen; zero permission additions; no version bumps.
-- **Real-Chrome smoke**: Verified environment capability boundary via `tests/e2e/runner.mjs` and `tests/e2e/real-chrome-test.mjs`. Chrome unpacked extension CLI loading (`--load-extension`) in this headless macOS environment does not register target IDs; this is an environment capability limitation, not an extension bundle defect.
+- **Production build**: `npm run build` generates production assets cleanly (`dist/`) in ~155ms.
+- **Visual inspection**: Live visual inspection in dedicated Chrome window `864997611` (Quartz `2598`):
+  - `developer_workspace_full.png`: Aligned 24px integration chips, direct GA4 reports link affordances, `STORE LISTING · LAST 28 DAYS` header, restored 4 primary decision metrics, transparent metrics row without nested card frame.
+  - `history_clean_full.png` & `history_view_export_button.png`: Material Design 3 `Export history` button alongside `Empty history`, clean CSV export download to `extension-drawer-history-YYYY-MM-DD.csv` with full RFC-4180 compliance.
+- **Gate receipt**: Recorded and validated via `agentos_final_gate.py record` and `agentos_final_gate.py validate --session a61582c5-ddf9-422d-8e81-0925bfcf4db8 --agent AGY` (`decision: allow`, code: `OK`).
+- **Baseline safety**: Release baseline `f87404a02534d704e00b281a38411f8c204d0cb9` and `release/extension-drawer-1.1.0.zip` preserved frozen; zero permission additions; no version bumps; strictly zero git push.
 
 ## Lessons learned
 - Browser profile data can contain extension IDs, user-specific metadata, and personal group naming that must be redacted before any commit.
@@ -269,9 +280,10 @@ Snapshot: 2026-09-16T15:55:00+02:00
 - Slicing collections for quick-action shortcuts (`.slice(0, 3)`) risks hiding valid entities from users; full tabular presentation with inline setup affordances is superior and transparent.
 - Form selector dropdowns must reflect entity semantics: store-installed extensions must never be selectable as "local test builds".
 - Table layouts in manager windows benefit from fixed layout with min-widths and container overflow scrolling to ensure high-density responsiveness across screen sizes.
+- Configuration backup and operational event history serve different lifecycles: configuration backups should remain lightweight and portable, while activity history is best served by dedicated standard RFC-4180 CSV exports.
 
 ## Recommended next steps
-1. Gather user feedback on live read-only NoWebP Google Analytics data in Developer Workspace.
+1. Store ZIP/CRX package download implementation (next scheduled milestone).
 2. Maintain zero write access / zero push boundary; keep frozen 1.1.0 release ZIP untouched.
 3. Once 1.1.0 publication is externally confirmed, apply GitHub tag/release `v1.1.0` to commit `f87404a02534d704e00b281a38411f8c204d0cb9`.
 
@@ -291,7 +303,7 @@ For extension telemetry over the standard rolling 28-day window:
 4. `keyEvents`: Count of key events / primary workflow completions (Live: 0).
 
 ## Ongoing tasks
-- Maintain existing high unit test coverage (238 tests across 15 test files) across core features.
+- Maintain existing high unit test coverage (251 tests across 16 test files) across core features.
 - Review remaining browser profile data for compatibility with current Chrome APIs.
 - Validate recovered extension state against managed groups and extension configuration entries.
 - Keep cautious handling of LevelDB and IndexedDB data in local-only recovery steps.

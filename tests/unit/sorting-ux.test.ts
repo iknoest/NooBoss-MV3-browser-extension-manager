@@ -158,8 +158,7 @@ describe("Outcome A — Clarified Extension Sorting UX", () => {
     });
 
     it("provides the exact verbatim contextual help copy", () => {
-      const expectedHelp =
-        "Changes are install, update, enable and disable events recorded by Extension Drawer. This is not extension usage.";
+      const expectedHelp = "Based on Extension Drawer history.";
       expect(selectorSource).toContain(expectedHelp);
     });
 

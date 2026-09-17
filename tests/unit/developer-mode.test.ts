@@ -265,11 +265,11 @@ describe("Developer Workspace & Developer Mode", () => {
       expect(devSource).toContain("GitHub not linked");
       expect(devSource).toContain("Store linked");
       expect(devSource).toContain("Store not linked");
-      expect(devSource).toContain("Store analytics · Not connected");
+      expect(devSource).toContain("Analytics not connected");
       expect(devSource).toContain("Analytics not linked");
-      expect(devSource).toContain("Store analytics · Connected");
-      expect(devSource).toContain("Store analytics · Error");
-      expect(devSource).toContain("Package: not enabled");
+      expect(devSource).toContain("Analytics connected");
+      expect(devSource).toContain("Analytics error");
+      expect(devSource).toContain("Package not enabled");
       expect(devSource).toContain("Runtime ON");
       expect(devSource).toContain("Open CWS Dashboard");
 
@@ -570,37 +570,70 @@ describe("Developer Workspace & Developer Mode", () => {
       const metricsBarEnd = devSource.indexOf('</article>', metricsBarStart);
       const metricsBarBlock = devSource.slice(metricsBarStart, metricsBarEnd);
 
-      // Main row has exactly 3 primary KPIs
+      // Main row has exactly 4 primary store-listing metrics
       expect(metricsBarBlock).toContain("Visitors");
+      expect(metricsBarBlock).toContain("New visitors");
       expect(metricsBarBlock).toContain("Views");
       expect(metricsBarBlock).toContain("Engagement");
-
-      // New users MUST NOT be in the compact main row
-      expect(metricsBarBlock).not.toContain("New users");
 
       // Main row has single zero-baseline note
       expect(metricsBarBlock).toContain("No previous-period baseline");
       expect(metricsBarBlock).toContain("dev-ga4-baseline-note");
 
-      // Clarified scope label
-      expect(metricsBarBlock).toContain("Store analytics · 28d");
+      // Clarified scope heading without abbreviation 28D
+      expect(metricsBarBlock).toContain("STORE LISTING · LAST 28 DAYS");
 
-      // New users IS in ProjectEditorModal under the metrics grid
+      // New users is also in ProjectEditorModal under the metrics grid
       const editorStart = devSource.indexOf("function ProjectEditorModal");
       const editorBlock = devSource.slice(editorStart);
       expect(editorBlock).toContain("dev-editor-metrics-grid");
       expect(editorBlock).toContain("New users");
       expect(editorBlock).toContain("GA4 property ID for Chrome Web Store listing telemetry.");
 
-      // Neutral styling for connected metrics bar (no green container fill or border)
+      // Neutral styling for metrics bar (no nested bordered card box, transparent bg, subtle divider)
       const cssSource = fs.readFileSync("src/popup/components/nooboss.css", "utf8");
       const connectedBarCss = cssSource.slice(
         cssSource.indexOf(".dev-ga4-metrics-bar.dev-ga4-metrics-connected {"),
         cssSource.indexOf(".dev-ga4-metrics-bar.dev-ga4-metrics-error {")
       );
       expect(connectedBarCss).not.toContain("rgba(30, 142, 62");
-      expect(connectedBarCss).toContain("var(--border-subtle)");
-      expect(connectedBarCss).toContain("var(--bg-secondary)");
+      expect(connectedBarCss).toContain("transparent");
+      expect(connectedBarCss).toContain("border: none");
+      expect(connectedBarCss).toContain("border-top: 1px solid var(--border-subtle");
+
+      // Standardized chips: 24px height, 16px icons, dot frame
+      const chipCss = cssSource.slice(
+        cssSource.indexOf(".dev-status-chip {"),
+        cssSource.indexOf(".dev-status-chip .dev-chip-label {")
+      );
+      expect(chipCss).toContain("height: 24px;");
+      expect(cssSource).toContain(".dev-status-dot-frame");
+      expect(cssSource).toContain(".dev-chip-action-btn");
+      expect(cssSource).toContain(".dev-chip-package-status");
+    });
+
+    it("verifies direct Google Analytics property navigation helper and external link affordance", async () => {
+      const { getGA4PropertyReportsUrl } = await import("../../src/shared/ga4-client");
+      expect(getGA4PropertyReportsUrl("552797256")).toBe("https://analytics.google.com/analytics/web/#/p552797256/reports");
+      expect(getGA4PropertyReportsUrl("properties/553647047")).toBe("https://analytics.google.com/analytics/web/#/p553647047/reports");
+      expect(getGA4PropertyReportsUrl("")).toBe("https://analytics.google.com/analytics/web/");
+
+      const devSource = fs.readFileSync("src/popup/components/DeveloperView.tsx", "utf8");
+      // External link action adjacent to Analytics connected
+      expect(devSource).toContain("dev-chip-external-group");
+      expect(devSource).toContain("dev-chip-action-btn");
+      expect(devSource).toContain("getGA4PropertyReportsUrl(proj.gaPropertyId)");
+
+      // External link also available in metrics actions
+      expect(devSource).toContain("dev-ga4-external-btn");
+    });
+
+    it("verifies HistoryView provides explicit Export history action", () => {
+      const historySource = fs.readFileSync("src/popup/components/HistoryView.tsx", "utf8");
+      expect(historySource).toContain("Export history");
+      expect(historySource).toContain("historyExportBtn");
+      expect(historySource).toContain("exportHistoryCSV");
+      expect(historySource).toContain("history-actions-group");
     });
   });
 });
