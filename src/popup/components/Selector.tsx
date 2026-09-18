@@ -183,6 +183,8 @@ export interface SelectorProps {
   themeMainColor?: string;
   filterTypeOnly?: string;
   developerMode?: boolean;
+  onDownloadZip?: (ext: ExtensionInfo) => void;
+  downloadingZipIds?: Set<string>;
 }
 
 export function Selector({
@@ -217,6 +219,8 @@ export function Selector({
   filterTypeOnly,
   developerMode = false,
   history = [],
+  onDownloadZip,
+  downloadingZipIds,
 }: SelectorProps) {
   const [internalFocusedGroupId, setInternalFocusedGroupId] = useState<string | null>(null);
   const activeFocusedGroupId = focusedGroupId !== undefined ? focusedGroupId : internalFocusedGroupId;
@@ -791,6 +795,8 @@ export function Selector({
                 onOpenSubWindow={onOpenSubWindow}
                 themeMainColor={themeMainColor}
                 developerMode={developerMode}
+                onDownloadZip={onDownloadZip}
+                isDownloadingZip={downloadingZipIds?.has(ext.id)}
               />
             ))}
           </div>
@@ -819,6 +825,8 @@ export function Selector({
                 onOpenSubWindow={onOpenSubWindow}
                 themeMainColor={themeMainColor}
                 developerMode={developerMode}
+                onDownloadZip={onDownloadZip}
+                isDownloadingZip={downloadingZipIds?.has(app.id)}
               />
             ))}
           </div>
@@ -847,6 +855,8 @@ export function Selector({
                 onOpenSubWindow={onOpenSubWindow}
                 themeMainColor={themeMainColor}
                 developerMode={developerMode}
+                onDownloadZip={onDownloadZip}
+                isDownloadingZip={downloadingZipIds?.has(theme.id)}
               />
             ))}
           </div>

@@ -2,6 +2,7 @@ import type { JSX } from "preact";
 import type { ExtensionInfo } from "../../shared/types";
 import { Optioney, Removy, Chromey, Launchy } from "./icons";
 import { MaterialSymbol } from "./MaterialSymbols";
+import { isValidCwsId } from "../../shared/package-downloader";
 
 export interface ExtensionBriefProps {
   extension: ExtensionInfo;
@@ -19,6 +20,8 @@ export interface ExtensionBriefProps {
   onOpenSubWindow?: (type: "extension", id: string) => void;
   themeMainColor?: string;
   developerMode?: boolean;
+  onDownloadZip?: (ext: ExtensionInfo) => void;
+  isDownloadingZip?: boolean;
 }
 
 interface ExtensionSwitchProps {
@@ -85,6 +88,8 @@ export function ExtensionBrief({
   onOpenSubWindow,
   themeMainColor = "#1a73e8",
   developerMode = false,
+  onDownloadZip,
+  isDownloadingZip = false,
 }: ExtensionBriefProps) {
 
   const isSelectable = selected !== null;
@@ -95,6 +100,7 @@ export function ExtensionBrief({
   // Developer Mode visibility flags
   const showDevBadge = developerMode && isDevelopment;
   const showReload = developerMode && isDevelopment;
+  const isCwsNormal = extension.installType === "normal" && isValidCwsId(extension.id);
 
   let displayIcon = iconUrl;
   if (!displayIcon && extension.icons && extension.icons.length > 0) {
@@ -156,6 +162,30 @@ export function ExtensionBrief({
         aria-label={extension.enabled ? "Reload extension code. Manifest changes require Chrome's extension page." : "Enable this unpacked extension before reloading"}
       >
         <MaterialSymbol name="refresh" size={iconSize} color={extension.enabled ? themeMainColor : "var(--text-muted, #888)"} />
+      </button>
+    );
+  };
+
+  const renderDownloadZipBtn = (iconSize: number = 16) => {
+    if (!isCwsNormal || !onDownloadZip) return null;
+    return (
+      <button
+        type="button"
+        className={`action-icon-btn download-zip-btn ${isDownloadingZip ? "is-downloading" : ""}`}
+        disabled={isDownloadingZip}
+        onClick={(e) => {
+          e.stopPropagation();
+          onDownloadZip(extension);
+        }}
+        title="Download ZIP package from Chrome Web Store"
+        aria-label="Download ZIP package from Chrome Web Store"
+      >
+        <MaterialSymbol
+          name={isDownloadingZip ? "sync" : "download"}
+          size={iconSize}
+          className={isDownloadingZip ? "spin-icon" : ""}
+          color={themeMainColor}
+        />
       </button>
     );
   };
@@ -311,6 +341,7 @@ export function ExtensionBrief({
               />
             )}
             {renderReloadBtn(16)}
+            {renderDownloadZipBtn(16)}
             {extension.optionsUrl && (
               <button
                 type="button"
@@ -388,6 +419,7 @@ export function ExtensionBrief({
         {withControl && (
           <div className="list-actions">
             {renderReloadBtn(16)}
+            {renderDownloadZipBtn(16)}
             {extension.type === "app" && (
               <button
                 type="button"
@@ -474,6 +506,7 @@ export function ExtensionBrief({
               />
             )}
             {renderReloadBtn(14)}
+            {renderDownloadZipBtn(14)}
             {extension.optionsUrl && (
               <button
                 type="button"

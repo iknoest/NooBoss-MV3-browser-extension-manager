@@ -15,6 +15,7 @@ import {
   clearProjectGA4Metrics,
   type StoredGA4MetricsRecord,
 } from "../../shared/storage";
+import { downloadExtensionZip, isValidCwsId } from "../../shared/package-downloader";
 
 export interface DeveloperViewProps {
   projects: DeveloperProject[];
@@ -78,6 +79,10 @@ export function DeveloperView({
   const [connectModalProject, setConnectModalProject] = useState<DeveloperProject | null>(null);
   const [isConnectingModal, setIsConnectingModal] = useState<boolean>(false);
   const [modalError, setModalError] = useState<string | null>(null);
+
+  // Package download state
+  const [downloadingProjectIds, setDownloadingProjectIds] = useState<Set<string>>(new Set());
+  const [downloadFeedback, setDownloadFeedback] = useState<{ id: string; message: string; isError: boolean } | null>(null);
 
   // Load stored GA4 metrics on mount / project update
   useEffect(() => {
@@ -222,6 +227,47 @@ export function DeveloperView({
     });
   };
 
+  const handleDownloadZip = async (project: DeveloperProject) => {
+    const cwsId = project.cwsExtensionId?.trim().toLowerCase();
+    if (!cwsId || !isValidCwsId(cwsId)) return;
+    setDownloadingProjectIds((prev) => new Set(prev).add(project.id));
+    setDownloadFeedback(null);
+    try {
+      const result = await downloadExtensionZip({
+        extensionId: cwsId,
+        name: project.name,
+      });
+      if (result.success) {
+        setDownloadFeedback({
+          id: project.id,
+          message: `Downloaded ${result.filename || "ZIP"}`,
+          isError: false,
+        });
+        setTimeout(() => setDownloadFeedback(null), 4000);
+      } else {
+        setDownloadFeedback({
+          id: project.id,
+          message: result.error || "Download failed",
+          isError: true,
+        });
+        setTimeout(() => setDownloadFeedback(null), 5000);
+      }
+    } catch (err: any) {
+      setDownloadFeedback({
+        id: project.id,
+        message: err?.message || "Download failed",
+        isError: true,
+      });
+      setTimeout(() => setDownloadFeedback(null), 5000);
+    } finally {
+      setDownloadingProjectIds((prev) => {
+        const next = new Set(prev);
+        next.delete(project.id);
+        return next;
+      });
+    }
+  };
+
   // Unlinked unpacked extensions detection (no arbitrary cap)
   const unlinkedDevExtensions = getUnlinkedDevExtensions(extensions, projects, selfExtension);
 
@@ -281,7 +327,7 @@ export function DeveloperView({
             className="btn btn-secondary dev-cws-dashboard-btn"
             title="Open Chrome Web Store Developer Dashboard"
           >
-            <span>Open CWS Dashboard</span>
+            <span>CWS Dashboard</span>
             <MaterialSymbol name="open_in_new" size={15} color="currentColor" />
           </a>
           <button
@@ -291,7 +337,7 @@ export function DeveloperView({
             style={{ backgroundColor: themeMainColor }}
           >
             <MaterialSymbol name="add" size={18} color="#ffffff" />
-            <span>Add Project</span>
+            <span>Project</span>
           </button>
         </div>
       </header>
@@ -314,7 +360,7 @@ export function DeveloperView({
               className="btn btn-secondary dev-cws-dashboard-btn"
               title="Open Chrome Web Store Developer Dashboard"
             >
-              <span>Open CWS Dashboard</span>
+              <span>CWS Dashboard</span>
               <MaterialSymbol name="open_in_new" size={15} color="currentColor" />
             </a>
             <button
@@ -565,29 +611,19 @@ export function DeveloperView({
                             <span className="dev-chip-label">Analytics connecting…</span>
                           </span>
                         ) : isConnected ? (
-                          <div className="dev-chip-external-group">
-                            <button
-                              type="button"
-                              className="dev-status-chip dev-chip-connected"
-                              onClick={() => handleStartEdit(proj)}
-                              title={`Google Analytics Property: ${cleanPropertyId(proj.gaPropertyId)} · Analytics connected`}
-                            >
-                              <span className="dev-status-dot-frame">
-                                <span className="dev-status-dot connected" />
-                              </span>
-                              <span className="dev-chip-label">Analytics connected</span>
-                            </button>
-                            <a
-                              href={getGA4PropertyReportsUrl(proj.gaPropertyId)}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="dev-chip-action-btn"
-                              title={`Open Google Analytics reports for property ${cleanPropertyId(proj.gaPropertyId)} (new tab)`}
-                              aria-label="Open Google Analytics reports"
-                            >
-                              <MaterialSymbol name="open_in_new" size={16} color="var(--text-secondary)" />
-                            </a>
-                          </div>
+                          <a
+                            href={getGA4PropertyReportsUrl(proj.gaPropertyId)}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="dev-status-chip dev-chip-connected dev-chip-linked"
+                            title={`Open Google Analytics reports for property ${cleanPropertyId(proj.gaPropertyId)} (new tab)`}
+                          >
+                            <span className="dev-status-dot-frame">
+                              <span className="dev-status-dot connected" />
+                            </span>
+                            <span className="dev-chip-label">Analytics connected</span>
+                            <MaterialSymbol name="open_in_new" size={14} color="currentColor" />
+                          </a>
                         ) : projectError ? (
                           <button
                             type="button"
@@ -614,14 +650,49 @@ export function DeveloperView({
                           </button>
                         )}
 
-                        {/* Package Status Chip */}
-                        <span
-                          className="dev-status-chip dev-chip-package-status"
-                          title="Direct CRX/ZIP package downloading requires additional browser permissions (downloads). Integration pending approval."
-                        >
-                          <MaterialSymbol name="inventory_2" size={16} color="var(--text-muted)" />
-                          <span className="dev-chip-label">Package not enabled</span>
-                        </span>
+                        {/* Package Status / Download ZIP */}
+                        {proj.cwsExtensionId && isValidCwsId(proj.cwsExtensionId) ? (
+                          <button
+                            type="button"
+                            className={`dev-status-chip dev-chip-package-action ${
+                              downloadingProjectIds.has(proj.id) ? "dev-chip-downloading" : ""
+                            }`}
+                            onClick={() => handleDownloadZip(proj)}
+                            disabled={downloadingProjectIds.has(proj.id)}
+                            title={`Download published .zip package from Chrome Web Store (ID: ${proj.cwsExtensionId})`}
+                          >
+                            <MaterialSymbol
+                              name={downloadingProjectIds.has(proj.id) ? "sync" : "download"}
+                              size={16}
+                              className={downloadingProjectIds.has(proj.id) ? "spin-icon" : ""}
+                              color="currentColor"
+                            />
+                            <span className="dev-chip-label">
+                              {downloadingProjectIds.has(proj.id) ? "Downloading ZIP…" : "Download ZIP"}
+                            </span>
+                          </button>
+                        ) : (
+                          <span
+                            className="dev-status-chip dev-chip-package-status"
+                            title={
+                              proj.cwsExtensionId
+                                ? `Invalid Chrome Web Store item ID: "${proj.cwsExtensionId}"`
+                                : "No Chrome Web Store item ID linked to this project."
+                            }
+                          >
+                            <MaterialSymbol name="inventory_2" size={16} color="var(--text-muted)" />
+                            <span className="dev-chip-label">Package not linked</span>
+                          </span>
+                        )}
+                        {downloadFeedback && downloadFeedback.id === proj.id && (
+                          <span
+                            className={`dev-download-inline-feedback ${
+                              downloadFeedback.isError ? "error" : "success"
+                            }`}
+                          >
+                            {downloadFeedback.message}
+                          </span>
+                        )}
                       </div>
 
                       {/* Google Analytics 4 Performance Summary Line */}
@@ -655,7 +726,6 @@ export function DeveloperView({
                               </span>
                             )}
                           </div>
-                          <div className="dev-ga4-metric-divider" />
                           <div className="dev-ga4-metric-cell">
                             <span className="dev-ga4-metric-name">New users</span>
                             <span className="dev-ga4-metric-value">
@@ -669,7 +739,6 @@ export function DeveloperView({
                               </span>
                             )}
                           </div>
-                          <div className="dev-ga4-metric-divider" />
                           <div className="dev-ga4-metric-cell">
                             <span className="dev-ga4-metric-name">Views</span>
                             <span className="dev-ga4-metric-value">
@@ -683,7 +752,6 @@ export function DeveloperView({
                               </span>
                             )}
                           </div>
-                          <div className="dev-ga4-metric-divider" />
                           <div className="dev-ga4-metric-cell">
                             <span className="dev-ga4-metric-name">Engagement</span>
                             <span className="dev-ga4-metric-value">
@@ -697,12 +765,6 @@ export function DeveloperView({
                               </span>
                             )}
                           </div>
-                          {isConnected && !storedRecord?.hasPreviousBaseline && (
-                            <>
-                              <div className="dev-ga4-metric-divider" />
-                              <span className="dev-ga4-baseline-note">No previous-period baseline</span>
-                            </>
-                          )}
                           <div className="dev-ga4-metric-status">
                             {isConnected ? (
                               <div className="dev-ga4-metric-actions">
@@ -803,7 +865,6 @@ export function DeveloperView({
                             This extension
                           </span>
                         )}
-                        <span className="dev-pill dev-pill-neutral">Unlinked</span>
                       </div>
 
                       {/* Middle: Concise Local State */}
@@ -1302,9 +1363,6 @@ function ProjectEditorModal({
                           : "—"}
                       </span>
                     </div>
-                    {!metricsRecord.hasPreviousBaseline && (
-                      <div className="dev-editor-baseline-note">No previous-period baseline</div>
-                    )}
                   </div>
                 </>
               ) : (

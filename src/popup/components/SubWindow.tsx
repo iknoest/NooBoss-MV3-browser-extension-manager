@@ -9,6 +9,7 @@ import { GroupCommandControl } from "./GroupCommandControl";
 import { computeGroupRuntimeSummary } from "./group-summary";
 import { ExtensionSwitch } from "./ExtensionBrief";
 import { MaterialSymbol } from "./MaterialSymbols";
+import { isValidCwsId } from "../../shared/package-downloader";
 
 export interface SubWindowProps {
   display: "" | "extension" | "group";
@@ -27,6 +28,8 @@ export interface SubWindowProps {
   themeMainColor?: string;
   developerMode?: boolean;
   onReloadExtension?: (id: string) => Promise<void> | void;
+  onDownloadZip?: (ext: ExtensionInfo) => Promise<void> | void;
+  downloadingZipIds?: Set<string>;
 }
 
 export function SubWindow({
@@ -46,6 +49,8 @@ export function SubWindow({
   themeMainColor = "#1a73e8",
   developerMode = false,
   onReloadExtension,
+  onDownloadZip,
+  downloadingZipIds,
 }: SubWindowProps) {
   const [editorViewMode, setEditorViewMode] = useState<"list" | "bigTile">("list");
   const [showIconPicker, setShowIconPicker] = useState(false);
@@ -128,6 +133,23 @@ export function SubWindow({
                 onClick={() => onOpenDetails?.(ext.id)}
                 title="Chrome Details"
               />
+              {ext.installType === "normal" && isValidCwsId(ext.id) && onDownloadZip && (
+                <button
+                  type="button"
+                  className={`action-icon-btn subwindow-ctrl-btn ${downloadingZipIds?.has(ext.id) ? "is-downloading" : ""}`}
+                  disabled={downloadingZipIds?.has(ext.id)}
+                  onClick={() => onDownloadZip(ext)}
+                  title="Download ZIP package from Chrome Web Store"
+                  aria-label="Download ZIP package"
+                >
+                  <MaterialSymbol
+                    name={downloadingZipIds?.has(ext.id) ? "sync" : "download"}
+                    size={18}
+                    className={downloadingZipIds?.has(ext.id) ? "spin-icon" : ""}
+                    color={themeMainColor}
+                  />
+                </button>
+              )}
             </div>
           </div>
 
@@ -254,6 +276,21 @@ export function SubWindow({
                   <MaterialSymbol name="settings" size={16} />
                   Open extension details
                 </button>
+                {ext.installType === "normal" && isValidCwsId(ext.id) && onDownloadZip && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary dev-subwindow-btn"
+                    disabled={downloadingZipIds?.has(ext.id)}
+                    onClick={() => onDownloadZip(ext)}
+                  >
+                    <MaterialSymbol
+                      name={downloadingZipIds?.has(ext.id) ? "sync" : "download"}
+                      size={16}
+                      className={downloadingZipIds?.has(ext.id) ? "spin-icon" : ""}
+                    />
+                    <span>{downloadingZipIds?.has(ext.id) ? "Downloading ZIP…" : "Download ZIP"}</span>
+                  </button>
+                )}
               </div>
             </div>
           )}

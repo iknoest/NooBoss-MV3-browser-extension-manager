@@ -13,6 +13,13 @@
   "host_permissions": [
     "https://analyticsdata.googleapis.com/*"
   ],
+  "optional_permissions": [
+    "downloads"
+  ],
+  "optional_host_permissions": [
+    "https://clients2.google.com/*",
+    "https://clients2.googleusercontent.com/*"
+  ],
   "oauth2": {
     "client_id": "799106519083-4abp5ksuf8mmqnh6tjret0guni0dbpt2.apps.googleusercontent.com",
     "scopes": [

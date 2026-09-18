@@ -238,7 +238,8 @@ describe("Developer Workspace & Developer Mode", () => {
       // Top-level workspace branding and empty state
       expect(devSource).toContain("Developer Workspace");
       expect(devSource).toContain("No Developer Projects Yet");
-      expect(devSource).toContain("Add Project");
+      expect(devSource).toContain("dev-add-project-btn");
+      expect(devSource).toContain("<span>Project</span>");
 
       // Compact 2-line row architecture (not 7 compressed table columns)
       expect(devSource).toContain("dev-project-row");
@@ -269,9 +270,9 @@ describe("Developer Workspace & Developer Mode", () => {
       expect(devSource).toContain("Analytics not linked");
       expect(devSource).toContain("Analytics connected");
       expect(devSource).toContain("Analytics error");
-      expect(devSource).toContain("Package not enabled");
+      expect(devSource).toContain("Download ZIP");
       expect(devSource).toContain("Runtime ON");
-      expect(devSource).toContain("Open CWS Dashboard");
+      expect(devSource).toContain("CWS Dashboard");
 
       // Simplified unlinked rows without meaningless dash columns
       expect(devSource).toContain("dev-unlinked-row");
@@ -581,9 +582,9 @@ describe("Developer Workspace & Developer Mode", () => {
       expect(metricsBarBlock).not.toContain("Visitors");
       expect(metricsBarBlock).not.toContain("New visitors");
 
-      // Main row has single zero-baseline note
-      expect(metricsBarBlock).toContain("No previous-period baseline");
-      expect(metricsBarBlock).toContain("dev-ga4-baseline-note");
+      // Baseline note and divider removed when no previous-period baseline exists
+      expect(metricsBarBlock).not.toContain("No previous-period baseline");
+      expect(metricsBarBlock).not.toContain("dev-ga4-baseline-note");
 
       // No redundant scope heading in project row
       expect(metricsBarBlock).not.toContain("STORE LISTING · LAST 28 DAYS");
@@ -598,7 +599,7 @@ describe("Developer Workspace & Developer Mode", () => {
       expect(editorBlock).not.toContain("Visitors");
       expect(editorBlock).toContain("GA4 property ID for Chrome Web Store listing telemetry.");
 
-      // Neutral styling for metrics bar (no nested bordered card box, transparent bg, subtle divider)
+      // Neutral styling for metrics bar (no nested bordered card box, transparent bg, clean flex spacing, no border-top)
       const cssSource = fs.readFileSync("src/popup/components/nooboss.css", "utf8");
       const connectedBarCss = cssSource.slice(
         cssSource.indexOf(".dev-ga4-metrics-bar.dev-ga4-metrics-connected {"),
@@ -607,7 +608,7 @@ describe("Developer Workspace & Developer Mode", () => {
       expect(connectedBarCss).not.toContain("rgba(30, 142, 62");
       expect(connectedBarCss).toContain("transparent");
       expect(connectedBarCss).toContain("border: none");
-      expect(connectedBarCss).toContain("border-top: 1px solid var(--border-subtle");
+      expect(connectedBarCss).not.toContain("border-top");
 
       // Standardized chips: 24px height, 16px icons, dot frame
       const chipCss = cssSource.slice(
@@ -627,10 +628,10 @@ describe("Developer Workspace & Developer Mode", () => {
       expect(getGA4PropertyReportsUrl("")).toBe("https://analytics.google.com/analytics/web/");
 
       const devSource = fs.readFileSync("src/popup/components/DeveloperView.tsx", "utf8");
-      // External link action adjacent to Analytics connected chip
-      expect(devSource).toContain("dev-chip-external-group");
-      expect(devSource).toContain("dev-chip-action-btn");
+      // Analytics connected chip itself is clickable link to Google Analytics reports
+      expect(devSource).toContain("dev-chip-connected dev-chip-linked");
       expect(devSource).toContain("getGA4PropertyReportsUrl(proj.gaPropertyId)");
+      expect(devSource).not.toContain("dev-chip-external-group");
 
       // In metrics row, Refresh is the single action (duplicate navigation removed)
       const metricsBarStart = devSource.indexOf('className={`dev-ga4-metrics-bar');

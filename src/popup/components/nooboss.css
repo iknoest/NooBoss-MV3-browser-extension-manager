@@ -3699,12 +3699,11 @@ details.dev-menu-container > summary::-webkit-details-marker {
 .dev-ga4-metrics-bar {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 16px;
   background: transparent;
   border: none;
-  border-top: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.08));
   border-radius: 0;
-  padding: 6px 0 2px 0;
+  padding: 4px 0 2px 0;
   margin-top: 6px;
   font-size: 11px;
   flex-wrap: wrap;
@@ -3728,9 +3727,7 @@ details.dev-menu-container > summary::-webkit-details-marker {
 }
 
 .dev-ga4-metric-divider {
-  width: 1px;
-  height: 12px;
-  background-color: var(--border-subtle, rgba(0, 0, 0, 0.15));
+  display: none;
 }
 
 .dev-ga4-metric-status {
@@ -3918,13 +3915,11 @@ details.dev-menu-container > summary::-webkit-details-marker {
 .dev-ga4-metrics-bar.dev-ga4-metrics-connected {
   background: transparent;
   border: none;
-  border-top: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.08));
 }
 
 .dev-ga4-metrics-bar.dev-ga4-metrics-error {
   background: transparent;
   border: none;
-  border-top: 1px solid rgba(217, 48, 37, 0.25);
 }
 
 .dev-ga4-baseline-note {
@@ -3978,6 +3973,52 @@ details.dev-menu-container > summary::-webkit-details-marker {
 
 .dev-status-chip.dev-chip-connected:hover {
   background-color: rgba(30, 142, 62, 0.15);
+}
+
+.dev-status-chip.dev-chip-linked {
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dev-status-chip.dev-chip-package-action {
+  cursor: pointer;
+  background-color: var(--bg-hover, rgba(0, 0, 0, 0.04));
+  border-color: var(--border-subtle, rgba(0, 0, 0, 0.15));
+  color: var(--text-primary, #202124);
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.dev-status-chip.dev-chip-package-action:hover:not(:disabled) {
+  background-color: var(--theme-main-subtle, rgba(26, 115, 232, 0.1));
+  border-color: var(--theme-main, #1a73e8);
+  color: var(--theme-main, #1a73e8);
+}
+
+.dev-status-chip.dev-chip-package-action:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+
+.dev-download-inline-feedback {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.dev-download-inline-feedback.success {
+  background: rgba(30, 142, 62, 0.12);
+  color: var(--color-success, #1e8e3e);
+}
+
+.dev-download-inline-feedback.error {
+  background: rgba(217, 48, 37, 0.12);
+  color: var(--color-danger, #d93025);
 }
 
 .dev-status-chip.dev-chip-error {
@@ -4227,3 +4268,66 @@ details.dev-menu-container > summary::-webkit-details-marker {
   border-radius: var(--radius-sm, 4px);
   padding: 8px 10px;
 }
+
+/* Universal Download ZIP Icon & Button */
+.download-zip-btn.is-downloading,
+.subwindow-ctrl-btn.is-downloading {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+/* Toast Notifications */
+.nb-toast {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 15px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 500;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+  animation: toastFadeIn 0.2s ease-out;
+}
+
+.nb-toast.toast-success {
+  background: #e6f4ea;
+  color: #137333;
+  border: 1px solid #ceead6;
+}
+
+.nb-toast.toast-error {
+  background: #fce8e6;
+  color: #c5221f;
+  border: 1px solid #fad2cf;
+}
+
+.nb-toast .toast-close {
+  background: transparent;
+  border: none;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.7;
+  padding: 0 2px;
+}
+
+.nb-toast .toast-close:hover {
+  opacity: 1;
+}
+
+@keyframes toastFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+

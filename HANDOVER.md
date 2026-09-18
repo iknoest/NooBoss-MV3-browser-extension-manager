@@ -11,6 +11,28 @@ Snapshot: 2026-09-18T00:18:00+02:00
 - Current UX work (at `4fbdbcb`, `c12e195`, `f22a1e4`, `e014bf4`, `14ff0e0`, and follow-up commits) is post-1.1.0 local work and must not silently become part of the frozen 1.1.0 release artifact.
 
 ## Work completed
+- **Final Developer UI Cleanup & Universal Chrome Web Store Extension ZIP Download Milestone**:
+  - **Outcome 1 — Part A Developer Workspace UI Cleanups (`src/popup/components/DeveloperView.tsx`, `nooboss.css`)**:
+    - *Zero-Baseline Note Removal*: When no valid previous-period baseline exists, suppressed baseline notes and dividers entirely, relying on clean flex spacing.
+    - *Unlinked Dev Section Cleanliness*: Removed redundant per-row `UNLINKED` chip (`dev-pill-neutral`); preserved clear section heading and extension metadata.
+    - *Clickable Analytics Connection Chip*: Replaced separate external button with a single clickable integration chip (`<a>` with embedded `open_in_new`) directly linking to the project's GA4 property reports.
+    - *Header Copy Modernization*: Shortened buttons to `CWS Dashboard` (with standard external link icon) and `+ Project`.
+    - *Metrics Visual Simplification*: Removed metric divider borders and top border lines on `.dev-ga4-metrics-bar`.
+  - **Outcome 2 — Part B Store Extension CRX-to-ZIP Package Downloader (`src/shared/crx-parser.ts`, `src/shared/package-downloader.ts`)**:
+    - Implemented robust in-browser CRX parser supporting both CRX3 (protobuf header) and CRX2 (public key / signature) with typed `CrxParseError` handling.
+    - Verified `Cr24` magic (`0x34327243`) and ZIP signatures (`PK\x03\x04`, `PK\x05\x06`, `PK\x07\x08`).
+    - Implemented `sanitizePackageFilename(name, version, id)` to produce clean filesystem-safe ZIP names (e.g. `nowebp.zip`, `onetab-2.18.zip`).
+    - Implemented `downloadExtensionZip()` with Chrome Web Store endpoint resolution, runtime optional permissions requests, and seamless HTML5 DOM anchor download ensuring exact filename preservation (with `chrome.downloads.download` fallback).
+  - **Outcome 3 — Manifest Optional Permissions Declaration (`src/manifest.json`)**:
+    - Declared strictly minimal runtime optional permissions approved by Ava:
+      - `optional_permissions`: `["downloads"]`
+      - `optional_host_permissions`: `["https://clients2.google.com/*", "https://clients2.googleusercontent.com/*"]`
+    - Verified permission prompt triggers on user gesture and handles non-blocking permission grant/denial.
+  - **Outcome 4 — Universal Store Extension ZIP Download Affordance**:
+    - *Developer Workspace*: Added `Download ZIP` action button for linked projects with valid 32-character CWS ID, featuring loading state and inline status feedback.
+    - *Catalog Action Strips*: Added `Download ZIP` icon button in Big Tile, List, and Tile view action strips for CWS-installed extensions (`installType === "normal"`), strictly suppressed for unpacked/dev and self-extension.
+    - *SubWindow Details Modal*: Added `Download ZIP` button in header controls and Developer Actions section.
+    - *Non-Blocking Toast Feedback*: Centralized non-blocking toast notifications in `NooBossApp.tsx` (`.nb-toast`).
 - **Developer Analytics Canonical Terminology, Global Reporting Scope & Options History Export Milestone**:
   - **Outcome 1 — Canonical Google Analytics Terminology**:
     - Replaced all instances of `Visitors` with canonical GA4 term `Active users` (`activeUsers`).

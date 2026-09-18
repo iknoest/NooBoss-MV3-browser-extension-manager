@@ -246,7 +246,7 @@ describe("History Event Filtering, Extension Sorting & Developer Clarity", () =>
       expect(devSource).toContain("Analytics connected");
 
       // Package
-      expect(devSource).toContain("Package not enabled");
+      expect(devSource).toContain("Download ZIP");
     });
 
     it("DeveloperView eliminates duplicate gear icon from project row", () => {
@@ -262,9 +262,9 @@ describe("History Event Filtering, Extension Sorting & Developer Clarity", () =>
       expect(localControlsSlice).not.toContain('name="settings"');
     });
 
-    it("DeveloperView header includes Open CWS Dashboard quick-entry link", () => {
+    it("DeveloperView header includes CWS Dashboard quick-entry link", () => {
       const devSource = fs.readFileSync("src/popup/components/DeveloperView.tsx", "utf8");
-      expect(devSource).toContain("Open CWS Dashboard");
+      expect(devSource).toContain("CWS Dashboard");
       expect(devSource).toContain("https://chrome.google.com/webstore/devconsole/");
     });
 

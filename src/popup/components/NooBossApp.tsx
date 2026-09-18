@@ -18,6 +18,7 @@ import { OptionsView } from "./OptionsView";
 import { AboutView } from "./AboutView";
 import { SubWindow } from "./SubWindow";
 import { exportHistoryCSV } from "../../shared/history-export";
+import { downloadExtensionZip, isValidCwsId } from "../../shared/package-downloader";
 import "./nooboss.css";
 
 export interface NooBossAppProps {
@@ -45,6 +46,8 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
     targetId: "",
   });
   const [reloadingId, setReloadingId] = useState<string | null>(null);
+  const [downloadingZipIds, setDownloadingZipIds] = useState<Set<string>>(new Set());
+  const [downloadNotice, setDownloadNotice] = useState<{ message: string; isError: boolean } | null>(null);
 
   const handleFocusGroup = (groupId: string | null) => {
     setFocusedGroupId(groupId);
@@ -458,6 +461,44 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
     setSubWindow({ display: "", targetId: "" });
   };
 
+  const handleDownloadZip = useCallback(async (ext: ExtensionInfo) => {
+    if (!ext.id || !isValidCwsId(ext.id)) return;
+    setDownloadingZipIds((prev) => new Set(prev).add(ext.id));
+    setDownloadNotice(null);
+    try {
+      const result = await downloadExtensionZip({
+        extensionId: ext.id,
+        name: ext.name,
+        version: ext.version,
+      });
+      if (result.success) {
+        setDownloadNotice({
+          message: `Downloaded ${result.filename || "extension.zip"}`,
+          isError: false,
+        });
+        setTimeout(() => setDownloadNotice(null), 4000);
+      } else {
+        setDownloadNotice({
+          message: result.error || "Download failed.",
+          isError: true,
+        });
+        setTimeout(() => setDownloadNotice(null), 5000);
+      }
+    } catch (err: any) {
+      setDownloadNotice({
+        message: err?.message || "Download failed.",
+        isError: true,
+      });
+      setTimeout(() => setDownloadNotice(null), 5000);
+    } finally {
+      setDownloadingZipIds((prev) => {
+        const next = new Set(prev);
+        next.delete(ext.id);
+        return next;
+      });
+    }
+  }, []);
+
   return (
     <div
       className={`nooboss-app ${isFullManager ? "full-manager" : "popup-mode"}`}
@@ -499,6 +540,8 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
               onFocusGroup={handleFocusGroup}
               themeMainColor={resolvedAccent}
               developerMode={settings.developerMode ?? false}
+              onDownloadZip={handleDownloadZip}
+              downloadingZipIds={downloadingZipIds}
             />
           </div>
         )}
@@ -584,7 +627,24 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
         themeMainColor={resolvedAccent}
         developerMode={settings.developerMode ?? false}
         onReloadExtension={handleReloadExtension}
+        onDownloadZip={handleDownloadZip}
+        downloadingZipIds={downloadingZipIds}
       />
+
+      {/* Non-blocking Download Notice Toast */}
+      {downloadNotice && (
+        <div className={`nb-toast ${downloadNotice.isError ? "toast-error" : "toast-success"}`}>
+          <span>{downloadNotice.message}</span>
+          <button
+            type="button"
+            className="toast-close"
+            onClick={() => setDownloadNotice(null)}
+            aria-label="Dismiss notification"
+          >
+            ×
+          </button>
+        </div>
+      )}
     </div>
   );
 }
