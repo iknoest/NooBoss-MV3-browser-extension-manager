@@ -7,18 +7,16 @@
     "management",
     "storage",
     "tabs",
-    "notifications",
-    "identity"
-  ],
-  "host_permissions": [
-    "https://analyticsdata.googleapis.com/*"
+    "notifications"
   ],
   "optional_permissions": [
-    "downloads"
+    "downloads",
+    "identity"
   ],
   "optional_host_permissions": [
     "https://clients2.google.com/*",
-    "https://clients2.googleusercontent.com/*"
+    "https://clients2.googleusercontent.com/*",
+    "https://analyticsdata.googleapis.com/*"
   ],
   "oauth2": {
     "client_id": "799106519083-4abp5ksuf8mmqnh6tjret0guni0dbpt2.apps.googleusercontent.com",

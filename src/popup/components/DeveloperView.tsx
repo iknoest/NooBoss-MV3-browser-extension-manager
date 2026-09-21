@@ -7,6 +7,8 @@ import {
   fetchGA4Report,
   cleanPropertyId,
   getGA4PropertyReportsUrl,
+  checkAnalyticsPermissions,
+  requestAnalyticsPermissions,
   type GA4ReportResult,
 } from "../../shared/ga4-client";
 import {
@@ -129,6 +131,16 @@ export function DeveloperView({
     setConnectingProjectIds((prev) => new Set(prev).add(proj.id));
 
     try {
+      // Request optional Analytics permissions (identity + analyticsdata host)
+      // before attempting OAuth. Only fires from this explicit user gesture.
+      const hasPerms = await checkAnalyticsPermissions();
+      if (!hasPerms) {
+        const granted = await requestAnalyticsPermissions();
+        if (!granted) {
+          throw new Error("Analytics permissions were not granted. You can retry from the Connect action.");
+        }
+      }
+
       const result = await fetchGA4Report(propId, true);
       const record: StoredGA4MetricsRecord = {
         propertyId: propId,
@@ -172,6 +184,15 @@ export function DeveloperView({
     if (!propId) return;
     setConnectingProjectIds((prev) => new Set(prev).add(project.id));
     try {
+      // Verify Analytics permissions are still granted (handles upgrade from required→optional)
+      const hasPerms = await checkAnalyticsPermissions();
+      if (!hasPerms) {
+        const granted = await requestAnalyticsPermissions();
+        if (!granted) {
+          throw new Error("Analytics permissions were not granted. You can retry from the Refresh action.");
+        }
+      }
+
       let result: GA4ReportResult;
       try {
         result = await fetchGA4Report(propId, false);

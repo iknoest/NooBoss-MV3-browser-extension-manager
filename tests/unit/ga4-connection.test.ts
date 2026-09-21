@@ -62,10 +62,15 @@ describe("GA4 Connection, Auth & Storage Subsystem", () => {
   });
 
   describe("Manifest Configuration", () => {
-    it("has required identity and analytics permissions and correct OAuth config", () => {
+    it("has identity and analytics as optional permissions with correct OAuth config", () => {
       const manifest = JSON.parse(fs.readFileSync("src/manifest.json", "utf8"));
-      expect(manifest.permissions).toContain("identity");
-      expect(manifest.host_permissions).toContain("https://analyticsdata.googleapis.com/*");
+      // identity is optional — only requested when user connects Analytics
+      expect(manifest.optional_permissions).toContain("identity");
+      expect(manifest.permissions).not.toContain("identity");
+      // analyticsdata host is optional — only needed for Analytics API calls
+      expect(manifest.optional_host_permissions).toContain("https://analyticsdata.googleapis.com/*");
+      expect(manifest.host_permissions).toBeUndefined();
+      // OAuth config must still be present for chrome.identity.getAuthToken
       expect(manifest.oauth2).toBeDefined();
       expect(manifest.oauth2.client_id).toBe(
         "799106519083-4abp5ksuf8mmqnh6tjret0guni0dbpt2.apps.googleusercontent.com"

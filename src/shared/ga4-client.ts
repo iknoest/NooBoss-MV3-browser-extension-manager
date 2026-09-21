@@ -16,6 +16,48 @@ export const GA4_READONLY_SCOPE = "https://www.googleapis.com/auth/analytics.rea
 export const GA4_OAUTH_CLIENT_ID = "799106519083-4abp5ksuf8mmqnh6tjret0guni0dbpt2.apps.googleusercontent.com";
 export const GA4_EXTENSION_ID = "onkcjpfgllpfbimnchjehboikhippnka";
 
+/**
+ * Optional permissions required for Developer Analytics (GA4).
+ * These are requested at runtime only when the user explicitly initiates
+ * an Analytics connection — never automatically on extension load or
+ * Developer Workspace entry.
+ */
+export const GA4_ANALYTICS_PERMISSIONS: chrome.permissions.Permissions = {
+  permissions: ["identity"],
+  origins: ["https://analyticsdata.googleapis.com/*"],
+};
+
+/**
+ * Checks whether the optional Analytics permissions (identity + analyticsdata host) are granted.
+ */
+export async function checkAnalyticsPermissions(): Promise<boolean> {
+  if (typeof chrome === "undefined" || !chrome.permissions || !chrome.permissions.contains) {
+    return true; // Non-extension / test environment fallback
+  }
+  try {
+    return await chrome.permissions.contains(GA4_ANALYTICS_PERMISSIONS);
+  } catch (err) {
+    console.warn("[GA4Client] Failed to check analytics permissions:", err);
+    return false;
+  }
+}
+
+/**
+ * Requests the optional Analytics permissions (identity + analyticsdata host).
+ * Must be invoked directly within a user gesture handler (e.g. click on "Authorize & Connect").
+ */
+export async function requestAnalyticsPermissions(): Promise<boolean> {
+  if (typeof chrome === "undefined" || !chrome.permissions || !chrome.permissions.request) {
+    return true; // Non-extension / test environment fallback
+  }
+  try {
+    return await chrome.permissions.request(GA4_ANALYTICS_PERMISSIONS);
+  } catch (err) {
+    console.warn("[GA4Client] Analytics permission request failed or rejected:", err);
+    return false;
+  }
+}
+
 export const GA4_PRIMARY_KPIS = [
   { name: "activeUsers", label: "Active users", description: "Distinct active users over the past 28 days" },
   { name: "screenPageViews", label: "Views", description: "Total page and extension views over the past 28 days" },
@@ -443,12 +485,12 @@ export const GA4_SETUP_SPECIFICATION: GA4SetupSpecification = {
   scope: GA4_READONLY_SCOPE,
   clientId: GA4_OAUTH_CLIENT_ID,
   extensionId: GA4_EXTENSION_ID,
-  manifestPermissions: ["identity", "storage"],
-  hostPermissions: ["https://analyticsdata.googleapis.com/*"],
+  manifestPermissions: ["storage"],
+  hostPermissions: [],
   cloudConsoleSteps: [
     "1. Google Cloud Console project configured with Google Analytics Data API enabled.",
     "2. OAuth consent screen configured with read-only analytics scope.",
     "3. OAuth 2.0 Client ID (type: Chrome extension) created for extension ID onkcjpfgllpfbimnchjehboikhippnka.",
-    "4. Manifest configured with identity permission, analyticsdata host permission, and oauth2 client_id.",
+    "4. Manifest configured with identity as optional permission, analyticsdata as optional host permission, and oauth2 client_id.",
   ],
 };
