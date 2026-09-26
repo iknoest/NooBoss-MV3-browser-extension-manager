@@ -1,14 +1,25 @@
 import { MaterialSymbol } from "./MaterialSymbols";
 
 export interface WelcomeViewProps {
-  onOpenExtensions: () => void;
+  onStartTour?: () => void;
+  onSkipAndOpen?: () => void;
+  onOpenExtensions?: () => void;
   themeMainColor?: string;
 }
 
 export function WelcomeView({
+  onStartTour,
+  onSkipAndOpen,
   onOpenExtensions,
   themeMainColor = "#1a73e8",
 }: WelcomeViewProps) {
+  const handleSkip = () => {
+    if (onSkipAndOpen) {
+      onSkipAndOpen();
+    } else if (onOpenExtensions) {
+      onOpenExtensions();
+    }
+  };
   return (
     <div className="nb-page welcome-view" style={{ maxWidth: "680px", margin: "0 auto", padding: "28px 20px" }}>
       <header className="welcome-header" style={{ textAlign: "center", marginBottom: "28px" }}>
@@ -111,27 +122,59 @@ export function WelcomeView({
         </div>
       </div>
 
-      <div className="welcome-cta-container" style={{ textAlign: "center" }}>
+      <div className="welcome-cta-container" style={{ textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: "10px" }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "4px" }}>
+          <button
+            type="button"
+            id="welcomeStartTourBtn"
+            className="btn btn-primary welcome-start-tour-btn"
+            onClick={onStartTour}
+            style={{
+              minWidth: "220px",
+              height: "42px",
+              fontSize: "14px",
+              fontWeight: "600",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "8px",
+              backgroundColor: themeMainColor,
+              color: "#ffffff",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+            }}
+          >
+            <span>Start quick tour</span>
+            <MaterialSymbol name="arrow_forward" size={18} />
+          </button>
+          <span className="welcome-tour-duration" style={{ fontSize: "12px", color: "var(--text-secondary, #5f6368)" }}>
+            About 1 minute
+          </span>
+        </div>
+
         <button
           type="button"
-          id="welcomeOpenBtn"
-          className="btn btn-primary welcome-open-btn"
-          onClick={onOpenExtensions}
+          id="welcomeSkipBtn"
+          className="btn btn-secondary welcome-skip-btn"
+          onClick={handleSkip}
           style={{
-            minWidth: "220px",
-            height: "42px",
-            fontSize: "14px",
-            fontWeight: "600",
+            minWidth: "200px",
+            height: "36px",
+            fontSize: "13px",
+            fontWeight: "500",
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
-            gap: "8px",
-            backgroundColor: themeMainColor,
-            color: "#ffffff",
+            gap: "6px",
+            backgroundColor: "transparent",
+            color: "var(--text-secondary, #5f6368)",
+            border: "1px solid var(--border-color, #dadce0)",
+            borderRadius: "4px",
+            cursor: "pointer",
           }}
         >
-          <span>Open Extension Drawer</span>
-          <MaterialSymbol name="arrow_forward" size={18} />
+          <span>Skip and open Extension Drawer</span>
         </button>
       </div>
     </div>

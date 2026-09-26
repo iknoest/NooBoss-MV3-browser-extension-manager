@@ -17,6 +17,7 @@ import { DeveloperView } from "./DeveloperView";
 import { OptionsView } from "./OptionsView";
 import { AboutView } from "./AboutView";
 import { WelcomeView } from "./WelcomeView";
+import { WalkthroughOverlay } from "./WalkthroughOverlay";
 import { SubWindow } from "./SubWindow";
 import { exportHistoryCSV } from "../../shared/history-export";
 import { downloadExtensionZip, isValidCwsId } from "../../shared/package-downloader";
@@ -54,6 +55,79 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
   const [reloadingId, setReloadingId] = useState<string | null>(null);
   const [downloadingZipIds, setDownloadingZipIds] = useState<Set<string>>(new Set());
   const [downloadNotice, setDownloadNotice] = useState<{ message: string; isError: boolean } | null>(null);
+
+  // Guided Walkthrough Tour State
+  const [isTourActive, setIsTourActive] = useState<boolean>(false);
+  const [tourStep, setTourStep] = useState<number>(1);
+  const [tourSubStep, setTourSubStep] = useState<"history" | "backup">("history");
+
+  const handleStartTour = () => {
+    setIsTourActive(true);
+    setTourStep(1);
+    setTourSubStep("history");
+    setMainLocation("extensions");
+    if (typeof window !== "undefined" && window.location.hash === "#welcome") {
+      history.replaceState(null, "", window.location.pathname + window.location.search);
+    }
+  };
+
+  const handleTourNext = () => {
+    if (tourStep === 1) {
+      setTourStep(2);
+      setMainLocation("extensions");
+    } else if (tourStep === 2) {
+      setTourStep(3);
+      setMainLocation("autostate");
+    } else if (tourStep === 3) {
+      setTourStep(4);
+      setTourSubStep("history");
+      setMainLocation("history");
+    } else if (tourStep === 4) {
+      setTourStep(5);
+      setMainLocation("extensions");
+    }
+  };
+
+  const handleTourBack = () => {
+    if (tourStep === 5) {
+      setTourStep(4);
+      setTourSubStep("history");
+      setMainLocation("history");
+    } else if (tourStep === 4) {
+      if (tourSubStep === "backup") {
+        setTourSubStep("history");
+        setMainLocation("history");
+      } else {
+        setTourStep(3);
+        setMainLocation("autostate");
+      }
+    } else if (tourStep === 3) {
+      setTourStep(2);
+      setMainLocation("extensions");
+    } else if (tourStep === 2) {
+      setTourStep(1);
+      setMainLocation("extensions");
+    }
+  };
+
+  const handleTourShowBackup = () => {
+    setTourSubStep("backup");
+    setMainLocation("options");
+  };
+
+  const handleTourFinish = () => {
+    setIsTourActive(false);
+    setTourStep(1);
+    setTourSubStep("history");
+    setMainLocation("extensions");
+  };
+
+  const handleTourSkip = () => {
+    setIsTourActive(false);
+    setTourStep(1);
+    setTourSubStep("history");
+    setMainLocation("extensions");
+  };
 
   const handleFocusGroup = (groupId: string | null) => {
     setFocusedGroupId(groupId);
@@ -634,6 +708,13 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
         {/* Welcome View */}
         {mainLocation === "welcome" && (
           <WelcomeView
+            onStartTour={handleStartTour}
+            onSkipAndOpen={() => {
+              setMainLocation("extensions");
+              if (typeof window !== "undefined" && window.location.hash === "#welcome") {
+                history.replaceState(null, "", window.location.pathname + window.location.search);
+              }
+            }}
             onOpenExtensions={() => {
               setMainLocation("extensions");
               if (typeof window !== "undefined" && window.location.hash === "#welcome") {
@@ -644,6 +725,20 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
           />
         )}
       </div>
+
+      {/* Guided Walkthrough Overlay */}
+      {isTourActive && (
+        <WalkthroughOverlay
+          currentStep={tourStep}
+          subStep={tourSubStep}
+          onNext={handleTourNext}
+          onBack={handleTourBack}
+          onSkip={handleTourSkip}
+          onFinish={handleTourFinish}
+          onShowBackup={handleTourShowBackup}
+          themeMainColor={resolvedAccent}
+        />
+      )}
 
       {/* Modal SubWindow */}
       <SubWindow

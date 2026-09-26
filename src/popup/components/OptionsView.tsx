@@ -438,7 +438,7 @@ ${extensions.map((e) => `<li><a href="https://chrome.google.com/webstore/detail/
       </section>
 
       {/* 6. Backup & Data Section */}
-      <section className="settings-section">
+      <section id="optionsBackupSection" className="settings-section">
         <h2 className="settings-section-title">Backup & Data</h2>
         <div className="settings-card">
           <div className="settings-row">

@@ -122,7 +122,7 @@ export function HistoryView({
         </div>
       </div>
 
-      <div className="history-table-wrapper">
+      <div id="historyTableWrapper" className="history-table-wrapper">
         <table className="nb-table history-table">
           <thead>
             <tr>

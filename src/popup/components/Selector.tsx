@@ -381,10 +381,10 @@ export function Selector({
   };
 
   return (
-    <div className="selector-root">
+    <div className="selector-root" id="extensionManagerCatalog">
       {actionBar && (
         <>
-          <div className="action-bar">
+          <div className="action-bar" id="selectorActionBar">
             <select
               id="typeFilter"
               value={filterType}
@@ -499,7 +499,7 @@ export function Selector({
                   <MaterialSymbol name="redo" size={18} color="currentColor" />
                 </button>
                 {onCreateGroup && (
-                  <button className="btn btn-primary action-btn" onClick={onCreateGroup}>
+                  <button id="newGroupBtn" className="btn btn-primary action-btn new-group-btn" onClick={onCreateGroup}>
                     + {GL("new_group")}
                   </button>
                 )}

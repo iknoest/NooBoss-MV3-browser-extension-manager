@@ -182,8 +182,8 @@ export function AutoStateView({
   };
 
   // Helper to render target icon list
-  const renderTargetIcons = (targetIds: string[]) => {
-    return targetIds.map((id) => {
+  const renderTargetIcons = (targetIds: string[] = []) => {
+    return (targetIds || []).map((id) => {
       if (id.startsWith("group_") || id.startsWith("NooBoss-Group")) {
         const grp = groups.find((g) => g.id === id);
         return (
@@ -385,6 +385,7 @@ export function AutoStateView({
       </h2>
 
       <div
+        id="autostateRuleBuilder"
         className="autostate-form-card"
         style={{
           display: "flex",
