@@ -168,3 +168,14 @@ export async function clearProjectGA4Metrics(projectId: string): Promise<void> {
     await set(STORAGE_KEYS.GA4_METRICS, map);
   }
 }
+
+// ── Welcome Seen State ──────────────────────────────────────
+
+export async function getWelcomeSeen(): Promise<boolean> {
+  return get<boolean>(STORAGE_KEYS.WELCOME_SEEN, false);
+}
+
+export async function setWelcomeSeen(seen: boolean = true): Promise<void> {
+  await set(STORAGE_KEYS.WELCOME_SEEN, seen);
+}
+

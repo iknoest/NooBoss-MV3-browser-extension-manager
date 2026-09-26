@@ -641,11 +641,11 @@ describe("Developer Workspace & Developer Mode", () => {
       expect(metricsBarBlock).not.toContain("dev-ga4-external-btn");
     });
 
-    it("verifies HistoryView provides explicit Export history action", () => {
+    it("verifies HistoryView does not render duplicate Export history action (Options is canonical)", () => {
       const historySource = fs.readFileSync("src/popup/components/HistoryView.tsx", "utf8");
-      expect(historySource).toContain("Export history");
-      expect(historySource).toContain("historyExportBtn");
-      expect(historySource).toContain("exportHistoryCSV");
+      expect(historySource).not.toContain("Export history");
+      expect(historySource).not.toContain("historyExportBtn");
+      expect(historySource).not.toContain("exportHistoryCSV");
       expect(historySource).toContain("history-actions-group");
     });
 

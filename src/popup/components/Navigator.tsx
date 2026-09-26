@@ -1,6 +1,6 @@
 import { GL } from "./i18n";
 
-export type MainLocation = "extensions" | "autostate" | "history" | "developer" | "options" | "about";
+export type MainLocation = "extensions" | "autostate" | "history" | "developer" | "options" | "about" | "welcome";
 
 interface NavigatorProps {
   mainLocation: MainLocation;

@@ -149,9 +149,12 @@ describe("History Event Filtering, Extension Sorting & Developer Clarity", () =>
   describe("Outcome 2 & 3 — History-Backed Extension Sorting", () => {
     const list = [ext2, ext1, extNoHistory, ext3];
 
-    it("SortMode: Default preserves catalog order", () => {
-      const sorted = sortExtensions(list, "default", sampleHistory);
-      expect(sorted.map((e) => e.id)).toEqual(["ext_beta", "ext_alpha", "ext_zeta", "ext_gamma"]);
+    it("SortMode: Recently installed / updated sorts newest install/update first, unrecorded below alphabetical", () => {
+      // ext_beta installed = 3000
+      // ext_alpha installed = 1000
+      // ext_gamma, ext_zeta = no install/update history -> alphabetical tie-break: Gamma Theme, Zeta Newbie
+      const sorted = sortExtensions(list, "recently_installed", sampleHistory);
+      expect(sorted.map((e) => e.id)).toEqual(["ext_beta", "ext_alpha", "ext_gamma", "ext_zeta"]);
     });
 
     it("SortMode: Name A–Z sorts alphabetically case-insensitive", () => {
@@ -178,46 +181,25 @@ describe("History Event Filtering, Extension Sorting & Developer Clarity", () =>
       ]);
     });
 
-    it("SortMode: Most changed sorts by event count descending, 0-event items last", () => {
-      // ext_beta count = 3 (installed, disabled, enabled)
-      // ext_alpha count = 2 (installed, enabled)
-      // ext_gamma count = 1 (disabled)
-      // ext_zeta count = 0
-      const sorted = sortExtensions(list, "most_changed", sampleHistory);
-      expect(sorted.map((e) => e.id)).toEqual([
-        "ext_beta", // 3
-        "ext_alpha", // 2
-        "ext_gamma", // 1
-        "ext_zeta", // 0
-      ]);
+    it("SortMode: Enabled first places enabled extensions before disabled, alphabetical within", () => {
+      // Enabled: ext1 ("Alpha Blocker"), ext3 ("Gamma Theme"), extNoHistory ("Zeta Newbie")
+      // Disabled: ext2 ("Beta Reader")
+      const sorted = sortExtensions(list, "enabled_first", sampleHistory);
+      expect(sorted.map((e) => e.id)).toEqual(["ext_alpha", "ext_gamma", "ext_zeta", "ext_beta"]);
     });
 
-    it("SortMode: First seen uses genuine installed timestamp or earliest recorded, no-history last", () => {
-      // ext_beta first installed = 3000
-      // ext_gamma earliest event = 2500 (fallback)
-      // ext_alpha first installed = 1000
-      // ext_zeta = 0 (no history)
-      // Descending by first seen (most recently added/seen at top):
-      // 3000 (beta) > 2500 (gamma) > 1000 (alpha) > 0 (zeta)
-      const sorted = sortExtensions(list, "first_seen", sampleHistory);
-      expect(sorted.map((e) => e.id)).toEqual([
-        "ext_beta",
-        "ext_gamma",
-        "ext_alpha",
-        "ext_zeta",
-      ]);
-    });
-
-    it("Selector action-bar includes sort dropdown with exact 5 modes and help button", () => {
+    it("Selector action-bar includes sort dropdown with exact 4 modes and help button", () => {
       const selectorSource = fs.readFileSync("src/popup/components/Selector.tsx", "utf8");
       expect(selectorSource).toContain('id="sortModeSelect"');
-      expect(selectorSource).toContain('<option value="default">Default</option>');
-      expect(selectorSource).toContain('<option value="name_asc">Name A–Z</option>');
+      expect(selectorSource).toContain('<option value="recently_installed">Recently installed / updated</option>');
       expect(selectorSource).toContain('<option value="enabled_first">Enabled first</option>');
-      expect(selectorSource).toContain('<option value="latest_change">Latest change</option>');
-      expect(selectorSource).toContain('<option value="most_changes">Most changes</option>');
-      // Must NOT use misleading labels like "Most used"
+      expect(selectorSource).toContain('<option value="recently_changed">Recently changed</option>');
+      expect(selectorSource).toContain('<option value="name_asc">Name A–Z</option>');
+      // Must NOT use misleading labels like "Most used", "Most changes", or "First seen"
       expect(selectorSource).not.toContain("Most used");
+      expect(selectorSource).not.toContain("Most changes");
+      expect(selectorSource).not.toContain("Most changed");
+      expect(selectorSource).not.toContain("First seen");
       // Sort wrapper and help
       expect(selectorSource).toContain('className="sort-control-wrapper"');
       expect(selectorSource).toContain('className="sort-help-btn"');

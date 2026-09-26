@@ -16,6 +16,7 @@ import { HistoryView } from "./HistoryView";
 import { DeveloperView } from "./DeveloperView";
 import { OptionsView } from "./OptionsView";
 import { AboutView } from "./AboutView";
+import { WelcomeView } from "./WelcomeView";
 import { SubWindow } from "./SubWindow";
 import { exportHistoryCSV } from "../../shared/history-export";
 import { downloadExtensionZip, isValidCwsId } from "../../shared/package-downloader";
@@ -26,8 +27,13 @@ export interface NooBossAppProps {
 }
 
 export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
-  // Default startup landing page is Extensions
-  const [mainLocation, setMainLocation] = useState<MainLocation>("extensions");
+  // Default startup landing page is Extensions, or Welcome if #welcome
+  const [mainLocation, setMainLocation] = useState<MainLocation>(() => {
+    if (typeof window !== "undefined" && (window.location.hash === "#welcome" || window.location.search.includes("page=welcome"))) {
+      return "welcome";
+    }
+    return "extensions";
+  });
 
   const [extensions, setExtensions] = useState<ExtensionInfo[]>([]);
   const [groups, setGroups] = useState<ExtensionGroup[]>([]);
@@ -64,6 +70,18 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
       setMainLocation("extensions");
     }
   }, [dataLoaded, settings.developerMode, mainLocation]);
+
+  // Handle #welcome in URL hash
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleHashChange = () => {
+      if (window.location.hash === "#welcome") {
+        setMainLocation("welcome");
+      }
+    };
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
+  }, []);
 
   // Dynamic Appearance (System / Light / Dark) and Accent Color
   useEffect(() => {
@@ -606,7 +624,25 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
         )}
 
         {/* About View */}
-        {mainLocation === "about" && <AboutView themeMainColor={resolvedAccent} />}
+        {mainLocation === "about" && (
+          <AboutView
+            themeMainColor={resolvedAccent}
+            onOpenWelcome={() => setMainLocation("welcome")}
+          />
+        )}
+
+        {/* Welcome View */}
+        {mainLocation === "welcome" && (
+          <WelcomeView
+            onOpenExtensions={() => {
+              setMainLocation("extensions");
+              if (typeof window !== "undefined" && window.location.hash === "#welcome") {
+                history.replaceState(null, "", window.location.pathname + window.location.search);
+              }
+            }}
+            themeMainColor={resolvedAccent}
+          />
+        )}
       </div>
 
       {/* Modal SubWindow */}

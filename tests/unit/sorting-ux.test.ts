@@ -93,9 +93,11 @@ describe("Outcome A — Clarified Extension Sorting UX", () => {
   ];
 
   describe("Sort Modes Behavior", () => {
-    it("Mode 1: Default preserves original list order", () => {
-      const sorted = sortExtensions(sampleExtensions, "default");
-      expect(sorted.map((e) => e.id)).toEqual(["ext_z", "ext_b", "ext_a", "ext_c"]);
+    it("Mode 1: Recently installed / updated sorts by newest install/update event, unknown dates below alphabetical", () => {
+      const sorted = sortExtensions(sampleExtensions, "recently_installed", sampleHistory);
+      // ext_z has installed event at 1000 -> comes first
+      // ext_a, ext_b, ext_c have no install/update history -> alphabetical tie-break below
+      expect(sorted.map((e) => e.id)).toEqual(["ext_z", "ext_a", "ext_b", "ext_c"]);
     });
 
     it("Mode 2: Name A–Z sorts alphabetically by name", () => {
@@ -108,34 +110,24 @@ describe("Outcome A — Clarified Extension Sorting UX", () => {
       // Enabled: ext_b ("Beta Tool"), ext_c ("Charlie Dev")
       // Disabled: ext_a ("Alpha Addon"), ext_z ("Zeta Extension")
       expect(sorted.map((e) => e.id)).toEqual(["ext_b", "ext_c", "ext_a", "ext_z"]);
-      // Verify both enabled ones are at the front
       expect(sorted[0].enabled).toBe(true);
       expect(sorted[1].enabled).toBe(true);
       expect(sorted[2].enabled).toBe(false);
       expect(sorted[3].enabled).toBe(false);
     });
 
-    it("Mode 4: Latest change sorts by newest management timestamp descending", () => {
-      // ext_a: latest = 5000
-      // ext_b: latest = 4000
-      // ext_z: latest = 1000
+    it("Mode 4: Recently changed sorts by most recent management-history event descending", () => {
+      // ext_a: latest = 5000 (disabled)
+      // ext_b: latest = 4000 (enabled)
+      // ext_z: latest = 1000 (installed)
       // ext_c: no events (sorts last)
-      const sorted = sortExtensions(sampleExtensions, "latest_change", sampleHistory);
-      expect(sorted.map((e) => e.id)).toEqual(["ext_a", "ext_b", "ext_z", "ext_c"]);
-    });
-
-    it("Mode 4 backward compatibility: recently_changed alias matches latest_change", () => {
       const sorted = sortExtensions(sampleExtensions, "recently_changed", sampleHistory);
       expect(sorted.map((e) => e.id)).toEqual(["ext_a", "ext_b", "ext_z", "ext_c"]);
     });
 
-    it("Mode 5: Most changes sorts by count of management events descending", () => {
-      // ext_b: 3 events (rec_2, rec_3, rec_4)
-      // ext_a: 1 event (rec_5)
-      // ext_z: 1 event (rec_1) -> tie-break alphabetical: "Alpha Addon" before "Zeta Extension"
-      // ext_c: 0 events -> sorts last
-      const sorted = sortExtensions(sampleExtensions, "most_changes", sampleHistory);
-      expect(sorted.map((e) => e.id)).toEqual(["ext_b", "ext_a", "ext_z", "ext_c"]);
+    it("Mode 4 backward compatibility: latest_change alias matches recently_changed", () => {
+      const sorted = sortExtensions(sampleExtensions, "latest_change", sampleHistory);
+      expect(sorted.map((e) => e.id)).toEqual(["ext_a", "ext_b", "ext_z", "ext_c"]);
     });
   });
 
@@ -149,17 +141,22 @@ describe("Outcome A — Clarified Extension Sorting UX", () => {
       expect(selectorSource).toContain('<MaterialSymbol name="swap_vert" size={16} />');
     });
 
-    it("exposes exactly the 5 user-facing sort options in the dropdown", () => {
-      expect(selectorSource).toContain('<option value="default">Default</option>');
-      expect(selectorSource).toContain('<option value="name_asc">Name A–Z</option>');
+    it("exposes exactly the 4 user-facing sort options in the dropdown", () => {
+      expect(selectorSource).toContain('<option value="recently_installed">Recently installed / updated</option>');
       expect(selectorSource).toContain('<option value="enabled_first">Enabled first</option>');
-      expect(selectorSource).toContain('<option value="latest_change">Latest change</option>');
-      expect(selectorSource).toContain('<option value="most_changes">Most changes</option>');
+      expect(selectorSource).toContain('<option value="recently_changed">Recently changed</option>');
+      expect(selectorSource).toContain('<option value="name_asc">Name A–Z</option>');
+      // Must not expose Most changed or Most used or First seen
+      expect(selectorSource).not.toContain("Most changes");
+      expect(selectorSource).not.toContain("Most changed");
+      expect(selectorSource).not.toContain("Most used");
+      expect(selectorSource).not.toContain("First seen");
     });
 
-    it("provides the exact verbatim contextual help copy", () => {
-      const expectedHelp = "Based on Extension Drawer history.";
-      expect(selectorSource).toContain(expectedHelp);
+    it("provides the concise contextual help copy without Most used claims", () => {
+      expect(selectorSource).toContain("Based on install and update events recorded by Extension Drawer.");
+      expect(selectorSource).toContain("Based on Extension Drawer history.");
+      expect(selectorSource).not.toContain("Most used");
     });
 
     it("includes contextual help button with tooltip and toggleable popover", () => {

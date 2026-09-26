@@ -25,6 +25,8 @@ import {
   getDeveloperProjects,
   saveDeveloperProjects,
   clearProjectGA4Metrics,
+  getWelcomeSeen,
+  setWelcomeSeen,
 } from '../shared/storage';
 import { computeDesiredStates } from '../shared/autostate';
 import { createExportData, validateImportData } from '../shared/import-export';
@@ -40,6 +42,21 @@ let tabUrls: Record<number, string> = {};
 chrome.runtime.onInstalled.addListener(async (details) => {
   console.log('[NooBoss] Installed/Updated:', details.reason);
   await initializeState();
+
+  // Welcome / Getting Started opens once after a genuinely fresh install only
+  if (details.reason === 'install') {
+    const welcomeSeen = await getWelcomeSeen();
+    if (!welcomeSeen) {
+      await setWelcomeSeen(true);
+      try {
+        await chrome.tabs.create({
+          url: chrome.runtime.getURL('manager/manager.html#welcome'),
+        });
+      } catch (err) {
+        console.warn('[NooBoss] Failed to open welcome tab:', err);
+      }
+    }
+  }
 });
 
 chrome.runtime.onStartup.addListener(async () => {

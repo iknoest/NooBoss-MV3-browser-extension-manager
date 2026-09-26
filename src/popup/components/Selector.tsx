@@ -10,66 +10,43 @@ import { computeGroupRuntimeSummary } from "./group-summary";
 import { GroupCommandControl } from "./GroupCommandControl";
 
 export type SortMode =
-  | "default"
-  | "name_asc"
+  | "recently_installed"
   | "enabled_first"
-  | "latest_change"
-  | "most_changes"
-  | "most_changed"
   | "recently_changed"
-  | "first_seen";
+  | "name_asc"
+  | "default"
+  | "latest_change";
 
 export function getExtensionHistoryStats(
   extensions: ExtensionInfo[],
   history: HistoryRecord[] = []
 ): {
+  recentlyInstalledUpdatedMap: Map<string, number>;
   recentlyChangedMap: Map<string, number>;
-  mostChangedMap: Map<string, number>;
-  firstSeenMap: Map<string, number>;
 } {
+  const recentlyInstalledUpdatedMap = new Map<string, number>();
   const recentlyChangedMap = new Map<string, number>();
-  const mostChangedMap = new Map<string, number>();
-  const earliestInstalledMap = new Map<string, number>();
-  const earliestAnyEventMap = new Map<string, number>();
 
   for (const rec of history) {
     const id = rec.extensionId;
-    // Recently changed: latest management event timestamp
-    const prevRecent = recentlyChangedMap.get(id) ?? 0;
-    if (rec.timestamp > prevRecent) {
+    if (!id) continue;
+
+    // Recently changed: latest management event timestamp (installed, updated, enabled, disabled)
+    const prevChanged = recentlyChangedMap.get(id) ?? 0;
+    if (rec.timestamp > prevChanged) {
       recentlyChangedMap.set(id, rec.timestamp);
     }
 
-    // Most changed: count of recorded management events
-    mostChangedMap.set(id, (mostChangedMap.get(id) ?? 0) + 1);
-
-    // Earliest installed event or fallback to earliest event recorded
-    if (rec.event === "installed") {
-      const prevInst = earliestInstalledMap.get(id);
-      if (prevInst === undefined || rec.timestamp < prevInst) {
-        earliestInstalledMap.set(id, rec.timestamp);
-      }
-    }
-    const prevAny = earliestAnyEventMap.get(id);
-    if (prevAny === undefined || rec.timestamp < prevAny) {
-      earliestAnyEventMap.set(id, rec.timestamp);
-    }
-  }
-
-  const firstSeenMap = new Map<string, number>();
-  for (const ext of extensions) {
-    const installedTime = earliestInstalledMap.get(ext.id);
-    if (installedTime !== undefined) {
-      firstSeenMap.set(ext.id, installedTime);
-    } else {
-      const anyTime = earliestAnyEventMap.get(ext.id);
-      if (anyTime !== undefined) {
-        firstSeenMap.set(ext.id, anyTime);
+    // Recently installed / updated: newest installed or updated event timestamp
+    if (rec.event === "installed" || rec.event === "updated") {
+      const prevInstallUpdate = recentlyInstalledUpdatedMap.get(id) ?? 0;
+      if (rec.timestamp > prevInstallUpdate) {
+        recentlyInstalledUpdatedMap.set(id, rec.timestamp);
       }
     }
   }
 
-  return { recentlyChangedMap, mostChangedMap, firstSeenMap };
+  return { recentlyInstalledUpdatedMap, recentlyChangedMap };
 }
 
 export function sortExtensions(
@@ -78,20 +55,28 @@ export function sortExtensions(
   history: HistoryRecord[] = [],
   selectedList?: string[] | null
 ): ExtensionInfo[] {
-  if (sortMode === "default") {
-    if (selectedList) {
-      return sortGroupMemberExtensions(list, selectedList);
-    }
-    return list;
+  if (selectedList) {
+    return sortGroupMemberExtensions(list, selectedList);
   }
 
-  const { recentlyChangedMap, mostChangedMap, firstSeenMap } = getExtensionHistoryStats(list, history);
-
+  const { recentlyInstalledUpdatedMap, recentlyChangedMap } = getExtensionHistoryStats(list, history);
   const sorted = [...list];
 
   switch (sortMode) {
-    case "name_asc":
-      sorted.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
+    case "recently_installed":
+    case "default":
+      sorted.sort((a, b) => {
+        const aTime = recentlyInstalledUpdatedMap.get(a.id) ?? 0;
+        const bTime = recentlyInstalledUpdatedMap.get(b.id) ?? 0;
+        if (aTime > 0 && bTime > 0) {
+          if (bTime !== aTime) return bTime - aTime;
+          return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+        }
+        if (aTime > 0) return -1;
+        if (bTime > 0) return 1;
+        // Extensions without a relevant history record go below extensions with known dates
+        return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+      });
       break;
 
     case "enabled_first":
@@ -103,8 +88,8 @@ export function sortExtensions(
       });
       break;
 
-    case "latest_change":
     case "recently_changed":
+    case "latest_change":
       sorted.sort((a, b) => {
         const aTime = recentlyChangedMap.get(a.id) ?? 0;
         const bTime = recentlyChangedMap.get(b.id) ?? 0;
@@ -114,37 +99,13 @@ export function sortExtensions(
         }
         if (aTime > 0) return -1;
         if (bTime > 0) return 1;
+        // Extensions with no history go below known-history extensions
         return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
       });
       break;
 
-    case "most_changes":
-    case "most_changed":
-      sorted.sort((a, b) => {
-        const aCount = mostChangedMap.get(a.id) ?? 0;
-        const bCount = mostChangedMap.get(b.id) ?? 0;
-        if (aCount > 0 && bCount > 0) {
-          if (bCount !== aCount) return bCount - aCount;
-          return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
-        }
-        if (aCount > 0) return -1;
-        if (bCount > 0) return 1;
-        return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
-      });
-      break;
-
-    case "first_seen":
-      sorted.sort((a, b) => {
-        const aTime = firstSeenMap.get(a.id) ?? 0;
-        const bTime = firstSeenMap.get(b.id) ?? 0;
-        if (aTime > 0 && bTime > 0) {
-          if (bTime !== aTime) return bTime - aTime;
-          return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
-        }
-        if (aTime > 0) return -1;
-        if (bTime > 0) return 1;
-        return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
-      });
+    case "name_asc":
+      sorted.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
       break;
   }
 
@@ -227,7 +188,7 @@ export function Selector({
   const setActiveFocusedGroupId = onFocusGroup || setInternalFocusedGroupId;
   const [filterAssignedOnly, setFilterAssignedOnly] = useState<boolean>(false);
 
-  const [sortMode, setSortMode] = useState<SortMode>("default");
+  const [sortMode, setSortMode] = useState<SortMode>("recently_installed");
   const [showSortHelp, setShowSortHelp] = useState<boolean>(false);
   const [filterType, setFilterType] = useState<string>("all");
   const [filterName, setFilterName] = useState<string>("");
@@ -269,6 +230,16 @@ export function Selector({
     [extensions]
   );
   const hasThemes = useMemo(() => extensions.some((e) => e.type === "theme"), [extensions]);
+
+  const sortHelpText = useMemo(() => {
+    if (sortMode === "recently_installed" || sortMode === "default") {
+      return "Based on install and update events recorded by Extension Drawer.";
+    }
+    if (sortMode === "recently_changed" || sortMode === "latest_change") {
+      return "Based on Extension Drawer history.";
+    }
+    return "Based on Extension Drawer history.";
+  }, [sortMode]);
 
   const searchPlaceholder = useMemo(() => {
     if (focusedGroup) return GL("search_extensions_in_group");
@@ -452,20 +423,19 @@ export function Selector({
               <select
                 id="sortModeSelect"
                 className="sort-select"
-                value={sortMode === "recently_changed" ? "latest_change" : sortMode === "first_seen" ? "default" : sortMode}
+                value={sortMode === "default" ? "recently_installed" : sortMode === "latest_change" ? "recently_changed" : sortMode}
                 onChange={(e) => setSortMode((e.target as HTMLSelectElement).value as SortMode)}
                 aria-label="Sort extensions"
               >
-                <option value="default">Default</option>
-                <option value="name_asc">Name A–Z</option>
+                <option value="recently_installed">Recently installed / updated</option>
                 <option value="enabled_first">Enabled first</option>
-                <option value="latest_change">Latest change</option>
-                <option value="most_changes">Most changes</option>
+                <option value="recently_changed">Recently changed</option>
+                <option value="name_asc">Name A–Z</option>
               </select>
               <button
                 type="button"
                 className="sort-help-btn"
-                title="Based on Extension Drawer history."
+                title={sortHelpText}
                 aria-label="Sort information"
                 onClick={() => setShowSortHelp(!showSortHelp)}
               >
@@ -474,7 +444,7 @@ export function Selector({
               {showSortHelp && (
                 <div className="sort-help-popover" role="tooltip">
                   <div className="sort-help-popover-text">
-                    Based on Extension Drawer history.
+                    {sortHelpText}
                   </div>
                   <button
                     type="button"
