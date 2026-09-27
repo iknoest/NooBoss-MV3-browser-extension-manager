@@ -59,12 +59,12 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
   // Guided Walkthrough Tour State
   const [isTourActive, setIsTourActive] = useState<boolean>(false);
   const [tourStep, setTourStep] = useState<number>(1);
-  const [tourSubStep, setTourSubStep] = useState<"history" | "backup">("history");
+  const [tourSubStep, setTourSubStep] = useState<string>("");
 
   const handleStartTour = () => {
     setIsTourActive(true);
     setTourStep(1);
-    setTourSubStep("history");
+    setTourSubStep("");
     setMainLocation("extensions");
     if (typeof window !== "undefined" && window.location.hash === "#welcome") {
       history.replaceState(null, "", window.location.pathname + window.location.search);
@@ -80,27 +80,36 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
       setMainLocation("autostate");
     } else if (tourStep === 3) {
       setTourStep(4);
-      setTourSubStep("history");
+      setTourSubStep("");
       setMainLocation("history");
     } else if (tourStep === 4) {
       setTourStep(5);
-      setMainLocation("extensions");
+      setTourSubStep("");
+      setMainLocation("options");
+    } else if (tourStep === 5) {
+      setTourStep(6);
+      setTourSubStep("");
+      setMainLocation("options");
     }
   };
 
   const handleTourBack = () => {
-    if (tourStep === 5) {
+    if (tourStep === 6) {
+      if (tourSubStep === "preview") {
+        setTourSubStep("");
+        setMainLocation("options");
+      } else {
+        setTourStep(5);
+        setTourSubStep("");
+        setMainLocation("options");
+      }
+    } else if (tourStep === 5) {
       setTourStep(4);
-      setTourSubStep("history");
+      setTourSubStep("");
       setMainLocation("history");
     } else if (tourStep === 4) {
-      if (tourSubStep === "backup") {
-        setTourSubStep("history");
-        setMainLocation("history");
-      } else {
-        setTourStep(3);
-        setMainLocation("autostate");
-      }
+      setTourStep(3);
+      setMainLocation("autostate");
     } else if (tourStep === 3) {
       setTourStep(2);
       setMainLocation("extensions");
@@ -110,22 +119,22 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
     }
   };
 
-  const handleTourShowBackup = () => {
-    setTourSubStep("backup");
-    setMainLocation("options");
+  const handleTourPreviewDeveloper = () => {
+    setTourSubStep("preview");
+    setMainLocation("developer");
   };
 
   const handleTourFinish = () => {
     setIsTourActive(false);
     setTourStep(1);
-    setTourSubStep("history");
+    setTourSubStep("");
     setMainLocation("extensions");
   };
 
   const handleTourSkip = () => {
     setIsTourActive(false);
     setTourStep(1);
-    setTourSubStep("history");
+    setTourSubStep("");
     setMainLocation("extensions");
   };
 
@@ -731,11 +740,12 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
         <WalkthroughOverlay
           currentStep={tourStep}
           subStep={tourSubStep}
+          developerMode={settings.developerMode ?? false}
           onNext={handleTourNext}
           onBack={handleTourBack}
           onSkip={handleTourSkip}
           onFinish={handleTourFinish}
-          onShowBackup={handleTourShowBackup}
+          onPreviewDeveloper={handleTourPreviewDeveloper}
           themeMainColor={resolvedAccent}
         />
       )}

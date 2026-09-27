@@ -149,7 +149,7 @@ export function WelcomeView({
             <MaterialSymbol name="arrow_forward" size={18} />
           </button>
           <span className="welcome-tour-duration" style={{ fontSize: "12px", color: "var(--text-secondary, #5f6368)" }}>
-            About 1 minute
+            About 2 minutes
           </span>
         </div>
 

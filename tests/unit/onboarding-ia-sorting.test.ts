@@ -138,7 +138,7 @@ describe("Onboarding, About IA, History Deduplication & Extension Sorting", () =
       expect(welcomeSource).toContain("Developer tools · Optional");
       expect(welcomeSource).toContain("Developer Workspace can connect local builds, GitHub, Chrome Web Store listings and analytics when needed.");
       expect(welcomeSource).toContain("Start quick tour");
-      expect(welcomeSource).toContain("About 1 minute");
+      expect(welcomeSource).toContain("About 2 minutes");
       expect(welcomeSource).toContain("Skip and open Extension Drawer");
       expect(welcomeSource).toContain("welcomeStartTourBtn");
       expect(welcomeSource).toContain("welcomeSkipBtn");

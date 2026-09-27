@@ -64,107 +64,109 @@ export function HistoryView({
   };
 
   return (
-    <div className="nb-page">
-      <div className="history-toolbar">
-        <select
-          id="historyEventFilter"
-          className="history-event-filter"
-          value={eventFilter}
-          onChange={(e) => {
-            setEventFilter((e.target as HTMLSelectElement).value as HistoryEventFilter);
-            setMaxDisplay(40);
-          }}
-          aria-label="Filter history by event type"
-        >
-          <option value="all">All events</option>
-          <option value="installed">Installed</option>
-          <option value="uninstalled">Uninstalled</option>
-          <option value="enabled">Enabled</option>
-          <option value="disabled">Disabled</option>
-          <option value="updated">Updated</option>
-        </select>
-
-        <div className="history-search-wrapper">
-          <input
-            id="historySearch"
-            type="text"
-            className="history-search-input"
-            placeholder="Search by extension name..."
-            value={searchQuery}
-            onInput={(e) => {
-              setSearchQuery((e.target as HTMLInputElement).value);
+    <div className="nb-page history-view">
+      <div id="historyContentArea" className="history-content-area">
+        <div id="historyToolbar" className="history-toolbar">
+          <select
+            id="historyEventFilter"
+            className="history-event-filter"
+            value={eventFilter}
+            onChange={(e) => {
+              setEventFilter((e.target as HTMLSelectElement).value as HistoryEventFilter);
               setMaxDisplay(40);
             }}
-            aria-label="Search history by extension name"
-          />
-          {searchQuery && (
-            <span
-              className="clear-history-search"
-              onClick={() => setSearchQuery("")}
-              title="Clear search"
-              role="button"
-              tabIndex={0}
-              aria-label="Clear search"
-            >
-              <MaterialSymbol name="close" size={16} color="var(--text-muted)" />
-            </span>
-          )}
-        </div>
-
-        <div className="history-actions-group">
-          <button
-            type="button"
-            className="btn btn-secondary action-btn history-clear-btn"
-            onClick={() => setShowConfirm(true)}
+            aria-label="Filter history by event type"
           >
-            {GL("empty_history")}
-          </button>
-        </div>
-      </div>
+            <option value="all">All events</option>
+            <option value="installed">Installed</option>
+            <option value="uninstalled">Uninstalled</option>
+            <option value="enabled">Enabled</option>
+            <option value="disabled">Disabled</option>
+            <option value="updated">Updated</option>
+          </select>
 
-      <div id="historyTableWrapper" className="history-table-wrapper">
-        <table className="nb-table history-table">
-          <thead>
-            <tr>
-              <th style={{ width: "130px" }}>{GL("when")}</th>
-              <th style={{ width: "100px" }}>{GL("event")}</th>
-              <th>{GL("name")}</th>
-              <th style={{ width: "100px" }}>{GL("version")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {displayed.map((rec) => (
-              <tr key={rec.id} className="history-row">
-                <td className="history-when">{timeAgo(rec.timestamp)}</td>
-                <td className="history-event">
-                  <span className={`history-badge event-${rec.event}`}>
-                    {rec.event.charAt(0).toUpperCase() + rec.event.slice(1)}
-                  </span>
-                </td>
-                <td className="history-name-cell">
-                  <div
-                    className="history-name-wrap clickable"
-                    onClick={() => onOpenSubWindow?.("extension", rec.extensionId)}
-                    title={rec.extensionName}
-                  >
-                    {getExtensionIcon(rec.extensionId, rec.extensionName)}
-                    <span className="history-ext-name">{rec.extensionName}</span>
-                  </div>
-                </td>
-                <td className="history-version">{rec.extensionVersion}</td>
-              </tr>
-            ))}
-            {displayed.length === 0 && (
-              <tr>
-                <td colSpan={4} className="history-empty-cell">
-                  {records.length === 0
-                    ? "No history records yet."
-                    : "No events match the current filter."}
-                </td>
-              </tr>
+          <div className="history-search-wrapper">
+            <input
+              id="historySearch"
+              type="text"
+              className="history-search-input"
+              placeholder="Search by extension name..."
+              value={searchQuery}
+              onInput={(e) => {
+                setSearchQuery((e.target as HTMLInputElement).value);
+                setMaxDisplay(40);
+              }}
+              aria-label="Search history by extension name"
+            />
+            {searchQuery && (
+              <span
+                className="clear-history-search"
+                onClick={() => setSearchQuery("")}
+                title="Clear search"
+                role="button"
+                tabIndex={0}
+                aria-label="Clear search"
+              >
+                <MaterialSymbol name="close" size={16} color="var(--text-muted)" />
+              </span>
             )}
-          </tbody>
-        </table>
+          </div>
+
+          <div className="history-actions-group">
+            <button
+              type="button"
+              className="btn btn-secondary action-btn history-clear-btn"
+              onClick={() => setShowConfirm(true)}
+            >
+              {GL("empty_history")}
+            </button>
+          </div>
+        </div>
+
+        <div id="historyTableWrapper" className="history-table-wrapper">
+          <table className="nb-table history-table">
+            <thead>
+              <tr>
+                <th style={{ width: "130px" }}>{GL("when")}</th>
+                <th style={{ width: "100px" }}>{GL("event")}</th>
+                <th>{GL("name")}</th>
+                <th style={{ width: "100px" }}>{GL("version")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {displayed.map((rec) => (
+                <tr key={rec.id} className="history-row">
+                  <td className="history-when">{timeAgo(rec.timestamp)}</td>
+                  <td className="history-event">
+                    <span className={`history-badge event-${rec.event}`}>
+                      {rec.event.charAt(0).toUpperCase() + rec.event.slice(1)}
+                    </span>
+                  </td>
+                  <td className="history-name-cell">
+                    <div
+                      className="history-name-wrap clickable"
+                      onClick={() => onOpenSubWindow?.("extension", rec.extensionId)}
+                      title={rec.extensionName}
+                    >
+                      {getExtensionIcon(rec.extensionId, rec.extensionName)}
+                      <span className="history-ext-name">{rec.extensionName}</span>
+                    </div>
+                  </td>
+                  <td className="history-version">{rec.extensionVersion}</td>
+                </tr>
+              ))}
+              {displayed.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="history-empty-cell">
+                    {records.length === 0
+                      ? "No history records yet."
+                      : "No events match the current filter."}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {filteredRecords.length > maxDisplay && (

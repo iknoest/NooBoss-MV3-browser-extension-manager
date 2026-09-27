@@ -331,7 +331,7 @@ export function DeveloperView({
   const hasContent = projects.length > 0 || unlinkedDevExtensions.length > 0;
 
   return (
-    <div className="developer-workspace-view">
+    <div id="developerWorkspaceRoot" className="developer-workspace-view">
       {/* Header */}
       <header className="developer-header">
         <div className="developer-header-title-block">

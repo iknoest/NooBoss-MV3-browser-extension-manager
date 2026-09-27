@@ -411,10 +411,10 @@ ${extensions.map((e) => `<li><a href="https://chrome.google.com/webstore/detail/
       </section>
 
       {/* 5. Developer Workspace Section */}
-      <section className="settings-section">
+      <section id="optionsDeveloperSection" className="settings-section">
         <h2 className="settings-section-title">Developer Workspace</h2>
         <div className="settings-card">
-          <div className="settings-row">
+          <div id="optionsDeveloperRow" className="settings-row">
             <div className="settings-row-text">
               <span className="settings-label">Show Developer workspace</span>
               <span className="settings-description">

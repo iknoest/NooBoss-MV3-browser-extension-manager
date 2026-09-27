@@ -4,25 +4,26 @@ import { MaterialSymbol } from "./MaterialSymbols";
 
 export interface WalkthroughOverlayProps {
   currentStep: number;
-  subStep?: "history" | "backup";
+  subStep?: string;
+  developerMode?: boolean;
   onNext: () => void;
   onBack: () => void;
   onSkip: () => void;
   onFinish: () => void;
-  onShowBackup?: () => void;
+  onPreviewDeveloper?: () => void;
   themeMainColor?: string;
 }
 
 interface StepContent {
   title: string;
   body: string;
-  callout?: string;
+  supporting?: string;
   targetSelectors: string[];
 }
 
 const STEP_CONTENTS: Record<number, StepContent> = {
   1: {
-    title: "Manage your extensions",
+    title: "Manage extensions",
     body: "Find extensions, change their state, inspect them, and choose how the list is organized.",
     targetSelectors: ["#extensionManagerCatalog", "#selectorActionBar", ".selector-root"],
   },
@@ -37,27 +38,37 @@ const STEP_CONTENTS: Record<number, StepContent> = {
     targetSelectors: ["#autostateRuleBuilder", ".autostate-form-card", ".autostate-view"],
   },
   4: {
-    title: "Review what changed",
-    body: "History shows extension management events recorded by Extension Drawer.",
-    callout:
-      "Export your configuration, extension list and history, or restore a saved configuration under Options → Backup & Data.",
-    targetSelectors: ["#historyTableWrapper", ".history-table-wrapper", ".history-view"],
+    title: "Review History",
+    body: "See install, update, enable and disable activity recorded by Extension Drawer. Filter or search the history when you need to trace what changed.",
+    targetSelectors: [
+      "#historyContentArea",
+      "#historyToolbar",
+      "#historyTableWrapper",
+      ".history-view",
+    ],
   },
   5: {
-    title: "You’re ready",
-    body: "The core tools are ready to use. Developer Workspace is optional and is available when you need local builds, Store links or analytics.",
-    targetSelectors: ["#extensionManagerCatalog", ".selector-root", ".main-content"],
+    title: "Backup, export and restore",
+    body: "Back up your Extension Drawer setup, export your extension list or history, and restore a saved configuration when needed.",
+    targetSelectors: ["#optionsBackupSection", ".options-view"],
+  },
+  6: {
+    title: "Developer Workspace · Optional",
+    body: "Turn on Developer Workspace when you need tools for local test builds, GitHub and Chrome Web Store links, analytics, and extension packages.",
+    supporting: "It stays hidden unless you choose to enable it.",
+    targetSelectors: ["#optionsDeveloperRow", "#optionsDeveloperSection", ".settings-section"],
   },
 };
 
 export function WalkthroughOverlay({
   currentStep,
-  subStep = "history",
+  subStep = "",
+  developerMode = false,
   onNext,
   onBack,
   onSkip,
   onFinish,
-  onShowBackup,
+  onPreviewDeveloper,
   themeMainColor = "#1a73e8",
 }: WalkthroughOverlayProps) {
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
@@ -67,12 +78,11 @@ export function WalkthroughOverlay({
   let content = STEP_CONTENTS[currentStep] || STEP_CONTENTS[1];
   let targetSelectors = content.targetSelectors;
 
-  if (currentStep === 4 && subStep === "backup") {
+  if (currentStep === 6 && subStep === "preview") {
     content = {
-      title: "Review what changed",
-      body: "Export your configuration, extension list and history, or restore a saved configuration under Options → Backup & Data.",
-      callout: "Export options and data backups are centralized here in Backup & Data.",
-      targetSelectors: ["#optionsBackupSection", ".options-view"],
+      title: "Developer Workspace · Optional",
+      body: "Manage local test builds and connect project links, Store analytics and extension packages from here.",
+      targetSelectors: ["#developerWorkspaceRoot", ".developer-workspace-view"],
     };
     targetSelectors = content.targetSelectors;
   }
@@ -146,7 +156,7 @@ export function WalkthroughOverlay({
   const cardStyle: JSX.CSSProperties = {
     position: "fixed",
     zIndex: 9999,
-    width: "min(390px, calc(100vw - 32px))",
+    width: "min(400px, calc(100vw - 32px))",
     backgroundColor: "var(--card-bg, #ffffff)",
     color: "var(--text-primary, #202124)",
     borderRadius: "10px",
@@ -162,7 +172,7 @@ export function WalkthroughOverlay({
   const viewportWidth = typeof window !== "undefined" ? window.innerWidth : 800;
   const viewportHeight = typeof window !== "undefined" ? window.innerHeight : 600;
   const padding = 14;
-  const cardWidth = Math.min(390, viewportWidth - 32);
+  const cardWidth = Math.min(400, viewportWidth - 32);
   const estimatedCardHeight = 220;
 
   if (targetRect) {
@@ -192,7 +202,7 @@ export function WalkthroughOverlay({
     cardStyle.transform = "translate(-50%, -50%)";
   }
 
-  const isFinalStep = currentStep === 5;
+  const isFinalStep = currentStep === 6;
   const isFirstStep = currentStep === 1;
 
   return (
@@ -258,7 +268,7 @@ export function WalkthroughOverlay({
                 marginBottom: "4px",
               }}
             >
-              Step {currentStep} of 5
+              Step {currentStep} of 6
             </div>
             <h3
               id="walkthroughTitle"
@@ -311,46 +321,68 @@ export function WalkthroughOverlay({
           {content.body}
         </p>
 
-        {/* In-step callout for Step 4 (Backup & Data) */}
-        {currentStep === 4 && (
+        {/* Step 5: Format explanation line */}
+        {currentStep === 5 && (
           <div
-            className="walkthrough-callout-box"
+            id="walkthroughBackupFormats"
+            className="walkthrough-formats-badge"
             style={{
-              padding: "10px 12px",
-              borderRadius: "6px",
+              fontSize: "11px",
+              fontWeight: "500",
+              color: "var(--text-secondary, #5f6368)",
               backgroundColor: "var(--hover-bg, #f1f3f4)",
-              borderLeft: `3px solid ${themeMainColor}`,
-              fontSize: "12px",
-              lineHeight: "1.4",
+              padding: "6px 10px",
+              borderRadius: "4px",
+              letterSpacing: "0.2px",
               display: "flex",
-              flexDirection: "column",
-              gap: "8px",
+              justifyContent: "space-between",
             }}
           >
-            <span>{content.callout}</span>
-            {subStep !== "backup" && onShowBackup && (
-              <div>
-                <button
-                  type="button"
-                  id="walkthroughShowBackupBtn"
-                  className="btn btn-secondary btn-sm"
-                  onClick={onShowBackup}
-                  style={{
-                    fontSize: "12px",
-                    fontWeight: "600",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "4px",
-                    padding: "4px 10px",
-                    color: themeMainColor,
-                    borderColor: themeMainColor,
-                  }}
-                >
-                  <MaterialSymbol name="settings_backup_restore" size={16} />
-                  <span>Show Backup &amp; Data</span>
-                </button>
-              </div>
-            )}
+            <span>Configuration · JSON</span>
+            <span>Extension list · HTML</span>
+            <span>History · CSV</span>
+          </div>
+        )}
+
+        {/* Step 6: Supporting copy when on Options toggle */}
+        {currentStep === 6 && subStep !== "preview" && (
+          <p
+            id="walkthroughDevSupporting"
+            className="walkthrough-supporting-text"
+            style={{
+              fontSize: "12px",
+              color: "var(--text-secondary, #5f6368)",
+              margin: 0,
+              fontStyle: "italic",
+            }}
+          >
+            It stays hidden unless you choose to enable it.
+          </p>
+        )}
+
+        {/* Step 6: Preview button if Developer Workspace is already enabled */}
+        {currentStep === 6 && subStep !== "preview" && developerMode && onPreviewDeveloper && (
+          <div style={{ marginTop: "2px" }}>
+            <button
+              type="button"
+              id="walkthroughPreviewDevBtn"
+              className="btn btn-secondary btn-sm walkthrough-preview-dev-btn"
+              onClick={onPreviewDeveloper}
+              style={{
+                fontSize: "12px",
+                fontWeight: "600",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                padding: "5px 12px",
+                color: themeMainColor,
+                borderColor: themeMainColor,
+                cursor: "pointer",
+              }}
+            >
+              <MaterialSymbol name="visibility" size={16} />
+              <span>Preview Developer Workspace</span>
+            </button>
           </div>
         )}
 
