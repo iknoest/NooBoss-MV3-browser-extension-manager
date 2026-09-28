@@ -590,7 +590,7 @@ async function doEvaluateAutoState(): Promise<void> {
               extensionName: ext.name,
               targetEnabled: enabled,
               ruleId: '',
-              ruleName: 'AutoState fallback',
+              ruleName: 'Site Rules fallback',
               timestamp: Date.now(),
             });
           }
@@ -601,7 +601,7 @@ async function doEvaluateAutoState(): Promise<void> {
           extensionName: ext.name,
           targetEnabled: enabled,
           ruleId: '',
-          ruleName: 'AutoState',
+          ruleName: 'Site Rules',
           timestamp: Date.now(),
         });
       }
@@ -711,12 +711,12 @@ async function testAutoStateAutomatic(): Promise<{
     const self = await chrome.management.getSelf();
     return {
       automatic: true,
-      details: `AutoState automatic mode is supported. chrome.management.setEnabled() works programmatically with the management permission on Chrome ${navigator.userAgent.match(/Chrome\/(\d+)/)?.[1] || 'unknown'}. Extension: ${self.name} v${self.version}.`,
+      details: `Site Rules automatic mode is supported. chrome.management.setEnabled() works programmatically with the management permission on Chrome ${navigator.userAgent.match(/Chrome\/(\d+)/)?.[1] || 'unknown'}. Extension: ${self.name} v${self.version}.`,
     };
   } catch (err) {
     return {
       automatic: false,
-      details: `AutoState automatic mode test failed: ${err instanceof Error ? err.message : 'Unknown error'}`,
+      details: `Site Rules automatic mode test failed: ${err instanceof Error ? err.message : 'Unknown error'}`,
     };
   }
 }

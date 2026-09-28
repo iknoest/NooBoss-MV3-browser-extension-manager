@@ -276,8 +276,8 @@ ${extensions.map((e) => `<li><a href="https://chrome.google.com/webstore/detail/
 
           <div className="settings-row">
             <div className="settings-row-text">
-              <span className="settings-label">AutoState Alerts</span>
-              <span className="settings-description">Notify when AutoState rules trigger changes</span>
+              <span className="settings-label">Site Rules Alerts</span>
+              <span className="settings-description">Notify when Site Rules trigger changes</span>
             </div>
             <div className="settings-control">
               <input
@@ -444,7 +444,7 @@ ${extensions.map((e) => `<li><a href="https://chrome.google.com/webstore/detail/
           <div className="settings-row">
             <div className="settings-row-text">
               <span className="settings-label">Export Configuration</span>
-              <span className="settings-description">Export groups, AutoState rules, and preferences to JSON</span>
+              <span className="settings-description">Export groups, Site Rules, and preferences to JSON</span>
             </div>
             <div className="settings-control">
               <button className="btn btn-secondary settings-action-btn" onClick={onExportData}>

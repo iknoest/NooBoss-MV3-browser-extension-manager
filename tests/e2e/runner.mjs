@@ -195,8 +195,8 @@ async function main() {
           'Manager page shows Groups section nav'
         );
         assert(
-          content.includes('AutoState'),
-          'Manager page shows AutoState section nav'
+          content.includes('AutoState') || content.includes('Site Rules'),
+          'Manager page shows Site Rules section nav'
         );
         assert(
           content.includes('History'),
@@ -519,7 +519,7 @@ async function main() {
         const navButtons = await page.$$('nav button');
         for (const btn of navButtons) {
           const text = await page.evaluate((el) => el.textContent, btn);
-          if (text && text.includes('AutoState')) {
+          if (text && (text.includes('AutoState') || text.includes('Site Rules'))) {
             await btn.click();
             break;
           }
@@ -528,8 +528,8 @@ async function main() {
 
         const content = await page.content();
         assert(
-          content.includes('AutoState') && content.includes('Rule'),
-          'AutoState section renders with rule controls'
+          (content.includes('AutoState') || content.includes('Site Rules')) && content.includes('Rule'),
+          'Site Rules section renders with rule controls'
         );
         assert(
           content.includes('automatic') || content.includes('assisted'),

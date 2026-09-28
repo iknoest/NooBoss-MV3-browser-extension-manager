@@ -145,12 +145,12 @@ export function ExtensionBrief({
     );
   };
 
-  const renderReloadBtn = (iconSize: number = 16) => {
+  const renderReloadBtn = (iconSize: number = 16, btnClass: string = "action-icon-btn") => {
     if (!showReload) return null;
     return (
       <button
         type="button"
-        className={`action-icon-btn reload-btn ${!extension.enabled ? "disabled" : ""} ${isReloading ? "is-reloading" : ""}`}
+        className={`${btnClass} reload-btn ${!extension.enabled ? "disabled" : ""} ${isReloading ? "is-reloading" : ""}`}
         disabled={!extension.enabled || isReloading}
         onClick={(e) => {
           e.stopPropagation();
@@ -166,12 +166,12 @@ export function ExtensionBrief({
     );
   };
 
-  const renderDownloadZipBtn = (iconSize: number = 16) => {
+  const renderDownloadZipBtn = (iconSize: number = 16, btnClass: string = "action-icon-btn") => {
     if (!isCwsNormal || !onDownloadZip) return null;
     return (
       <button
         type="button"
-        className={`action-icon-btn download-zip-btn ${isDownloadingZip ? "is-downloading" : ""}`}
+        className={`${btnClass} download-zip-btn ${isDownloadingZip ? "is-downloading" : ""}`}
         disabled={isDownloadingZip}
         onClick={(e) => {
           e.stopPropagation();
@@ -498,35 +498,39 @@ export function ExtensionBrief({
           </div>
           <div className="tile-hover-controls">
             {extension.type !== "theme" && (
-              <ExtensionSwitch
-                id={extension.id}
-                enabled={extension.enabled}
-                onToggle={onToggle}
-                size="small"
-              />
+              <div className="tile-hover-switch-wrap">
+                <ExtensionSwitch
+                  id={extension.id}
+                  enabled={extension.enabled}
+                  onToggle={onToggle}
+                  size="small"
+                />
+              </div>
             )}
-            {renderReloadBtn(14)}
-            {renderDownloadZipBtn(14)}
-            {extension.optionsUrl && (
+            <div className="tile-hover-actions">
+              {renderReloadBtn(14, "tile-action-btn")}
+              {renderDownloadZipBtn(14, "tile-action-btn")}
+              {extension.optionsUrl && (
+                <button
+                  type="button"
+                  className="tile-action-btn"
+                  onClick={() => onOpenOptions?.(extension.id)}
+                  title="Options"
+                  aria-label="Options"
+                >
+                  <Optioney color={themeMainColor} size={14} />
+                </button>
+              )}
               <button
                 type="button"
-                className="action-icon-btn"
-                onClick={() => onOpenOptions?.(extension.id)}
-                title="Options"
-                aria-label="Options"
+                className="tile-action-btn"
+                onClick={() => onUninstall?.(extension.id)}
+                title="Uninstall"
+                aria-label="Uninstall"
               >
-                <Optioney color={themeMainColor} size={14} />
+                <Removy color={themeMainColor} size={14} />
               </button>
-            )}
-            <button
-              type="button"
-              className="action-icon-btn"
-              onClick={() => onUninstall?.(extension.id)}
-              title="Uninstall"
-              aria-label="Uninstall"
-            >
-              <Removy color={themeMainColor} size={14} />
-            </button>
+            </div>
           </div>
         </div>
       )}
