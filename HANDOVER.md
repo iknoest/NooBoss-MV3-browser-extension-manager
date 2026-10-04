@@ -1,16 +1,34 @@
 # Handover
 
-Snapshot: 2026-09-18T00:18:00+02:00
+Snapshot: 2026-10-04T12:35:00+02:00
 
-## Current release state (1.1.0 continuity)
-- `f87404a02534d704e00b281a38411f8c204d0cb9` is the frozen accepted 1.1.0 source and release baseline.
-- `release/extension-drawer-1.1.0.zip` remains frozen and must not be modified or replaced.
-- Chrome Web Store 1.1.0 upload / submission / approval / publication is NOT CONFIRMED by current repository evidence.
-- Therefore, the 1.1.0 CWS publication loop remains open until externally verified (do not guess CWS dashboard state).
-- The GitHub `v1.1.0` tag and release should remain pending until public 1.1.0 publication is confirmed.
-- Current UX work (at `4fbdbcb`, `c12e195`, `f22a1e4`, `e014bf4`, `14ff0e0`, and follow-up commits) is post-1.1.0 local work and must not silently become part of the frozen 1.1.0 release artifact.
+## Current release state (1.2.0 Release Candidate)
+- Extension Drawer version bumped from 1.1.0 to 1.2.0 across authoritative files (`src/manifest.json`, `package.json`, test assertions).
+- Candidate production ZIP built: `release/extension-drawer-1.2.0.zip` (5331.75 KB, SHA-256 `2b7e11a8615f9103c842cf02970294d7c2ae29e244da7f254b6f5bf7470869f0`).
+- Exact-package automated smoke test (`scripts/smoke-test-120-zip.mjs`) verified all 15 release criteria passed cleanly against the unpacked release archive in headless Chrome.
+- All documentation synchronized to 1.2.0 reality: `README.md`, `PRIVACY.md`, `POLICY_READINESS.md`, `docs/chrome-web-store/STORE_LISTING.md`, `docs/releases/v1.2.0.md`.
+- Stored assets include 5 full-bleed Chrome Web Store screenshots (1280x800) under `docs/chrome-web-store/screenshots/cws/`.
+- Frozen 1.1.0 baseline `f87404a02534d704e00b281a38411f8c204d0cb9` and `release/extension-drawer-1.1.0.zip` preserved untouched.
+- External actions (git push, remote GitHub release creation, Chrome Web Store submission) remain strictly unexecuted pending operator approval.
 
 ## Work completed
+- **Extension Drawer 1.2.0 Release-Prep Documentation, Versioning, Package & Exact-Artifact Validation Milestone**:
+  - **Outcome 1 — Public Documentation Refresh (`README.md`, `PRIVACY.md`, `POLICY_READINESS.md`)**:
+    - *README.md*: Updated with modern feature set (Site Rules, view modes, groups, guided tour, developer tools, privacy/permissions architecture) and illustrative marketing screenshots.
+    - *PRIVACY.md*: Truthfully documented local-first architecture, zero first-party telemetry, optional Developer Analytics (`identity`, GA4 OAuth), optional ZIP downloads (`downloads`, CWS hosts), and local data portability/export.
+    - *POLICY_READINESS.md*: Removed stale unpacked-only claims; documented MV3 architecture, explicit optional permission model, and remote code prohibition compliance.
+  - **Outcome 2 — Store Listing & Release Notes (`docs/chrome-web-store/STORE_LISTING.md`, `docs/releases/v1.2.0.md`)**:
+    - *STORE_LISTING.md*: Copy-ready CWS listing with verified 107-character short description (within 132-char limit), detailed description, and references to the 5 official 1280x800 full-bleed screenshots.
+    - *v1.2.0.md*: Comprehensive release notes detailing What's New, Improvements & Fixes, Privacy & Permissions Architecture, and Release Artifact metadata.
+  - **Outcome 3 — Canonical Version Bump to 1.2.0**:
+    - Synchronized version `1.2.0` across `src/manifest.json`, `package.json`, and test suite assertions (`tests/unit/modernization.test.ts`).
+  - **Outcome 4 — Production Build & Release Package (`release/extension-drawer-1.2.0.zip`)**:
+    - Produced deterministic release archive from clean Vite build: `release/extension-drawer-1.2.0.zip` (5331.75 KB, SHA-256 `2b7e11a8615f9103c842cf02970294d7c2ae29e244da7f254b6f5bf7470869f0`).
+    - Verified archive contains strictly 18 production files with `manifest.json` at root and zero dev/source/test files.
+  - **Outcome 5 — Exact-Package Automated Smoke Test (`scripts/smoke-test-120-zip.mjs`)**:
+    - Executed automated smoke test unpacking `release/extension-drawer-1.2.0.zip` into a clean temp directory and serving in headless Chrome.
+    - 15/15 release criteria verified passed:
+      1. Extension installs/loads; 2. Manifest reports 1.2.0; 3. Fresh install opens Welcome once; 4. Getting Started tour starts and exits through all 6 steps; 5. Extensions / Groups render; 6. Site Rules opens; 7. History opens without duplicate export; 8. Options → Backup & Data contains all 4 operations; 9. Developer Workspace hidden by default; 10. Developer Workspace can be enabled manually; 11. Ordinary startup triggers zero GA OAuth or permission calls; 12. Download ZIP requests permission only on explicit user action; 13. Analytics permission requested only on explicit connection; 14. Zero visible AutoState wording across all views; 15. Tile / Big Tile / List render without action overflow.
 - **Final Developer UI Cleanup & Universal Chrome Web Store Extension ZIP Download Milestone**:
   - **Outcome 1 — Part A Developer Workspace UI Cleanups (`src/popup/components/DeveloperView.tsx`, `nooboss.css`)**:
     - *Zero-Baseline Note Removal*: When no valid previous-period baseline exists, suppressed baseline notes and dividers entirely, relying on clean flex spacing.

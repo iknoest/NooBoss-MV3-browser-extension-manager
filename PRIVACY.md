@@ -1,88 +1,121 @@
 # Privacy Policy for Extension Drawer
 
-**Effective Date:** August 29, 2026
-**Product:** Extension Drawer (Chrome Web Store title: *Extension Drawer: Extension Manager & Organizer*)
-**Repository:** [https://github.com/iknoest/NooBoss-MV3-browser-extension-manager](https://github.com/iknoest/NooBoss-MV3-browser-extension-manager)
+**Effective Date:** October 4, 2026  
+**Product:** Extension Drawer (Chrome Web Store title: *Extension Drawer: Extension Manager & Organizer*)  
+**Version:** 1.2.0  
+**Repository:** [https://github.com/iknoest/NooBoss-MV3-browser-extension-manager](https://github.com/iknoest/NooBoss-MV3-browser-extension-manager)  
 
 ---
 
-## Overview
+## 1. Core Architecture & Privacy Principles
 
-**Extension Drawer** is an open-source, local-first browser extension manager designed to help you organize, group, and control your Chrome extensions.
+Extension Drawer is an open-source, local-first browser extension manager designed to give you clear control over your installed extensions, groups, and site-based automation.
 
-Your privacy is a fundamental design principle:
-- **Zero Remote Telemetry**: Extension Drawer contains no tracking code, analytics SDKs, or background telemetry.
-- **Zero Advertising**: The extension does not display ads or collect user data for advertising purposes.
-- **No Background Data Transmission**: No telemetry or background transmission of browsing activity or extension-management data.
-- **100% Local Storage**: All settings, groups, rules, and history records remain strictly on your local device.
-
----
-
-## Information We Access and How It Is Used
-
-Extension Drawer requests only the permissions necessary to fulfill its core functionality as an extension manager:
-
-### 1. Installed Extension Information (`management` permission)
-- **What is accessed**: Information about extensions installed in your browser, including extension name, ID, version, description, icons, enabled/disabled state, install type, and permissions.
-- **Why it is accessed**: To display your extensions in the management interface, allow you to enable/disable or uninstall extensions, group extensions together, and inspect extension metadata.
-- **Where it is stored**: Query results are held in memory while the management interface is open. Bounded records of install, update, enable, and disable events are recorded in local storage.
-
-### 2. Active Tab URLs for AutoState Automation (`tabs` permission)
-- **What is accessed**: The URL of the currently active browser tab when the AutoState feature is active.
-- **Why it is accessed**: AutoState evaluates the active website URL against your custom pattern rules (for example, `*.github.com` or `amazon.com`) to automatically or assistively enable/disable designated extension groups.
-- **How it is handled**: URLs are evaluated **transiently in-memory**. Full browsing history and visited URLs are **never saved to storage**, never logged to the event history table, and never transmitted over the network.
-
-### 3. Local Configuration and Preferences (`storage` permission)
-- **What is stored**:
-  - Custom user groups and icon selections
-  - AutoState URL matching rules created by the user
-  - UI preferences (theme mode, accent color, view mode)
-  - Local extension event history log (install/uninstall/enable/disable events with timestamps)
-- **Where it is stored**: All data is stored locally in your browser profile using Chrome's `chrome.storage.local` API.
-
-### 4. Local Notifications (`notifications` permission)
-- **What is used**: Chrome's native notification system.
-- **Why it is used**: To display optional, unobtrusive local alerts when an extension is installed or uninstalled, or when an AutoState rule requires manual user confirmation in assisted mode. Notifications are generated locally; no external notification service is used.
+### Our Privacy Commitments
+- **No First-Party Telemetry**: Extension Drawer does not operate its own analytics infrastructure, behavioral logging, telemetry servers, or user-tracking backends.
+- **No Data Monetization**: We never sell, rent, monetize, or broker personal or browsing data.
+- **No Advertising**: The extension contains zero ads and does not profile users for commercial targeting.
+- **Local-First Storage**: Your settings, groups, Site Rules, and management history records are stored directly on your machine in `chrome.storage.local`.
 
 ---
 
-## Data Sharing and Third Parties
+## 2. Core Local Data Handling
 
-- **No Sale of Data**: We do not sell, rent, or monetize your data.
-- **No Third-Party Services**: Extension Drawer does not integrate with third-party analytics, crash reporting, or cloud backends.
-- **No Remote Code**: All code, styles, and font assets (including Google Material Symbols) are packaged locally inside the extension. No external scripts or styles are fetched at runtime.
+Extension Drawer accesses local data through Chrome extension APIs strictly to perform requested management actions:
 
----
+### Installed Extension Metadata (`management` permission)
+- **Data Accessed**: Extension names, IDs, version numbers, descriptions, icon URLs, enabled/disabled status, installation types (normal, development, admin), and declared permissions.
+- **Purpose**: To render your extension catalog, provide one-click toggle and uninstall actions, calculate group runtime statuses (`X / Y running`), and inspect technical metadata.
+- **Handling**: Queried on demand and maintained in memory while the management window is open. Management events (install, update, enable, disable) are recorded in local history.
 
-## Data Retention and Deletion
+### Active Tab URLs for Site Rules (`tabs` permission)
+- **Data Accessed**: The URL of the active browser tab when Site Rules evaluation is active.
+- **Purpose**: Evaluates website domains and URL paths against your custom Site Rules (e.g. `github.com` or `app.slack.com`) to automatically turn designated extensions ON or OFF.
+- **Handling**: URLs are evaluated **transiently in local memory**. Visited URLs and browsing history are **never written to persistent storage**, never recorded in the activity history log, and never sent across the network.
 
-- **Local Retention**: Your groups, rules, and preferences remain in `chrome.storage.local` on your computer for as long as you use the extension.
-- **User Deletion**: You can clear your event history or reset settings at any time directly within the extension options.
-- **Uninstalling**: Removing Extension Drawer from Chrome automatically purges all locally stored configuration and history data managed by Chrome.
+### Local Configuration & History (`storage` permission)
+- **Data Stored**:
+  - Custom extension groups, color tags, and icon choices
+  - Site Rules definitions (patterns, scopes, timing, and target extension IDs)
+  - Management event audit log (timestamp, event type, extension ID, name, version)
+  - UI preferences (appearance theme, accent preset, view mode, Developer Workspace visibility)
+- **Storage Location**: Stored exclusively in your local browser profile via Chrome's native `chrome.storage.local` API.
 
----
-
-## Backup and Data Portability
-
-Extension Drawer provides a built-in Backup & Restore feature:
-- You can export your groups, rules, and settings to a local `.json` file at any time.
-- You can import previously exported `.json` configuration files to restore your setup.
-- Exported files remain under your complete control and are saved directly to your local file system.
-
----
-
-## Chrome Web Store Limited Use Compliance
-
-Extension Drawer complies with the [Chrome Web Store User Data Policy](https://developer.chrome.com/docs/webstore/program-policies/user-data/), including the Limited Use requirements:
-1. The use of data is restricted exclusively to providing and improving the user-facing features of the extension.
-2. Data is never transferred to third parties, except as strictly required to execute local browser functionality.
-3. Data is never used or transferred for advertising, personalized ads, creditworthiness, or lending purposes.
+### Local Alerts (`notifications` permission)
+- **Purpose**: To display optional, unobtrusive desktop notifications when Site Rules execute background state changes or when an extension update occurs.
+- **Handling**: Alerts are dispatched locally via Chrome's notification service; no remote push service is used.
 
 ---
 
-## Contact and Open Source
+## 3. Optional Features & User-Initiated Network Access
+
+Extension Drawer does not run background network trackers. However, the extension provides two advanced, user-initiated features that connect to official Google endpoints only upon explicit user command:
+
+### A. Optional Developer Analytics
+Extension Drawer includes an optional Developer Workspace designed for extension authors.
+- **Activation**: Completely disabled and hidden by default. Only visible if explicitly toggled on under **Options → Developer Workspace**.
+- **Permissions**:
+  - `identity`: Requested at runtime when the user clicks to connect Google Analytics.
+  - `https://analyticsdata.googleapis.com/*`: Optional host permission requested concurrently.
+- **Data Flow**:
+  1. The user explicitly initiates connection to Google Analytics for their project.
+  2. Chrome prompts the user for runtime permission authorization.
+  3. The extension uses Chrome's native `chrome.identity.getAuthToken` to obtain an OAuth token with the read-only scope `https://www.googleapis.com/auth/analytics.readonly`.
+  4. The token is sent directly to Google's official Analytics Data API (`analyticsdata.googleapis.com`) to retrieve aggregate 28-day listing metrics (active users, new users, screen page views, and engagement rate) for the Google Analytics property ID specified by the user.
+- **Privacy Guarantees**:
+  - Tokens and telemetry remain local to the browser profile.
+  - Ordinary users who never connect Developer Analytics are never prompted for the `identity` permission or Google OAuth.
+  - Extension Drawer servers or third parties never receive OAuth tokens or property metrics.
+
+### B. Optional Store Package ZIP Download
+Users can download unpacked `.zip` archives of extensions available in the Chrome Web Store.
+- **Activation**: Triggered strictly when the user clicks the "Download ZIP" action for an extension with a valid Chrome Web Store ID.
+- **Permissions**:
+  - `downloads`: Requested at runtime to save the resulting archive to the user's local disk.
+  - `https://clients2.google.com/*` and `https://clients2.googleusercontent.com/*`: Optional host permissions used to fetch the official `.crx` package file directly from Google's distribution servers.
+- **Data Flow**:
+  1. The extension requests package data directly from Google's official Chrome Web Store download endpoint.
+  2. The downloaded CRX archive is extracted and unpacked into a `.zip` archive entirely in local browser memory.
+  3. The `.zip` file is written directly to the user's local downloads folder.
+- **Privacy Guarantees**:
+  - All package processing and decompression happen client-side.
+  - No proxy servers, relays, or intermediate third-party backends are involved.
+
+---
+
+## 4. Data Sharing & Third-Party Services
+
+- **No Third-Party Advertising or Telemetry**: We do not embed SDKs from advertising networks, analytics aggregators, crash reporters, or behavioral tracking vendors.
+- **Direct User-Initiated Connections**: Network requests occur exclusively when the user explicitly triggers an optional feature (retrieving a package from Google Web Store endpoints or querying Google Analytics Data API via Google OAuth). These requests communicate directly between your browser and Google's official infrastructure.
+- **No Remote Code Execution**: All application scripts, user interface templates, and styling assets (including Material Symbols fonts) are bundled locally within the extension package. No executable code is fetched or evaluated remotely.
+
+---
+
+## 5. Data Deletion, Portability & Retention
+
+- **Local Retention**: Configuration, rules, and history records persist in `chrome.storage.local` until explicitly cleared or until the extension is uninstalled.
+- **Clear History**: You can clear all recorded extension management history entries at any time under **Options → Backup & Data**.
+- **Data Portability & Export**:
+  - **Configuration (JSON)**: Export all groups, Site Rules, and preferences to a portable `.json` file.
+  - **Extension List (HTML)**: Export an offline-readable HTML directory of all installed extensions.
+  - **Management History (CSV)**: Export the complete activity history audit log as a `.csv` spreadsheet.
+  - **Import Configuration (JSON)**: Restore your setup from a previously exported configuration file.
+- **Complete Deletion upon Uninstall**: Uninstalling Extension Drawer from Chrome immediately and permanently removes all stored data managed by Chrome's local extension storage.
+
+---
+
+## 6. Chrome Web Store Limited Use Compliance
+
+Extension Drawer strictly adheres to the [Chrome Web Store User Data Policy](https://developer.chrome.com/docs/webstore/program-policies/user-data/), including the Limited Use requirements:
+1. **Feature Necessity**: Access to extension metadata, active tab URLs, and optional developer APIs is limited exclusively to delivering user-facing extension management and developer capabilities.
+2. **No Data Transfers for Advertising**: Data accessed by Extension Drawer is never sold, transferred, or used for advertising, personalized promotions, creditworthiness, or consumer profiling.
+3. **No Unrelated Data Transfers**: Data is never transferred to third parties except for direct, user-authorized communication with Google API endpoints for requested features.
+
+---
+
+## 7. Open Source & Contact
 
 Extension Drawer is free and open-source software licensed under the [GNU General Public License v3.0 (GPL-3.0)](LICENSE).
 
-If you have questions or wish to inspect the complete source code, visit our GitHub repository:
+Source code, issue tracking, and security discussions are hosted transparently on GitHub:  
 [https://github.com/iknoest/NooBoss-MV3-browser-extension-manager](https://github.com/iknoest/NooBoss-MV3-browser-extension-manager)
