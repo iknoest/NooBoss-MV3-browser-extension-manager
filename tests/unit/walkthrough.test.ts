@@ -73,7 +73,7 @@ describe("Guided Walkthrough Architecture & Behavior (6 Primary Steps)", () => {
     it("Step 5: Backup, export and restore routes to Options → Backup & Data and covers all four actions", () => {
       expect(overlaySource).toContain("Backup, export and restore");
       expect(overlaySource).toContain(
-        "Back up your Extension Drawer setup, export your extension list or history, and restore a saved configuration when needed."
+        "Back up your Extension Drawer setup, export your extension list or history, and restore a saved configuration or import history when needed."
       );
       // Explanatory line for the three export formats
       expect(overlaySource).toContain("Configuration · JSON");
@@ -82,11 +82,12 @@ describe("Guided Walkthrough Architecture & Behavior (6 Primary Steps)", () => {
       expect(overlaySource).toContain("#optionsBackupSection");
       expect(optionsSource).toContain('id="optionsBackupSection"');
 
-      // Verifies all four actions are present in OptionsView Backup & Data section
+      // Verifies all actions are present in OptionsView Backup & Data section
       expect(optionsSource).toContain("Export Configuration");
       expect(optionsSource).toContain("Export Extension List");
       expect(optionsSource).toContain("Export History");
-      expect(optionsSource).toContain("Import Backup");
+      expect(optionsSource).toContain("Import Configuration");
+      expect(optionsSource).toContain("Import History");
     });
 
     it("Step 5 is purely informational and does not trigger export or import on step entry", () => {

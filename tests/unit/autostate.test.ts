@@ -51,4 +51,67 @@ describe('computeDesiredStates', () => {
       ext_c: false,
     });
   });
+
+  it('keeps extension ON when any of multiple enableOnlyWhileMatched rules match', () => {
+    const rules: AutoStateRule[] = [
+      makeRule({
+        id: 'rule_versuni',
+        name: 'careers.versuni.com',
+        pattern: '^https?:\\/\\/(?:[a-zA-Z0-9-]+\\.)*careers\\.versuni\\.com(?::\\d+)?(?:\\/.*)?$',
+        isWildcard: false,
+        action: 'enableOnlyWhileMatched',
+        priority: 1,
+        targets: ['jobscan'],
+      }),
+      makeRule({
+        id: 'rule_linkedin',
+        name: 'linkedin.com',
+        pattern: '^https?:\\/\\/(?:[a-zA-Z0-9-]+\\.)*linkedin\\.com(?::\\d+)?(?:\\/.*)?$',
+        isWildcard: false,
+        action: 'enableOnlyWhileMatched',
+        priority: 2,
+        targets: ['jobscan'],
+      }),
+    ];
+
+    // 1. Only Versuni open -> ON
+    expect(computeDesiredStates(rules, groups, ['https://careers.versuni.com/gb/en/job/8557'])).toEqual({
+      jobscan: true,
+    });
+
+    // 2. Only LinkedIn open -> ON (must not be masked by non-matching Versuni rule!)
+    expect(computeDesiredStates(rules, groups, ['https://www.linkedin.com/feed/'])).toEqual({
+      jobscan: true,
+    });
+
+    // 3. Both open -> ON
+    expect(
+      computeDesiredStates(rules, groups, [
+        'https://careers.versuni.com/gb/en/job/8557',
+        'https://www.linkedin.com/feed/',
+      ])
+    ).toEqual({
+      jobscan: true,
+    });
+
+    // 4. One closes while other remains -> remains ON
+    expect(
+      computeDesiredStates(rules, groups, [
+        'https://www.linkedin.com/feed/',
+        'https://unrelated.com',
+      ])
+    ).toEqual({
+      jobscan: true,
+    });
+
+    // 5. Both close -> restores to OFF
+    expect(computeDesiredStates(rules, groups, ['https://unrelated.com'])).toEqual({
+      jobscan: false,
+    });
+
+    // 6. Zero tabs -> restores to OFF
+    expect(computeDesiredStates(rules, groups, [])).toEqual({
+      jobscan: false,
+    });
+  });
 });

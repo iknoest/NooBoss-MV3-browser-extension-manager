@@ -64,22 +64,24 @@ Extension Drawer includes an optional Developer Workspace designed for extension
   4. The token is sent directly to Google's official Analytics Data API (`analyticsdata.googleapis.com`) to retrieve aggregate 28-day listing metrics (active users, new users, screen page views, and engagement rate) for the Google Analytics property ID specified by the user.
 - **Privacy Guarantees**:
   - Tokens and telemetry remain local to the browser profile.
-  - Ordinary users who never connect Developer Analytics are never prompted for the `identity` permission or Google OAuth.
+  - Explicit user connection: Ordinary users who never connect Developer Analytics are never prompted for the `identity` permission or Google OAuth.
+  - Read-only scope: Connects exclusively via `https://www.googleapis.com/auth/analytics.readonly`.
+  - No automatic interactive OAuth: Background stale cache refreshes (after 24 hours) execute via non-interactive silent authentication only (`interactive: false`); they never trigger unprompted login windows.
   - Extension Drawer servers or third parties never receive OAuth tokens or property metrics.
 
 ### B. Optional Store Package ZIP Download
 Users can download unpacked `.zip` archives of extensions available in the Chrome Web Store.
-- **Activation**: Triggered strictly when the user clicks the "Download ZIP" action for an extension with a valid Chrome Web Store ID.
+- **Activation**: Triggered strictly and user-initiated when the user clicks the "Download ZIP" action for an extension with a valid Chrome Web Store ID.
 - **Permissions**:
-  - `downloads`: Requested at runtime to save the resulting archive to the user's local disk.
+  - `downloads`: Optional permission requested at runtime to save the resulting archive to the user's local disk.
   - `https://clients2.google.com/*` and `https://clients2.googleusercontent.com/*`: Optional host permissions used to fetch the official `.crx` package file directly from Google's distribution servers.
 - **Data Flow**:
   1. The extension requests package data directly from Google's official Chrome Web Store download endpoint.
-  2. The downloaded CRX archive is extracted and unpacked into a `.zip` archive entirely in local browser memory.
+  2. The downloaded CRX archive is extracted and unpacked into a `.zip` archive entirely in local browser memory via client-side processing.
   3. The `.zip` file is written directly to the user's local downloads folder.
 - **Privacy Guarantees**:
   - All package processing and decompression happen client-side.
-  - No proxy servers, relays, or intermediate third-party backends are involved.
+  - No Extension Drawer relay server, proxy server, or intermediate third-party backend is involved.
 
 ---
 
@@ -95,11 +97,12 @@ Users can download unpacked `.zip` archives of extensions available in the Chrom
 
 - **Local Retention**: Configuration, rules, and history records persist in `chrome.storage.local` until explicitly cleared or until the extension is uninstalled.
 - **Clear History**: You can clear all recorded extension management history entries at any time under **Options → Backup & Data**.
-- **Data Portability & Export**:
-  - **Configuration (JSON)**: Export all groups, Site Rules, and preferences to a portable `.json` file.
-  - **Extension List (HTML)**: Export an offline-readable HTML directory of all installed extensions.
-  - **Management History (CSV)**: Export the complete activity history audit log as a `.csv` spreadsheet.
-  - **Import Configuration (JSON)**: Restore your setup from a previously exported configuration file.
+- **Data Portability, Export & Import**:
+  - **Export Configuration (JSON)**: Export all groups, Site Rules, and preferences to a portable `.json` file.
+  - **Import Configuration (JSON)**: Restore your setup from a previously exported `.json` configuration file.
+  - **Export Extension List (HTML)**: Export an offline-readable HTML directory of all installed extensions with Chrome Web Store links.
+  - **Export History (CSV)**: Export the complete activity history audit log as a standard `.csv` spreadsheet.
+  - **Import History (CSV)**: Safely import activity history records from a `.csv` file. Imported records are merged chronologically into local storage using composite-key deduplication (`timestamp + event + extension_id + version`), ensuring re-importing identical records produces zero duplicates. If total records exceed the configured retention limit, users are prompted before older records are pruned.
 - **Complete Deletion upon Uninstall**: Uninstalling Extension Drawer from Chrome immediately and permanently removes all stored data managed by Chrome's local extension storage.
 
 ---

@@ -22,46 +22,53 @@ export function computeDesiredStates(
   activeUrls: string[]
 ): Record<string, boolean> {
   const desired: Record<string, boolean> = {};
-  const seen = new Set<string>();
 
   const ordered = [...rules]
     .filter((rule) => rule.enabled)
     .sort((a, b) => a.priority - b.priority);
+
+  // Group rules by target in priority order with match results
+  const targetRulesMap = new Map<string, Array<{ rule: AutoStateRule; matched: boolean }>>();
 
   for (const rule of ordered) {
     const matched = activeUrls.some((url) => matchUrl(url, rule.pattern, rule.isWildcard));
     const targets = resolveTargets(rule.targets, groups);
 
     for (const extId of targets) {
-      if (seen.has(extId)) continue;
+      if (!targetRulesMap.has(extId)) {
+        targetRulesMap.set(extId, []);
+      }
+      targetRulesMap.get(extId)!.push({ rule, matched });
+    }
+  }
 
-      switch (rule.action) {
+  for (const [extId, ruleEntries] of targetRulesMap.entries()) {
+    // 1. Highest-priority actively matched rule wins
+    const activeMatch = ruleEntries.find((entry) => entry.matched);
+    if (activeMatch) {
+      switch (activeMatch.rule.action) {
         case 'enableWhenMatched':
-          if (matched) {
-            desired[extId] = true;
-            seen.add(extId);
-          }
-          break;
-
-        case 'disableWhenMatched':
-          if (matched) {
-            desired[extId] = false;
-            seen.add(extId);
-          }
-          break;
-
         case 'enableOnlyWhileMatched':
-          desired[extId] = matched;
-          seen.add(extId);
+          desired[extId] = true;
           break;
-
+        case 'disableWhenMatched':
         case 'disableOnlyWhileMatched':
-          desired[extId] = !matched;
-          seen.add(extId);
+          desired[extId] = false;
           break;
-
-        default:
-          break;
+      }
+    } else {
+      // 2. No rule actively matched. Apply non-matching restore state from highest-priority temporary rule
+      const fallbackRule = ruleEntries.find(
+        (entry) =>
+          entry.rule.action === 'enableOnlyWhileMatched' ||
+          entry.rule.action === 'disableOnlyWhileMatched'
+      );
+      if (fallbackRule) {
+        if (fallbackRule.rule.action === 'enableOnlyWhileMatched') {
+          desired[extId] = false;
+        } else if (fallbackRule.rule.action === 'disableOnlyWhileMatched') {
+          desired[extId] = true;
+        }
       }
     }
   }

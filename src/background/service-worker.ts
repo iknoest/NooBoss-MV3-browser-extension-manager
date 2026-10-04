@@ -18,6 +18,7 @@ import {
   getSettings,
   saveSettings,
   getHistory,
+  saveHistory,
   addHistoryRecord,
   clearHistory,
   getPendingChanges,
@@ -39,7 +40,7 @@ let tabUrls: Record<number, string> = {};
 let isTabsInitialized = false;
 let tabInitPromise: Promise<void> | null = null;
 
-export async function ensureTabsInitialized(): Promise<void> {
+async function ensureTabsInitialized(): Promise<void> {
   if (isTabsInitialized) return;
   if (!tabInitPromise) {
     tabInitPromise = (async () => {
@@ -52,7 +53,7 @@ export async function ensureTabsInitialized(): Promise<void> {
   await tabInitPromise;
 }
 
-export async function rebuildTabUrls(): Promise<void> {
+async function rebuildTabUrls(): Promise<void> {
   try {
     const tabs = await chrome.tabs.query({});
     const freshMap: Record<number, string> = {};
@@ -317,6 +318,11 @@ async function handleMessage(message: Message): Promise<unknown> {
 
     case 'CLEAR_HISTORY':
       await clearHistory();
+      return { success: true };
+
+    case 'SAVE_HISTORY':
+      await saveHistory(message.records);
+      broadcastStateChanged();
       return { success: true };
 
     case 'GET_AUTOSTATE_RULES':
@@ -585,7 +591,7 @@ async function toggleGroup(
 
 let autoStateDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
-export async function evaluateAutoState(immediate = false): Promise<void> {
+async function evaluateAutoState(immediate = false): Promise<void> {
   // Debounce rapid tab changes unless immediate evaluation requested
   if (autoStateDebounceTimer) {
     clearTimeout(autoStateDebounceTimer);
@@ -601,7 +607,7 @@ export async function evaluateAutoState(immediate = false): Promise<void> {
   }, 150);
 }
 
-export async function doEvaluateAutoState(): Promise<void> {
+async function doEvaluateAutoState(): Promise<void> {
   const settings = await getSettings();
   if (!settings.autoStateEnabled) return;
 

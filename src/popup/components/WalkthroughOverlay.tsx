@@ -49,7 +49,7 @@ const STEP_CONTENTS: Record<number, StepContent> = {
   },
   5: {
     title: "Backup, export and restore",
-    body: "Back up your Extension Drawer setup, export your extension list or history, and restore a saved configuration when needed.",
+    body: "Back up your Extension Drawer setup, export your extension list or history, and restore a saved configuration or import history when needed.",
     targetSelectors: ["#optionsBackupSection", ".options-view"],
   },
   6: {

@@ -1,6 +1,12 @@
 import { useState } from "preact/hooks";
 import type { AppSettings, ExtensionInfo, HistoryRecord } from "../../shared/types";
 import { exportHistoryCSV } from "../../shared/history-export";
+import {
+  parseHistoryCSV,
+  previewHistoryMerge,
+  applyHistoryMerge,
+  type HistoryMergePreview,
+} from "../../shared/history-import";
 
 export interface OptionsViewProps {
   settings: AppSettings;
@@ -11,6 +17,8 @@ export interface OptionsViewProps {
   onExportData: () => void;
   onExportHistory?: () => void;
   onImportData: (file: File) => void;
+  onSaveHistory?: (records: HistoryRecord[]) => void;
+  onImportHistory?: (file: File) => void;
   themeMainColor?: string;
 }
 
@@ -31,9 +39,16 @@ export function OptionsView({
   onExportData,
   onExportHistory,
   onImportData,
+  onSaveHistory,
+  onImportHistory,
   themeMainColor = "#1a73e8",
 }: OptionsViewProps) {
   const [confirmClearHistory, setConfirmClearHistory] = useState(false);
+  const [importPendingConfirm, setImportPendingConfirm] = useState<{
+    preview: HistoryMergePreview;
+    currentRecords: HistoryRecord[];
+  } | null>(null);
+  const [importFeedback, setImportFeedback] = useState<{ message: string; isError: boolean } | null>(null);
 
   const handleExportHistory = async () => {
     if (onExportHistory) {
@@ -112,6 +127,115 @@ ${extensions.map((e) => `<li><a href="https://chrome.google.com/webstore/detail/
     const files = (e.target as HTMLInputElement).files;
     if (files && files[0]) {
       onImportData(files[0]);
+    }
+  };
+
+  const executeHistoryImport = async (
+    currentRecords: HistoryRecord[],
+    newRecords: HistoryRecord[],
+    importedCount: number,
+    skippedCount: number,
+    trimmedCount: number
+  ) => {
+    const finalRecords = applyHistoryMerge(
+      currentRecords,
+      newRecords,
+      settings.historyMaxRecords || 5000
+    );
+
+    if (onSaveHistory) {
+      onSaveHistory(finalRecords);
+    } else if (typeof chrome !== "undefined" && chrome.runtime?.sendMessage) {
+      await chrome.runtime.sendMessage({ type: "SAVE_HISTORY", records: finalRecords });
+    }
+
+    setImportPendingConfirm(null);
+    const trimMsg = trimmedCount > 0 ? ` (${trimmedCount} oldest trimmed)` : "";
+    setImportFeedback({
+      message: `Imported ${importedCount} record${importedCount === 1 ? "" : "s"} · ${skippedCount} duplicate${skippedCount === 1 ? "" : "s"} skipped${trimMsg}`,
+      isError: false,
+    });
+    setTimeout(() => setImportFeedback(null), 5000);
+  };
+
+  const handleHistoryUpload = async (e: Event) => {
+    const input = e.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    if (onImportHistory) {
+      onImportHistory(file);
+      input.value = "";
+      return;
+    }
+
+    try {
+      const text = await file.text();
+      const parseResult = parseHistoryCSV(text);
+      if (!parseResult.success) {
+        setImportFeedback({
+          message: `Import failed: ${parseResult.errors[0] || "Invalid CSV file"}`,
+          isError: true,
+        });
+        setTimeout(() => setImportFeedback(null), 5000);
+        input.value = "";
+        return;
+      }
+
+      let currentRecords = historyRecords;
+      if (!currentRecords || currentRecords.length === 0) {
+        if (typeof chrome !== "undefined" && chrome.runtime?.sendMessage) {
+          try {
+            const res = await chrome.runtime.sendMessage({ type: "GET_HISTORY" });
+            if (Array.isArray(res)) {
+              currentRecords = res;
+            }
+          } catch {
+            // fallback
+          }
+        }
+      }
+
+      const preview = previewHistoryMerge(
+        currentRecords || [],
+        parseResult.records,
+        settings.historyMaxRecords || 5000
+      );
+
+      if (preview.importedCount === 0) {
+        setImportFeedback({
+          message: `No new records found · ${preview.skippedCount} duplicate${preview.skippedCount === 1 ? "" : "s"} skipped`,
+          isError: false,
+        });
+        setTimeout(() => setImportFeedback(null), 5000);
+        input.value = "";
+        return;
+      }
+
+      if (preview.willExceedLimit) {
+        setImportPendingConfirm({
+          preview,
+          currentRecords: currentRecords || [],
+        });
+        input.value = "";
+        return;
+      }
+
+      await executeHistoryImport(
+        currentRecords || [],
+        preview.newRecords,
+        preview.importedCount,
+        preview.skippedCount,
+        0
+      );
+      input.value = "";
+    } catch (err) {
+      setImportFeedback({
+        message: `Import failed: ${err instanceof Error ? err.message : String(err)}`,
+        isError: true,
+      });
+      setTimeout(() => setImportFeedback(null), 5000);
+      input.value = "";
     }
   };
 
@@ -483,8 +607,8 @@ ${extensions.map((e) => `<li><a href="https://chrome.google.com/webstore/detail/
 
           <div className="settings-row">
             <div className="settings-row-text">
-              <span className="settings-label">Import Backup</span>
-              <span className="settings-description">Restore groups and settings from a JSON file</span>
+              <span className="settings-label">Import Configuration</span>
+              <span className="settings-description">Restore groups, Site Rules, and preferences from a JSON file</span>
             </div>
             <div className="settings-control">
               <label className="btn btn-secondary settings-action-btn" style={{ cursor: "pointer", margin: 0 }}>
@@ -498,8 +622,77 @@ ${extensions.map((e) => `<li><a href="https://chrome.google.com/webstore/detail/
               </label>
             </div>
           </div>
+
+          <div className="settings-row">
+            <div className="settings-row-text">
+              <span className="settings-label">Import History</span>
+              <span className="settings-description">Merge activity records from a CSV file</span>
+            </div>
+            <div className="settings-control">
+              <label className="btn btn-secondary settings-action-btn" style={{ cursor: "pointer", margin: 0 }}>
+                Import CSV
+                <input
+                  id="optionsImportHistoryInput"
+                  type="file"
+                  accept=".csv"
+                  style={{ display: "none" }}
+                  onChange={handleHistoryUpload}
+                />
+              </label>
+            </div>
+          </div>
         </div>
       </section>
+
+      {/* History Retention Limit Confirmation Modal */}
+      {importPendingConfirm && (
+        <div className="subwindow-backdrop" style={{ zIndex: 9999 }}>
+          <div className="subwindow" style={{ maxWidth: 440, padding: 24, textAlign: "left" }}>
+            <h3 style={{ margin: "0 0 12px", fontSize: "1.1rem", fontWeight: 600 }}>History Limit Confirmation</h3>
+            <p style={{ margin: "0 0 16px", color: "var(--text-secondary, #666)", fontSize: "0.9rem", lineHeight: 1.5 }}>
+              Importing will exceed your limit of <strong>{settings.historyMaxRecords}</strong> records (total: <strong>{importPendingConfirm.preview.totalMergedCount}</strong>).
+              The oldest <strong>{importPendingConfirm.preview.recordsToTrimCount}</strong> records will be trimmed to fit.
+            </p>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
+              <button
+                className="btn btn-secondary"
+                onClick={() => setImportPendingConfirm(null)}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-primary"
+                id="confirmImportHistoryBtn"
+                onClick={() =>
+                  executeHistoryImport(
+                    importPendingConfirm.currentRecords,
+                    importPendingConfirm.preview.newRecords,
+                    importPendingConfirm.preview.importedCount,
+                    importPendingConfirm.preview.skippedCount,
+                    importPendingConfirm.preview.recordsToTrimCount
+                  )
+                }
+              >
+                Proceed & Trim
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Non-blocking Import Feedback Toast */}
+      {importFeedback && (
+        <div className={`nb-toast ${importFeedback.isError ? "toast-error" : "toast-success"}`}>
+          <span>{importFeedback.message}</span>
+          <button
+            type="button"
+            className="toast-close-btn"
+            onClick={() => setImportFeedback(null)}
+          >
+            ×
+          </button>
+        </div>
+      )}
     </div>
   );
 }

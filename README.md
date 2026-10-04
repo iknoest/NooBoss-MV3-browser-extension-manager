@@ -60,7 +60,7 @@ The original **NooBoss**, created by [AInoob](https://github.com/AInoob) ([Origi
 ### 🌐 Automate with Site Rules
 - **Context-Aware Rules**: Automatically turn extensions ON or OFF based on the websites you open and close.
 - **Flexible Scope Matching**:
-  - *This site*: Domain and subdomain matching (e.g. `github.com`).
+  - *This Site*: Domain and subdomain matching (e.g. `github.com`).
   - *Exact page*: Specific URL matching (e.g. `https://example.com/editor`).
   - *Custom*: Wildcard patterns (e.g. `*.slack.com`) or advanced regular expressions.
 - **Clear Rule Lifecycle**:
@@ -70,15 +70,18 @@ The original **NooBoss**, created by [AInoob](https://github.com/AInoob) ([Origi
 
 ### 📜 Management History
 - **Audit Trail**: Records timestamped events for extension installations, updates, enables, and disables.
-- **Search & Filter**: Filter history records by event type (*All*, *Enabled*, *Disabled*, *Installed*, *Updated*) or search by extension name.
+- **Filter & Search**: Real-time filtering by event type (*All*, *Enabled*, *Disabled*, *Installed*, *Updated*) and instant search by extension name.
+- **Export History CSV**: Export complete activity logs to a standard `.csv` spreadsheet for backup or audit.
+- **Import History CSV**: Safely merge history records from an exported `.csv` file with automatic composite-key deduplication and retention limits.
 - **Clear History**: Erase recorded activity log entries at any time directly from the interface.
 
 ### 💾 Backup & Data Portability
-- **Single Canonical Location**: Comprehensive data backup and export is centralized under **Options → Backup & Data**.
+- **Single Canonical Location**: Comprehensive data backup, export, and import is centralized under **Options → Backup & Data**.
 - **Export Configuration (JSON)**: Export your groups, Site Rules, and user preferences into a portable `.json` file.
+- **Import Configuration (JSON)**: Restore groups, Site Rules, and preferences from a previously exported `.json` configuration file.
 - **Export Extension List (HTML)**: Generate a clean, human-readable HTML catalog of all your installed extensions with direct Web Store links.
 - **Export History (CSV)**: Export the complete activity history audit trail as a standard `.csv` spreadsheet.
-- **Import Backup (JSON)**: Restore groups, rules, and preferences from a previously exported `.json` configuration file.
+- **Import History (CSV)**: Safely merge activity records from an exported `.csv` file with automatic composite-key deduplication and retention limits.
 
 ### 🧭 Built-in Getting Started Walkthrough
 Extension Drawer includes a lightweight, 6-step guided walkthrough available on first run and accessible anytime from **About → Getting started**:
@@ -86,7 +89,7 @@ Extension Drawer includes a lightweight, 6-step guided walkthrough available on 
 2. **Organize with Groups**: Set up workflow groups and one-shot bulk commands.
 3. **Automate with Site Rules**: Configure site-specific extension automation.
 4. **Review History**: Explore management activity and diagnostics.
-5. **Backup & Data**: Discover JSON configuration backups, HTML extension lists, and CSV history exports.
+5. **Backup, export and restore**: Discover JSON configuration backups, HTML extension lists, and CSV history exports and imports.
 6. **Developer Workspace · Optional**: Overview of optional local build management, store links, and listing analytics.
 
 ---
@@ -101,7 +104,7 @@ Extension Drawer includes a lightweight, 6-step guided walkthrough available on 
 For extension creators and engineers, Extension Drawer offers an optional developer hub that remains completely hidden until explicitly enabled in Settings:
 - **Local Unpacked Projects**: Link local test extensions with one-click reload controls and manifest diagnostics.
 - **Repository & Store Quicklinks**: Direct links to GitHub repositories and Chrome Web Store listings.
-- **Read-Only Listing Analytics**: Connect Google Analytics 4 (GA4) property data via official Google OAuth to view 28-day listing metrics (active users, new users, page views, engagement rate).
+- **Read-Only Store-Listing Analytics**: Connect Google Analytics 4 (GA4) property data via official Google OAuth to view 28-day listing metrics (active users, new users, page views, engagement rate).
 - **Store Package ZIP Download**: Retrieve production CRX/ZIP packages from official Chrome distribution endpoints for local inspection.
 - **Strictly Optional**: Non-developer users never encounter developer UI, OAuth prompts, or developer permissions.
 
@@ -110,10 +113,11 @@ For extension creators and engineers, Extension Drawer offers an optional develo
 ## Privacy & Permissions
 
 ### Architecture & Data Handling
-Extension Drawer is built on a **local-first** architecture:
-- **No First-Party Telemetry**: Extension Drawer does not operate analytics servers, telemetry backends, user tracking, or advertising infrastructure.
-- **No Monetization of User Data**: We never sell, rent, monetize, or broker user data.
-- **Local Storage**: All groups, Site Rules, preferences, and history records reside entirely on your device in `chrome.storage.local`.
+Extension Drawer is built on an honest **local-first** architecture:
+- **Local-First Core**: Core extension management remains strictly local-first. Groups, Site Rules, settings, and History are stored and processed entirely on your device in `chrome.storage.local`.
+- **No Behavioral Telemetry**: Extension Drawer does not operate its own behavioral, advertising, or usage telemetry servers.
+- **No Data Monetization**: We never sell, rent, monetize, or broker personal or browsing data.
+- **Explicit Optional Integrations**: Optional Developer integrations connect to external Google/Chrome services only after explicit user action (e.g. connecting Google Analytics or downloading extension ZIP packages). Non-developer users never trigger external connections.
 
 ### Permission Transparency
 Permissions are strictly categorized into core required permissions and user-initiated optional permissions:

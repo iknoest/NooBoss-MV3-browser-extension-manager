@@ -8,7 +8,7 @@
 
 ## 1. Project Scope & Distribution Model
 
-Extension Drawer is an open-source browser extension manager distributed through the **Chrome Web Store** and available for local unpacked development. It provides visual extension management, command-based groups, site-driven extension automation (Site Rules), management history auditing, backup portability, and an optional Developer Workspace.
+Extension Drawer is an open-source browser extension manager published on the **Chrome Web Store** (Extension ID: `onkcjpfgllpfbimnchjehboikhippnka`) and available for local unpacked development. It provides visual extension management, command-based groups, site-driven extension automation (Site Rules), management history auditing, backup portability (including safe History CSV import/export), and an optional Developer Workspace.
 
 ---
 

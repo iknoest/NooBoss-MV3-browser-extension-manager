@@ -506,6 +506,12 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
     await loadData();
   };
 
+  const handleSaveHistory = async (records: HistoryRecord[]) => {
+    setHistoryRecords(records);
+    await chrome.runtime?.sendMessage?.({ type: "SAVE_HISTORY", records });
+    await loadData();
+  };
+
   const handleExportData = async () => {
     try {
       const res = await chrome.runtime?.sendMessage?.({ type: "EXPORT_DATA" });
@@ -702,6 +708,7 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
             onExportData={handleExportData}
             onExportHistory={() => exportHistoryCSV(historyRecords)}
             onImportData={handleImportData}
+            onSaveHistory={handleSaveHistory}
             themeMainColor={resolvedAccent}
           />
         )}

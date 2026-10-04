@@ -397,15 +397,17 @@ describe("Phase 1: Site Rules Runtime Correctness & Lifecycle Verification", () 
         createdAt: 2,
       };
 
-      // When only Site 1 is open
+      // When only Site 1 is open: Rule 1 matches -> true
       expect(computeDesiredStates([r1, r2], [], ["https://site1.com/a"])).toEqual({ ext_shared: true });
 
-      // When only Site 2 is open: Rule 1 matches false, but Rule 1 has priority 1 and sets ext_shared to false!
-      // This is the documented first-match-wins precedence in computeDesiredStates
-      expect(computeDesiredStates([r1, r2], [], ["https://site2.com/b"])).toEqual({ ext_shared: false });
+      // When only Site 2 is open: Rule 2 matches -> true
+      expect(computeDesiredStates([r1, r2], [], ["https://site2.com/b"])).toEqual({ ext_shared: true });
 
-      // When both are open
+      // When both are open: both match -> true
       expect(computeDesiredStates([r1, r2], [], ["https://site1.com/a", "https://site2.com/b"])).toEqual({ ext_shared: true });
+
+      // When neither is open: neither matches -> fallback restores to false
+      expect(computeDesiredStates([r1, r2], [], ["https://other.com"])).toEqual({ ext_shared: false });
     });
 
     it("resolves targets through groups without duplicates", () => {

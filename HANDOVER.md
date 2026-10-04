@@ -1,14 +1,21 @@
 # Handover
 
-Snapshot: 2026-10-04T15:00:00+02:00
+Snapshot: 2026-10-05T00:05:00+02:00
 
-## Current release state (1.2.0 Release Candidate)
-- Extension Drawer version bumped from 1.1.0 to 1.2.0 across authoritative files (`src/manifest.json`, `package.json`, test assertions).
-- Verified candidate production ZIP rebuilt: `release/extension-drawer-1.2.0.zip` (5332.81 KB, SHA-256 `3e286f268299eeaacbde5ddb6c606e90def736bc18c251e5542867f8ed8ca3cc`).
-- Former blocked candidate archive `2b7e11a8615f9103c842cf02970294d7c2ae29e244da7f254b6f5bf7470869f0` is strictly INVALIDATED and SUPERSEDED.
-- Upgraded exact-package automated smoke test (`scripts/smoke-test-120-zip.mjs`) verified all 15 release criteria passed cleanly against the unpacked release archive in headless Chrome, including real functional target-extension automation verification (Criterion 6).
-- Full test suite passes: 24 test files, 379 tests passing with 0 errors.
+## Current release state (1.2.0 Final Release Candidate Frozen)
+- Release Candidate Branch: `main` (frozen candidate, strictly no push).
+- Extension Drawer version synchronized at 1.2.0 across authoritative files (`src/manifest.json`, `package.json`, release notes, and test assertions).
+- Verified candidate production ZIP rebuilt: `release/extension-drawer-1.2.0.zip` (5335.43 KB / 5,463,477 bytes, SHA-256 `1f14ff2aa6676ae4bb17570f33e90253dbf34d868f58deb1c0485f728dfbd993`).
+- Former invalidated candidate archives `3e286f268299eeaacbde5ddb6c606e90def736bc18c251e5542867f8ed8ca3cc` and `2b7e11a8615f9103c842cf02970294d7c2ae29e244da7f254b6f5bf7470869f0` are strictly INVALIDATED and SUPERSEDED.
+- Full 20-criteria exact-package automated smoke test (`scripts/smoke-test-120-zip.mjs`) verified all 20 criteria cleanly against the unpacked release archive in headless Chrome, including multi-rule non-masking gate, safe History CSV import/export with composite-key deduplication, and Options Backup & Data 5-row integrity.
+- Ava human acceptance completed for:
+  - recovered real extension catalog and history;
+  - Site Rules multi-rule behavior on Versuni + LinkedIn;
+  - History CSV import with merge and deduplication;
+  - Options Backup & Data 5-row UI.
+- Full test suite passes: 25 test files, 394 unit tests passing with 0 errors.
 - TypeScript typecheck (`tsc --noEmit`) and ESLint (`eslint src/`) pass with 0 errors and 0 warnings.
+- Canonical CWS screenshots verified: all 5 exist, are 1280x800 PNG, with #3 regenerated reflecting all 5 Backup & Data rows.
 - Frozen 1.1.0 baseline `f87404a02534d704e00b281a38411f8c204d0cb9` and `release/extension-drawer-1.1.0.zip` preserved untouched.
 - External actions (git push, remote GitHub release creation, Chrome Web Store submission) remain strictly unexecuted pending operator approval.
 

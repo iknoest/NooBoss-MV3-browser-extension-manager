@@ -65,17 +65,17 @@ KEY CAPABILITIES
 • Live Status Summary: Real-time status badge (e.g., "12 / 24 running") with one-click filtering.
 • Store Package ZIP Download: Download unpacked .zip archives directly from Chrome Web Store distribution endpoints for supported extensions.
 
-2. COMMAND-BASED GROUPS
+2. GROUPS
 • One-Shot Bulk Commands: Toggle entire workflows on or off with a single click using [ OFF | ON ] segmented controls.
 • Live Running Counters: Monitor real-time status on every group card (e.g., "5 / 6 running").
 • Seamless Overlap: Groups act as convenient command shortcuts without persistent state-fighting. Overlapping groups and individual extension toggles work together naturally.
 • Safe Handling: Uninstalled ("1 missing") and policy-restricted ("1 unavailable") extensions are clearly indicated without blocking batch commands for eligible members.
 • 3,000+ Icons: Choose from self-hosted Google Material Symbols, curated presets, or custom icon uploads.
 
-3. SITE RULES AUTOMATION
+3. SITE RULES
 • Context-Aware Automation: Automatically turn extensions ON or OFF when specific websites open or close.
 • Flexible Scope Matching:
-  - This site: Domain and subdomain matching (e.g. github.com).
+  - This Site: Domain and subdomain matching (e.g. github.com).
   - Exact page: Specific URL matching (e.g. example.com/editor).
   - Custom: Wildcards (e.g. *.slack.com) or advanced regular expressions.
 • Clear Lifecycle:
@@ -89,28 +89,33 @@ KEY CAPABILITIES
 • Search & Filter: Filter history by event type or search by extension name.
 • Single Canonical Backup Location: Centralized under Options → Backup & Data.
 • Export Configuration (JSON): Save groups, Site Rules, and preferences to a portable JSON file.
+• Import Configuration (JSON): Easily restore your configuration on any browser from a previously exported backup file.
 • Export Extension List (HTML): Generate a clean, offline HTML catalog of your installed extensions with direct Web Store links.
-• Export History (CSV): Export complete activity logs as a standard CSV spreadsheet.
-• Import Backup (JSON): Easily restore your setup on any browser.
 
-5. GUIDED GETTING STARTED
-• Built-in 6-Step Walkthrough: An interactive tour introducing Extensions, Groups, Site Rules, History, Backup & Data, and optional Developer Workspace.
+5. HISTORY IMPORT & EXPORT
+• Export History (CSV): Export complete activity history logs as a standard CSV spreadsheet for auditing or archival.
+• Import History (CSV): Safely import and merge activity records from an exported CSV file.
+• Smart Merge & Deduplication: Records are merged chronologically using composite keys (timestamp, event, extension ID, version) so identical records produce zero duplicates.
+• Retention Safety: Transparent modal confirmation before applying retention limits if imported records exceed your configured history maximum.
+
+6. GETTING STARTED
+• Built-in 6-Step Walkthrough: An interactive guided walkthrough introducing Extensions, Groups, Site Rules, History, Backup & Data, and optional Developer Workspace.
 • Accessible Anytime: Available upon first install or rerun via About → Getting started.
 
-6. OPTIONAL DEVELOPER WORKSPACE
+7. OPTIONAL DEVELOPER WORKSPACE
 • Designed for Extension Creators: Completely hidden by default until explicitly enabled in Settings.
 • Local Unpacked Projects: Connect local unpacked extensions with one-click code reload and manifest diagnostics.
 • Repository & Store Quicklinks: Direct links to GitHub repositories and Chrome Web Store listings.
-• Read-Only Store Listing Analytics: Connect Google Analytics 4 (GA4) property data via official Google OAuth to view 28-day listing metrics (active users, new users, views, engagement rate).
+• Read-Only Store-Listing Analytics: Connect Google Analytics 4 (GA4) property data via official Google OAuth to view 28-day listing metrics (active users, new users, views, engagement rate).
 • Store Package ZIP Download: Retrieve production extension packages directly from official Chrome endpoints.
 
-7. LOCAL-FIRST PRIVACY
-• No First-Party Telemetry: Extension Drawer does not operate analytics servers, tracking infrastructure, or advertising networks.
+8. LOCAL-FIRST PRIVACY
+• Local-First Core: Routine extension management operates strictly locally. Groups, Site Rules, settings, and History reside on your device in chrome.storage.local.
+• No Behavioral Telemetry: Extension Drawer does not operate its own behavioral, advertising, or usage telemetry servers.
 • No Monetization: We never sell, rent, or monetize your data.
-• Local Storage: All configuration, rules, and history reside on your device in chrome.storage.local.
 • Permission Transparency: Core extension management requires only local permissions (management, storage, tabs, notifications). Optional features (Google Analytics connection, ZIP downloads) request identity, downloads, or host permissions only upon explicit user action.
 
-8. OPEN SOURCE & ORIGIN
+9. OPEN SOURCE & ORIGIN
 Extension Drawer is an independently maintained Manifest V3 continuation inspired by the classic open-source NooBoss extension originally created by AInoob.
 • Source Code: https://github.com/iknoest/NooBoss-MV3-browser-extension-manager
 • Upstream Origin: https://github.com/AInoob/NooBoss

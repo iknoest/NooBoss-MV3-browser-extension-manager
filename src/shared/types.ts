@@ -161,6 +161,7 @@ export type Message =
   | { type: 'GET_HISTORY' }
   | { type: 'HISTORY_LIST'; records: HistoryRecord[] }
   | { type: 'CLEAR_HISTORY' }
+  | { type: 'SAVE_HISTORY'; records: HistoryRecord[] }
   | { type: 'GET_AUTOSTATE_RULES' }
   | { type: 'AUTOSTATE_RULES_LIST'; rules: AutoStateRule[] }
   | { type: 'SAVE_AUTOSTATE_RULES'; rules: AutoStateRule[] }
