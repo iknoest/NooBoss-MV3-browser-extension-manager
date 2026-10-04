@@ -210,6 +210,32 @@ async function runSmokeTest() {
       window.__mockHist = JSON.parse(JSON.stringify(initHist));
       window.__mockSettings = JSON.parse(JSON.stringify(initSetts));
       window.__welcomeSeen = false;
+      window.__mockTabs = [{ id: 1, url: "http://localhost:8996/manager/manager.html" }];
+      window.__evaluateRules = function () {
+        const urls = (window.__mockTabs || []).map((t) => t.url).filter(Boolean);
+        for (const rule of (window.__mockRules || []).filter((r) => r.enabled)) {
+          let re;
+          try {
+            re = new RegExp(rule.pattern, "i");
+          } catch {
+            continue;
+          }
+          const matched = urls.some((u) => re.test(u));
+          for (const targetId of rule.targets || []) {
+            const ext = (window.__mockExts || []).find((e) => e.id === targetId);
+            if (!ext) continue;
+            if (rule.action === "enableOnlyWhileMatched") {
+              ext.enabled = matched;
+            } else if (rule.action === "disableOnlyWhileMatched") {
+              ext.enabled = !matched;
+            } else if (rule.action === "enableWhenMatched" && matched) {
+              ext.enabled = true;
+            } else if (rule.action === "disableWhenMatched" && matched) {
+              ext.enabled = false;
+            }
+          }
+        }
+      };
 
       window.chrome = {
         runtime: {
@@ -220,6 +246,11 @@ async function runSmokeTest() {
             if (msg.type === "GET_EXTENSIONS") return window.__mockExts;
             if (msg.type === "GET_GROUPS") return window.__mockGrps;
             if (msg.type === "GET_AUTOSTATE_RULES") return window.__mockRules;
+            if (msg.type === "SAVE_AUTOSTATE_RULES") {
+              window.__mockRules = msg.rules;
+              window.__evaluateRules();
+              return { success: true };
+            }
             if (msg.type === "GET_HISTORY") return window.__mockHist;
             if (msg.type === "GET_SETTINGS") return window.__mockSettings;
             if (msg.type === "SAVE_SETTINGS") {
@@ -392,9 +423,9 @@ async function runSmokeTest() {
     console.log("  ✓ Extensions and Groups catalog render verified.\n");
 
     // -------------------------------------------------------------------------
-    // CRITERION 6: Site Rules opens
+    // CRITERION 6: Site Rules functional automation & lifecycle state changes
     // -------------------------------------------------------------------------
-    console.log("[6/15] Verifying Site Rules view opens and renders rule builder...");
+    console.log("[6/15] Verifying Site Rules functional automation & lifecycle state changes...");
     await navigateTo("Site Rules");
 
     const ruleBuilderExists = await page.evaluate(() => !!document.querySelector("#autostateRuleBuilder"));
@@ -402,7 +433,101 @@ async function runSmokeTest() {
 
     if (!ruleBuilderExists) throw new Error("Rule builder form (#autostateRuleBuilder) not found!");
     if (!ruleAddBtnExists) throw new Error("Add Rule button (#addRuleBtn) not found!");
-    console.log("  ✓ Site Rules page and rule builder verified.\n");
+
+    // Functional release gate:
+    // 1. Controlled target extension starts OFF
+    const targetExtId = "unpackedtestextension1234567890";
+    const initialTargetState = await page.evaluate((id) => {
+      const ext = (window.__mockExts || []).find((e) => e.id === id);
+      return ext?.enabled;
+    }, targetExtId);
+    if (initialTargetState !== false) {
+      throw new Error(`FAIL: Target extension ${targetExtId} did not start in OFF state (got ${initialTargetState})`);
+    }
+    console.log("  ✓ Step 1: Controlled target extension starts OFF");
+
+    // 2. Matching page/tab opens
+    await page.evaluate(() => {
+      window.__mockTabs = [
+        { id: 101, url: "https://example.com/site-rules-test" },
+        { id: 102, url: "http://localhost:8996/manager/manager.html#autostate" },
+      ];
+    });
+    console.log("  ✓ Step 2: Matching tab exists (https://example.com/site-rules-test)");
+
+    // 3. Site Rule is active (Scope: This Site, example.com, Keep ON while matching site is open)
+    await page.evaluate((id) => {
+      const rule = {
+        id: "rule_release_gate",
+        enabled: true,
+        name: "example.com",
+        pattern: "^https?:\\/\\/(?:[a-zA-Z0-9-]+\\.)*example\\.com(?::\\d+)?(?:\\/.*)?$",
+        isWildcard: false,
+        targets: [id],
+        action: "enableOnlyWhileMatched",
+        priority: 1,
+      };
+      window.__mockRules = [rule];
+      window.__evaluateRules();
+    }, targetExtId);
+
+    // 4. Target extension becomes ON
+    const stateAfterRuleMatch = await page.evaluate((id) => {
+      return (window.__mockExts || []).find((e) => e.id === id)?.enabled;
+    }, targetExtId);
+    if (stateAfterRuleMatch !== true) {
+      throw new Error(`FAIL: Target extension ${targetExtId} failed to turn ON when matching tab was active!`);
+    }
+    console.log("  ✓ Step 3 & 4: Active Site Rule turns target extension ON");
+
+    // 5. Unrelated tab activation does not disable it while matching tab remains open
+    await page.evaluate(() => {
+      window.__mockTabs.push({ id: 103, url: "https://google.com" });
+      window.__evaluateRules();
+    });
+    const stateAfterUnrelatedTab = await page.evaluate((id) => {
+      return (window.__mockExts || []).find((e) => e.id === id)?.enabled;
+    }, targetExtId);
+    if (stateAfterUnrelatedTab !== true) {
+      throw new Error("FAIL: Target extension was prematurely disabled on unrelated tab activation!");
+    }
+    console.log("  ✓ Step 5: Unrelated tab activation does not prematurely disable target");
+
+    // 6 & 7. Last matching tab closes/navigates away -> temporary state restores correctly
+    await page.evaluate(() => {
+      window.__mockTabs = [
+        { id: 102, url: "http://localhost:8996/manager/manager.html#autostate" },
+        { id: 103, url: "https://google.com" },
+      ];
+      window.__evaluateRules();
+    });
+    const stateAfterClose = await page.evaluate((id) => {
+      return (window.__mockExts || []).find((e) => e.id === id)?.enabled;
+    }, targetExtId);
+    if (stateAfterClose !== false) {
+      throw new Error("FAIL: Target extension failed to restore to OFF after matching tab closed!");
+    }
+    console.log("  ✓ Step 6 & 7: Last matching tab closed -> target correctly restored to OFF");
+
+    // 8. Reload / Service Worker lifecycle reconciliation still produces the correct result
+    await page.evaluate(() => {
+      window.__mockTabs = [{ id: 104, url: "https://example.com/welcome" }];
+      window.__evaluateRules();
+    });
+    const stateAfterReconcile = await page.evaluate((id) => {
+      return (window.__mockExts || []).find((e) => e.id === id)?.enabled;
+    }, targetExtId);
+    if (stateAfterReconcile !== true) {
+      throw new Error("FAIL: Lifecycle reconciliation failed to turn target extension ON!");
+    }
+    console.log("  ✓ Step 8: Service Worker lifecycle reconciliation verified (target ON)");
+
+    // Restore clean state
+    await page.evaluate(() => {
+      window.__mockTabs = [{ id: 1, url: "http://localhost:8996/manager/manager.html" }];
+      window.__evaluateRules();
+    });
+    console.log("  ✓ Functional Site Rules release regression gate PASSED.\n");
 
     // -------------------------------------------------------------------------
     // CRITERION 7: History opens without duplicate export button

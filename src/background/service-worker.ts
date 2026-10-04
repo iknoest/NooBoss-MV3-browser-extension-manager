@@ -34,8 +34,39 @@ import { createExportData, validateImportData } from '../shared/import-export';
 // ── Self ID ─────────────────────────────────────────────────
 const SELF_ID = chrome.runtime.id;
 
-// ── Tab URL tracking (rebuilt on each SW start) ────────────
+// ── Tab URL tracking & lifecycle synchronization ───────────
 let tabUrls: Record<number, string> = {};
+let isTabsInitialized = false;
+let tabInitPromise: Promise<void> | null = null;
+
+export async function ensureTabsInitialized(): Promise<void> {
+  if (isTabsInitialized) return;
+  if (!tabInitPromise) {
+    tabInitPromise = (async () => {
+      await rebuildTabUrls();
+      isTabsInitialized = true;
+    })().finally(() => {
+      tabInitPromise = null;
+    });
+  }
+  await tabInitPromise;
+}
+
+export async function rebuildTabUrls(): Promise<void> {
+  try {
+    const tabs = await chrome.tabs.query({});
+    const freshMap: Record<number, string> = {};
+    for (const tab of tabs) {
+      if (tab.id !== undefined && tab.url) {
+        freshMap[tab.id] = tab.url;
+      }
+    }
+    tabUrls = freshMap;
+    isTabsInitialized = true;
+  } catch (e) {
+    console.warn('[NooBoss] Failed to query tabs:', e);
+  }
+}
 
 // ── Initialize on install/startup ───────────────────────────
 
@@ -64,40 +95,57 @@ chrome.runtime.onStartup.addListener(async () => {
   await initializeState();
 });
 
-async function initializeState(): Promise<void> {
-  // Rebuild tab URL map
-  await rebuildTabUrls();
-  // Run AutoState evaluation
-  await evaluateAutoState();
-}
+// Reconcile tabs asynchronously on service worker load/wake
+ensureTabsInitialized()
+  .then(() => evaluateAutoState(true))
+  .catch(() => {});
 
-async function rebuildTabUrls(): Promise<void> {
-  tabUrls = {};
-  try {
-    const tabs = await chrome.tabs.query({});
-    for (const tab of tabs) {
-      if (tab.id !== undefined && tab.url) {
-        tabUrls[tab.id] = tab.url;
-      }
-    }
-  } catch (e) {
-    console.warn('[NooBoss] Failed to query tabs:', e);
-  }
+async function initializeState(): Promise<void> {
+  // Rebuild tab URL map authoritatively
+  await rebuildTabUrls();
+  // Run AutoState evaluation immediately
+  await evaluateAutoState(true);
 }
 
 // ── Tab event listeners (registered at top level) ───────────
 
 chrome.tabs.onCreated.addListener((tab) => {
-  if (tab.id !== undefined && tab.url) {
-    tabUrls[tab.id] = tab.url;
+  if (tab.id !== undefined) {
+    if (tab.url) {
+      tabUrls[tab.id] = tab.url;
+    }
     evaluateAutoState();
   }
 });
 
-chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  let urlChanged = false;
   if (changeInfo.url) {
     tabUrls[tabId] = changeInfo.url;
+    urlChanged = true;
+  } else if (tab?.url && tabUrls[tabId] !== tab.url) {
+    tabUrls[tabId] = tab.url;
+    urlChanged = true;
+  }
+
+  // Evaluate if URL changed or if page reload completed
+  if (urlChanged || changeInfo.status === 'complete') {
     evaluateAutoState();
+  }
+});
+
+chrome.tabs.onActivated.addListener(async (activeInfo) => {
+  if (!isTabsInitialized) {
+    await ensureTabsInitialized();
+    evaluateAutoState();
+  } else if (!tabUrls[activeInfo.tabId]) {
+    try {
+      const tab = await chrome.tabs.get(activeInfo.tabId);
+      if (tab.url) {
+        tabUrls[activeInfo.tabId] = tab.url;
+        evaluateAutoState();
+      }
+    } catch { /* tab may not exist */ }
   }
 });
 
@@ -276,7 +324,8 @@ async function handleMessage(message: Message): Promise<unknown> {
 
     case 'SAVE_AUTOSTATE_RULES':
       await saveAutoStateRules(message.rules);
-      await evaluateAutoState();
+      await rebuildTabUrls();
+      await evaluateAutoState(true);
       return { success: true };
 
     case 'GET_PENDING_CHANGES':
@@ -294,7 +343,7 @@ async function handleMessage(message: Message): Promise<unknown> {
     case 'SAVE_SETTINGS':
       await saveSettings(message.settings);
       if (message.settings.autoStateEnabled) {
-        await evaluateAutoState();
+        await evaluateAutoState(true);
       }
       return { success: true };
 
@@ -536,17 +585,23 @@ async function toggleGroup(
 
 let autoStateDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
-async function evaluateAutoState(): Promise<void> {
-  // Debounce rapid tab changes
+export async function evaluateAutoState(immediate = false): Promise<void> {
+  // Debounce rapid tab changes unless immediate evaluation requested
   if (autoStateDebounceTimer) {
     clearTimeout(autoStateDebounceTimer);
+    autoStateDebounceTimer = null;
+  }
+  if (immediate) {
+    await doEvaluateAutoState();
+    return;
   }
   autoStateDebounceTimer = setTimeout(async () => {
+    autoStateDebounceTimer = null;
     await doEvaluateAutoState();
   }, 150);
 }
 
-async function doEvaluateAutoState(): Promise<void> {
+export async function doEvaluateAutoState(): Promise<void> {
   const settings = await getSettings();
   if (!settings.autoStateEnabled) return;
 
@@ -557,10 +612,8 @@ async function doEvaluateAutoState(): Promise<void> {
 
   if (activeRules.length === 0) return;
 
-  // Ensure tab URLs are fresh
-  if (Object.keys(tabUrls).length === 0) {
-    await rebuildTabUrls();
-  }
+  // Authoritatively ensure tab snapshot is initialized
+  await ensureTabsInitialized();
 
   const urls = Object.values(tabUrls).filter(Boolean);
   const groups = await getGroups();
@@ -687,7 +740,8 @@ async function importData(
     if (validated.developerProjects) {
       await saveDeveloperProjects(validated.developerProjects);
     }
-    await evaluateAutoState();
+    await rebuildTabUrls();
+    await evaluateAutoState(true);
     return { success: true };
   } catch (err) {
     return {
