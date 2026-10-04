@@ -8,7 +8,7 @@ const ROOT = path.resolve(__dirname, "../..");
 const DIST = path.join(ROOT, "dist");
 const EXT1 = path.join(ROOT, "tests/fixtures/test-ext-1");
 const EXT2 = path.join(ROOT, "tests/fixtures/test-ext-2");
-const ARTIFACT_DIR = "/Users/ava/.gemini/antigravity/brain/5edd0da1-ee39-4265-8d36-7d1bb76ba72d/.tempmediaStorage";
+const ARTIFACT_DIR = process.env.ARTIFACT_DIR || path.join(ROOT, "artifacts");
 
 async function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));

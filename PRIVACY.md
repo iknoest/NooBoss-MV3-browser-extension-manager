@@ -28,10 +28,10 @@ Extension Drawer accesses local data through Chrome extension APIs strictly to p
 - **Purpose**: To render your extension catalog, provide one-click toggle and uninstall actions, calculate group runtime statuses (`X / Y running`), and inspect technical metadata.
 - **Handling**: Queried on demand and maintained in memory while the management window is open. Management events (install, update, enable, disable) are recorded in local history.
 
-### Active Tab URLs for Site Rules (`tabs` permission)
-- **Data Accessed**: The URL of the active browser tab when Site Rules evaluation is active.
-- **Purpose**: Evaluates website domains and URL paths against your custom Site Rules (e.g. `github.com` or `app.slack.com`) to automatically turn designated extensions ON or OFF.
-- **Handling**: URLs are evaluated **transiently in local memory**. Visited URLs and browsing history are **never written to persistent storage**, never recorded in the activity history log, and never sent across the network.
+### Open Tab URLs for Site Rules (`tabs` permission)
+- **Data Accessed**: URLs of currently open tabs as needed to evaluate user-defined rules.
+- **Purpose**: Evaluates website domains and URL paths against your custom Site Rules (e.g. `github.com` or `app.slack.com`) to automatically turn designated extensions ON or OFF, including maintaining temporary while-open rules correctly across open tabs.
+- **Handling**: URLs are evaluated **transiently in local memory**. Visited URLs and browsing history are **never written to persistent storage** (such as extension History), and are **never transmitted to Extension Drawer servers** or any external entity.
 
 ### Local Configuration & History (`storage` permission)
 - **Data Stored**:
@@ -47,26 +47,30 @@ Extension Drawer accesses local data through Chrome extension APIs strictly to p
 
 ---
 
-## 3. Optional Features & User-Initiated Network Access
+## 3. Optional Features & Network Behavior
 
-Extension Drawer does not run background network trackers. However, the extension provides two advanced, user-initiated features that connect to official Google endpoints only upon explicit user command:
+Extension Drawer does not run background network trackers. Network access is restricted to two advanced optional features:
 
 ### A. Optional Developer Analytics
 Extension Drawer includes an optional Developer Workspace designed for extension authors.
-- **Activation**: Completely disabled and hidden by default. Only visible if explicitly toggled on under **Options → Developer Workspace**.
+- **Activation & Authorization**:
+  - Initial connection to Developer Analytics is explicitly user initiated.
+  - Optional permission and OAuth authorization are **never initiated automatically**.
+  - Completely disabled and hidden by default until explicitly enabled under **Options → Developer Workspace**.
 - **Permissions**:
   - `identity`: Requested at runtime when the user clicks to connect Google Analytics.
   - `https://analyticsdata.googleapis.com/*`: Optional host permission requested concurrently.
-- **Data Flow**:
+- **Data Flow & Stale Refresh Behavior**:
   1. The user explicitly initiates connection to Google Analytics for their project.
   2. Chrome prompts the user for runtime permission authorization.
   3. The extension uses Chrome's native `chrome.identity.getAuthToken` to obtain an OAuth token with the read-only scope `https://www.googleapis.com/auth/analytics.readonly`.
   4. The token is sent directly to Google's official Analytics Data API (`analyticsdata.googleapis.com`) to retrieve aggregate 28-day listing metrics (active users, new users, screen page views, and engagement rate) for the Google Analytics property ID specified by the user.
+  5. **Silent Stale Refresh on Open**: After a user has already connected Analytics, cached metrics older than 24 hours may be refreshed silently in the background when the Developer Workspace is opened. This refresh uses non-interactive authentication only (`interactive: false`) and must never open an OAuth, login, or permission prompt automatically.
 - **Privacy Guarantees**:
-  - Tokens and telemetry remain local to the browser profile.
+  - Tokens and telemetry remain local to the browser profile; raw OAuth access tokens are not persisted in extension storage.
   - Explicit user connection: Ordinary users who never connect Developer Analytics are never prompted for the `identity` permission or Google OAuth.
   - Read-only scope: Connects exclusively via `https://www.googleapis.com/auth/analytics.readonly`.
-  - No automatic interactive OAuth: Background stale cache refreshes (after 24 hours) execute via non-interactive silent authentication only (`interactive: false`); they never trigger unprompted login windows.
+  - No automatic interactive OAuth: Silent refreshes execute strictly without interactive prompts.
   - Extension Drawer servers or third parties never receive OAuth tokens or property metrics.
 
 ### B. Optional Store Package ZIP Download
@@ -88,7 +92,10 @@ Users can download unpacked `.zip` archives of extensions available in the Chrom
 ## 4. Data Sharing & Third-Party Services
 
 - **No Third-Party Advertising or Telemetry**: We do not embed SDKs from advertising networks, analytics aggregators, crash reporters, or behavioral tracking vendors.
-- **Direct User-Initiated Connections**: Network requests occur exclusively when the user explicitly triggers an optional feature (retrieving a package from Google Web Store endpoints or querying Google Analytics Data API via Google OAuth). These requests communicate directly between your browser and Google's official infrastructure.
+- **Direct User-Authorized Connections**: Network requests occur exclusively for user-authorized optional features:
+  - Downloading extension packages from official Google Chrome Web Store distribution endpoints upon explicit user command.
+  - Querying the Google Analytics Data API via official Google OAuth for connected developer projects (including silent background refresh of cached metrics older than 24 hours when opening the Developer Workspace, using non-interactive authentication only).
+  These requests communicate directly between your browser and Google's official infrastructure.
 - **No Remote Code Execution**: All application scripts, user interface templates, and styling assets (including Material Symbols fonts) are bundled locally within the extension package. No executable code is fetched or evaluated remotely.
 
 ---

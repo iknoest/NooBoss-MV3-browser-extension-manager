@@ -7,7 +7,7 @@ import http from "http";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
 const DIST = path.join(ROOT, "dist");
-const SCREENSHOT_DIR = "/Users/ava/.gemini/antigravity/brain/a61582c5-ddf9-422d-8e81-0925bfcf4db8/screenshots";
+const SCREENSHOT_DIR = process.env.SCREENSHOT_DIR || path.join(ROOT, "screenshots");
 
 if (!fs.existsSync(SCREENSHOT_DIR)) {
   fs.mkdirSync(SCREENSHOT_DIR, { recursive: true });

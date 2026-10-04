@@ -83,6 +83,12 @@ The original **NooBoss**, created by [AInoob](https://github.com/AInoob) ([Origi
 - **Export History (CSV)**: Export the complete activity history audit trail as a standard `.csv` spreadsheet.
 - **Import History (CSV)**: Safely merge activity records from an exported `.csv` file with automatic composite-key deduplication and retention limits.
 
+<p align="center">
+  <img src="docs/chrome-web-store/screenshots/marketing/3-history-backup.png" alt="Extension Drawer - History & Backup & Data" width="100%" />
+</p>
+
+---
+
 ### 🧭 Built-in Getting Started Walkthrough
 Extension Drawer includes a lightweight, 6-step guided walkthrough available on first run and accessible anytime from **About → Getting started**:
 1. **Manage extensions**: Learn catalog controls, view modes, and search.
@@ -91,6 +97,10 @@ Extension Drawer includes a lightweight, 6-step guided walkthrough available on 
 4. **Review History**: Explore management activity and diagnostics.
 5. **Backup, export and restore**: Discover JSON configuration backups, HTML extension lists, and CSV history exports and imports.
 6. **Developer Workspace · Optional**: Overview of optional local build management, store links, and listing analytics.
+
+<p align="center">
+  <img src="docs/chrome-web-store/screenshots/marketing/5-getting-started.png" alt="Extension Drawer - Getting Started Walkthrough" width="100%" />
+</p>
 
 ---
 
@@ -127,7 +137,7 @@ Permissions are strictly categorized into core required permissions and user-ini
 | :--- | :--- |
 | `management` | Required to query installed extensions, toggle enabled state, inspect metadata, and trigger uninstalls. |
 | `storage` | Stores groups, Site Rules, management history, and user settings locally via `chrome.storage.local`. |
-| `tabs` | Used exclusively in memory to match active website URLs against user-configured Site Rules. |
+| `tabs` | Used in memory to evaluate open tab URLs against user-configured Site Rules. |
 | `notifications` | Displays optional local alerts when Site Rules trigger or when extension updates occur. |
 
 #### 2. Optional Permissions (User-Initiated Only)

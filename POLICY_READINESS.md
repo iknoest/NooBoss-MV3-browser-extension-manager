@@ -21,7 +21,7 @@ These permissions are required for Extension Drawer's everyday offline extension
 
 - `management`: Required to enumerate installed extensions, query runtime state, toggle enabled/disabled status, inspect extension properties, and initiate uninstall requests.
 - `storage`: Required for local state persistence (`chrome.storage.local`) storing groups, Site Rules, UI settings, and activity history records.
-- `tabs`: Required exclusively in memory to read the active tab URL for matching against user-defined Site Rules. URLs are processed transiently; visited browsing history is never recorded, persisted, or transmitted.
+- `tabs`: Required in memory to inspect URLs of currently open tabs as needed to evaluate user-defined Site Rules (including maintaining temporary while-open rules correctly). URLs are evaluated transiently in local memory; visited browsing history is never recorded in persistent storage, and no URL telemetry is transmitted.
 - `notifications`: Dispatches local system notifications when Site Rules execute background state transitions or when extensions update.
 
 ### B. Optional Permissions (Runtime Opt-In)
@@ -59,11 +59,11 @@ Extension Drawer strictly adheres to Chrome's Manifest V3 prohibition against re
 
 ## 5. Site Rules Policy & Automation Boundaries
 
-- Site Rules evaluate active website domains against user-configured rules.
+- Site Rules inspect the URLs of currently open tabs as needed to evaluate user-configured domain and path rules transiently in memory.
 - **Rule Lifecycle**:
   - *Temporary while open*: Turns extensions ON (or OFF) while matching tabs are open, reverting automatically when the matching tab closes.
   - *One-time on open*: Applies the change once upon opening without exit reversion.
-- All URL evaluation occurs client-side in memory. No URL telemetry or domain logging is transmitted to any server.
+- All URL evaluation occurs client-side in memory. Visited URLs are never written to persistent history, and no URL telemetry or domain logging is transmitted to any server.
 
 ---
 
@@ -71,7 +71,7 @@ Extension Drawer strictly adheres to Chrome's Manifest V3 prohibition against re
 
 - **No First-Party Telemetry**: Extension Drawer does not operate telemetry, tracking servers, or analytics collection on its users.
 - **Read-Only Third-Party Analytics**: The Developer Workspace retrieves read-only performance data from Google Analytics Data API via official Google OAuth exclusively for projects configured by extension developers.
-- OAuth tokens and telemetry are stored exclusively in the local extension storage and are never relayed to any third party.
+- **OAuth Token & Metrics Storage Invariant**: OAuth access tokens are handled through Chrome Identity / browser auth cache and in-memory request flow. Extension Drawer does NOT persist raw OAuth access tokens in `chrome.storage.local`. Cached GA metric results and fetched timestamps may be stored locally. Data is never relayed to Extension Drawer servers or any third party.
 
 ---
 
