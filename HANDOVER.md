@@ -1,17 +1,44 @@
 # Handover
 
-Snapshot: 2026-10-04T12:35:00+02:00
+Snapshot: 2026-10-04T15:00:00+02:00
 
 ## Current release state (1.2.0 Release Candidate)
 - Extension Drawer version bumped from 1.1.0 to 1.2.0 across authoritative files (`src/manifest.json`, `package.json`, test assertions).
-- Candidate production ZIP built: `release/extension-drawer-1.2.0.zip` (5331.75 KB, SHA-256 `2b7e11a8615f9103c842cf02970294d7c2ae29e244da7f254b6f5bf7470869f0`).
-- Exact-package automated smoke test (`scripts/smoke-test-120-zip.mjs`) verified all 15 release criteria passed cleanly against the unpacked release archive in headless Chrome.
-- All documentation synchronized to 1.2.0 reality: `README.md`, `PRIVACY.md`, `POLICY_READINESS.md`, `docs/chrome-web-store/STORE_LISTING.md`, `docs/releases/v1.2.0.md`.
-- Stored assets include 5 full-bleed Chrome Web Store screenshots (1280x800) under `docs/chrome-web-store/screenshots/cws/`.
+- Verified candidate production ZIP rebuilt: `release/extension-drawer-1.2.0.zip` (5332.81 KB, SHA-256 `3e286f268299eeaacbde5ddb6c606e90def736bc18c251e5542867f8ed8ca3cc`).
+- Former blocked candidate archive `2b7e11a8615f9103c842cf02970294d7c2ae29e244da7f254b6f5bf7470869f0` is strictly INVALIDATED and SUPERSEDED.
+- Upgraded exact-package automated smoke test (`scripts/smoke-test-120-zip.mjs`) verified all 15 release criteria passed cleanly against the unpacked release archive in headless Chrome, including real functional target-extension automation verification (Criterion 6).
+- Full test suite passes: 24 test files, 379 tests passing with 0 errors.
+- TypeScript typecheck (`tsc --noEmit`) and ESLint (`eslint src/`) pass with 0 errors and 0 warnings.
 - Frozen 1.1.0 baseline `f87404a02534d704e00b281a38411f8c204d0cb9` and `release/extension-drawer-1.1.0.zip` preserved untouched.
 - External actions (git push, remote GitHub release creation, Chrome Web Store submission) remain strictly unexecuted pending operator approval.
 
 ## Work completed
+- **Extension Drawer 1.2.0 Site Rules Runtime Correctness & Developer Analytics 24h Refresh Milestone**:
+  - **Outcome 1 — Site Rules Runtime Lifecycle Correctness (`src/background/service-worker.ts`, `tests/unit/site-rules-runtime.test.ts`)**:
+    - Eliminated invalid heuristic `Object.keys(tabUrls).length === 0` which prevented authoritative tab queries when events woke the worker with partial tab state.
+    - Implemented explicit initialization state tracking (`isTabsInitialized` flag and asynchronous `ensureTabsInitialized()`).
+    - Top-level top-of-worker kick-off reconciles tabs asynchronously upon any wake event or service worker reload.
+    - Enhanced `chrome.tabs.onUpdated` to handle both `changeInfo.url` and `changeInfo.status === 'complete'` (with fallback to `tab.url`) so tab reloads (F5) trigger rule evaluation.
+    - Added `chrome.tabs.onActivated` listener to safely reconcile uninitialized workers or reconcile missing tabs.
+    - Added `evaluateAutoState(immediate = true)` support, called immediately on `SAVE_AUTOSTATE_RULES`, `SAVE_SETTINGS`, and `IMPORT_DATA`.
+    - Added 23 comprehensive unit tests covering lifecycle initialization, tab events, temporary-while-open semantics across multi-tab lifecycles, host normalization, and priority precedence.
+  - **Outcome 2 — Functional Release Regression Gate (`scripts/smoke-test-120-zip.mjs`)**:
+    - Upgraded Criterion 6 from passive DOM inspection to active functional verification against the unpacked release candidate.
+    - Verified real lifecycle automation: target extension starts OFF, matching tab turns target ON, unrelated tab activation preserves ON, closing matching tab restores to OFF, and SW lifecycle wake reconciles to ON.
+  - **Outcome 3 — Safe 24h Developer Analytics Stale-on-Open Refresh (`src/popup/components/DeveloperView.tsx`, `src/shared/ga4-client.ts`, `tests/unit/ga4-stale-refresh.test.ts`)**:
+    - Exported `GA4_STALE_CACHE_MS = 24 * 60 * 60 * 1000` (24 hours) and pure decision policy engine `shouldAutoRefreshAnalytics`.
+    - Implemented stale-on-open policy in `DeveloperView.tsx`:
+      - No cache: passive check with `checkAnalyticsPermissions()`; if granted, silently call `fetchGA4Report(propId, false)` without interactive OAuth. If not granted, no prompt is displayed.
+      - Cache < 24h: show cache immediately, do not auto-fetch.
+      - Cache >= 24h: display stale cache immediately (no blank screen, no blocking spinner), attempt ONE background silent refresh.
+      - On failure/offline: keep old cached metrics visible, show non-blocking subtle status (`Cached (update failed)`), do not show modal error.
+      - Manual "Refresh" button continues to bypass the 24h age check and fetch immediately.
+      - Deduplicated in-flight fetches across rapid mount/unmount and tab switches via module-level tracker and `evaluatedProjectsRef`.
+    - Zero periodic polling, zero background alarms, zero fetch when workspace is closed.
+    - Added 13 unit tests verifying all 9 policy requirements.
+  - **Outcome 4 — Production Rebuild & Candidate Re-Verification**:
+    - Rebuilt release candidate archive `release/extension-drawer-1.2.0.zip` (5332.81 KB, SHA-256 `3e286f268299eeaacbde5ddb6c606e90def736bc18c251e5542867f8ed8ca3cc`).
+    - 15/15 release criteria smoke test passed cleanly against the newly packed archive.
 - **Extension Drawer 1.2.0 Release-Prep Documentation, Versioning, Package & Exact-Artifact Validation Milestone**:
   - **Outcome 1 — Public Documentation Refresh (`README.md`, `PRIVACY.md`, `POLICY_READINESS.md`)**:
     - *README.md*: Updated with modern feature set (Site Rules, view modes, groups, guided tour, developer tools, privacy/permissions architecture) and illustrative marketing screenshots.
