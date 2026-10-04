@@ -291,9 +291,10 @@ async function main() {
 
   const browser = await puppeteer.launch(launchOptions);
 
-  const setupMockEnvironment = async (page) => {
+  const setupMockEnvironment = async (page, options = {}) => {
+    const { developerMode = true } = options;
     await page.evaluateOnNewDocument(
-      (exts, grps, rls, hist, projs, ga4) => {
+      (exts, grps, rls, hist, projs, ga4, devMode) => {
         window.__INTERNAL_EXTS = JSON.parse(JSON.stringify(exts));
         window.__INTERNAL_GRPS = JSON.parse(JSON.stringify(grps));
         window.__INTERNAL_RLS = JSON.parse(JSON.stringify(rls));
@@ -306,7 +307,7 @@ async function main() {
           accentColor: "#1a73e8",
           viewMode: "bigTile",
           showRecommendedIcons: true,
-          developerMode: true,
+          developerMode: devMode,
           autoStateEnabled: true,
           autoStateMode: "automatic",
         };
@@ -380,7 +381,8 @@ async function main() {
       sampleRules,
       sampleHistory,
       sampleDevProjects,
-      sampleGA4Metrics
+      sampleGA4Metrics,
+      developerMode
     );
   };
 
@@ -390,19 +392,19 @@ async function main() {
   console.log("[1/5] Generating CWS full-bleed 1-manage-groups.png (1280x800)...");
   const p1 = await browser.newPage();
   await p1.setViewport({ width: 1280, height: 800 });
-  await setupMockEnvironment(p1);
+  await setupMockEnvironment(p1, { developerMode: true });
   await p1.goto("http://localhost:8896/manager/manager.html?page=extensions", { waitUntil: "networkidle0" });
   await new Promise((r) => setTimeout(r, 600));
   await p1.screenshot({ path: path.join(CWS_DIR, "1-manage-groups.png"), omitBackground: false });
   await p1.close();
 
   // =========================================================================
-  // 2. Site Rules (2-site-rules.png) - Complete visual unit
+  // 2. Site Rules (2-site-rules.png) - Complete visual unit without heading clipping
   // =========================================================================
   console.log("[2/5] Generating CWS full-bleed 2-site-rules.png (1280x800)...");
   const p2 = await browser.newPage();
   await p2.setViewport({ width: 1280, height: 800 });
-  await setupMockEnvironment(p2);
+  await setupMockEnvironment(p2, { developerMode: true });
   await p2.goto("http://localhost:8896/manager/manager.html?page=autostate", { waitUntil: "networkidle0" });
   await new Promise((r) => setTimeout(r, 600));
 
@@ -421,10 +423,11 @@ async function main() {
       shieldCard.click();
     }
 
-    // 3. Scroll container so the New Rule builder reads as a complete, unified visual unit
+    // 3. Scroll container so the Rules heading and table are fully visible below sticky nav
+    // without any partial clipping or sliced letters (scrollTop = 110)
     const mainContent = document.querySelector(".main-content");
     if (mainContent) {
-      mainContent.scrollTop = 160;
+      mainContent.scrollTop = 110;
     }
   });
   await new Promise((r) => setTimeout(r, 400));
@@ -438,7 +441,7 @@ async function main() {
   // Left: History view (640x800)
   const p3a = await browser.newPage();
   await p3a.setViewport({ width: 640, height: 800 });
-  await setupMockEnvironment(p3a);
+  await setupMockEnvironment(p3a, { developerMode: true });
   await p3a.goto("http://localhost:8896/manager/manager.html?page=history", { waitUntil: "networkidle0" });
   await new Promise((r) => setTimeout(r, 600));
   const buf3a = await p3a.screenshot({ encoding: "base64" });
@@ -447,7 +450,7 @@ async function main() {
   // Right: Options Backup & Data section (640x800)
   const p3b = await browser.newPage();
   await p3b.setViewport({ width: 640, height: 800 });
-  await setupMockEnvironment(p3b);
+  await setupMockEnvironment(p3b, { developerMode: true });
   await p3b.goto("http://localhost:8896/manager/manager.html?page=options", { waitUntil: "networkidle0" });
   await new Promise((r) => setTimeout(r, 600));
   await p3b.evaluate(() => {
@@ -513,19 +516,20 @@ async function main() {
   console.log("[4/5] Generating CWS full-bleed 4-developer-workspace.png (1280x800)...");
   const p4 = await browser.newPage();
   await p4.setViewport({ width: 1280, height: 800 });
-  await setupMockEnvironment(p4);
+  await setupMockEnvironment(p4, { developerMode: true });
   await p4.goto("http://localhost:8896/manager/manager.html?page=developer", { waitUntil: "networkidle0" });
   await new Promise((r) => setTimeout(r, 800));
   await p4.screenshot({ path: path.join(CWS_DIR, "4-developer-workspace.png"), omitBackground: false });
   await p4.close();
 
   // =========================================================================
-  // 5. Getting Started (5-getting-started.png)
+  // 5. Getting Started (5-getting-started.png) - Default first-run (developerMode: false)
   // =========================================================================
-  console.log("[5/5] Generating CWS full-bleed 5-getting-started.png (1280x800)...");
+  console.log("[5/5] Generating CWS full-bleed 5-getting-started.png (1280x800, default first-run)...");
   const p5 = await browser.newPage();
   await p5.setViewport({ width: 1280, height: 800 });
-  await setupMockEnvironment(p5);
+  // Developer Workspace is optional and hidden by default on fresh install
+  await setupMockEnvironment(p5, { developerMode: false });
   await p5.goto("http://localhost:8896/manager/manager.html?page=welcome", { waitUntil: "networkidle0" });
   await new Promise((r) => setTimeout(r, 600));
   await p5.screenshot({ path: path.join(CWS_DIR, "5-getting-started.png"), omitBackground: false });

@@ -37,10 +37,10 @@ All images in `cws/` strictly comply with Google's official Chrome Web Store dev
 | # | Filename | Dimensions | Description / Key Elements |
 |---|---|---|---|
 | 1 | `1-manage-groups.png` | 1280 × 800 | **Extensions & Groups**: Catalog action bar (search, sort, view mode), live `5 / 6 running` status badge, group cards (*Daily Essentials*, *Web Development*) with batch toggles, and Big Tile extension cards with developer badges. |
-| 2 | `2-site-rules.png` | 1280 × 800 | **Site Rules**: Configured rules table and a complete, unified New Rule builder with target selection, `app.slack.com` pattern, timing, action, dynamic behavior preview box, and primary `Add rule` action. |
+| 2 | `2-site-rules.png` | 1280 × 800 | **Site Rules**: Fully visible Rules heading, configured rules table, and a complete, unified New Rule builder with target selection, `app.slack.com` pattern, timing, action, dynamic behavior preview box, and primary `Add rule` action. |
 | 3 | `3-history-backup.png` | 1280 × 800 | **History & Backup Split**: 640+640 dual-pane view. Left: chronological management history log. Right: Options page with **Backup & Data** as the dominant visible section (JSON config export, HTML extension list, CSV history export, JSON backup restore). |
 | 4 | `4-developer-workspace.png` | 1280 × 800 | **Developer Workspace**: Neutral fictional projects (*Sample Extension*, *Workspace Utility Demo*), local build controls, GitHub/CWS/ZIP integration chips, and opt-in Google Analytics 4 performance telemetry bar. |
-| 5 | `5-getting-started.png` | 1280 × 800 | **Welcome & Guided Tour Hub**: Clean onboarding surface featuring 4 core capability cards, Developer tools optional card, and both CTAs (*Start quick tour* and *Skip and open Extension Drawer*) fully visible. |
+| 5 | `5-getting-started.png` | 1280 × 800 | **Welcome & Guided Tour Hub**: Authentic default first-run state (Developer tab omitted from top navigation), featuring 4 core capability cards, Developer tools optional card, and both CTAs (*Start quick tour* and *Skip and open Extension Drawer*) fully visible without clipping. |
 
 ---
 
@@ -52,9 +52,9 @@ All images in `cws/` strictly comply with Google's official Chrome Web Store dev
 - [x] **Quantity**: Exactly 5 screenshots (the maximum allowed by CWS).
 - [x] **Full Bleed**: Square image corners, no simulated operating system framing, no fake browser tabs, authentic Extension Drawer UI fills 100% of the frame.
 - [x] **Layout Integrity**:
-  - Screenshot 2 displays the New Rule builder as an unbroken, complete visual unit.
+  - Screenshot 2 displays the Rules heading, configured rules table, and New Rule builder as an unbroken visual unit with zero clipping.
   - Screenshot 3 positions Backup & Data directly beneath the navigator, avoiding unrelated developer toggles.
-  - Screenshot 5 fits all onboarding cards and both call-to-action buttons without viewport clipping.
+  - Screenshot 5 reflects default first-run install state (Developer Workspace disabled) and fits all onboarding cards and both call-to-action buttons without viewport clipping.
 - [x] **Data Privacy & Neutrality**:
   - No personal user data, private tokens, internal file paths, or private emails.
   - Developer Workspace showcases neutral fictional extension identities (`Sample Extension`, `Workspace Utility Demo`).
