@@ -17,6 +17,60 @@ export const GA4_OAUTH_CLIENT_ID = "799106519083-4abp5ksuf8mmqnh6tjret0guni0dbpt
 export const GA4_EXTENSION_ID = "onkcjpfgllpfbimnchjehboikhippnka";
 
 /**
+ * Standard cache duration for Developer Analytics store listing metrics (24 hours).
+ */
+export const GA4_STALE_CACHE_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Returns true if the stored analytics metrics timestamp is older than 24 hours or missing.
+ */
+export function isAnalyticsCacheStale(
+  fetchedAt: number | undefined | null,
+  now: number = Date.now()
+): boolean {
+  if (!fetchedAt || typeof fetchedAt !== "number") return true;
+  return now - fetchedAt >= GA4_STALE_CACHE_MS;
+}
+
+export interface AutoRefreshAnalyticsDecision {
+  shouldFetch: boolean;
+  isStale: boolean;
+  reason: "no_target_property" | "no_cache_permitted" | "no_cache_unpermitted" | "cache_stale" | "cache_fresh";
+}
+
+/**
+ * Authoritative policy decision engine for stale-on-open Developer Analytics refresh.
+ */
+export function shouldAutoRefreshAnalytics(params: {
+  cachedPropertyId?: string;
+  fetchedAt?: number;
+  targetPropertyId: string;
+  hasPermissions: boolean;
+  now?: number;
+}): AutoRefreshAnalyticsDecision {
+  const { cachedPropertyId, fetchedAt, targetPropertyId, hasPermissions, now = Date.now() } = params;
+  const cleanTarget = cleanPropertyId(targetPropertyId);
+  if (!cleanTarget) {
+    return { shouldFetch: false, isStale: false, reason: "no_target_property" };
+  }
+
+  const hasCache = Boolean(cachedPropertyId && cachedPropertyId === cleanTarget);
+  if (!hasCache) {
+    if (hasPermissions) {
+      return { shouldFetch: true, isStale: false, reason: "no_cache_permitted" };
+    }
+    return { shouldFetch: false, isStale: false, reason: "no_cache_unpermitted" };
+  }
+
+  const stale = isAnalyticsCacheStale(fetchedAt, now);
+  if (stale) {
+    return { shouldFetch: true, isStale: true, reason: "cache_stale" };
+  }
+
+  return { shouldFetch: false, isStale: false, reason: "cache_fresh" };
+}
+
+/**
  * Optional permissions required for Developer Analytics (GA4).
  * These are requested at runtime only when the user explicitly initiates
  * an Analytics connection — never automatically on extension load or

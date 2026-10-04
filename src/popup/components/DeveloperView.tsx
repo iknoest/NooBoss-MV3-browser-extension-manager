@@ -1,4 +1,4 @@
-import { useState, useEffect } from "preact/hooks";
+import { useState, useEffect, useRef } from "preact/hooks";
 import type { DeveloperProject, ExtensionInfo } from "../../shared/types";
 import { generateId } from "../../shared/types";
 import { MaterialSymbol } from "./MaterialSymbols";
@@ -9,6 +9,7 @@ import {
   getGA4PropertyReportsUrl,
   checkAnalyticsPermissions,
   requestAnalyticsPermissions,
+  isAnalyticsCacheStale,
   type GA4ReportResult,
 } from "../../shared/ga4-client";
 import {
@@ -59,6 +60,9 @@ export function getUnlinkedDevExtensions(
   return allDev.filter((e) => !linkedLocalIds.has(e.id));
 }
 
+// Module-level set tracking properties currently fetching to deduplicate across rapid mount/unmount & tab switches
+export const inFlightGA4PropertyFetches = new Set<string>();
+
 export function DeveloperView({
   projects,
   extensions,
@@ -77,25 +81,113 @@ export function DeveloperView({
   // GA4 Live Tracking state
   const [metricsMap, setMetricsMap] = useState<Record<string, StoredGA4MetricsRecord>>({});
   const [connectingProjectIds, setConnectingProjectIds] = useState<Set<string>>(new Set());
+  const [backgroundRefreshingIds, setBackgroundRefreshingIds] = useState<Set<string>>(new Set());
+  const [refreshErrors, setRefreshErrors] = useState<Record<string, string>>({});
   const [projectErrors, setProjectErrors] = useState<Record<string, string>>({});
   const [connectModalProject, setConnectModalProject] = useState<DeveloperProject | null>(null);
   const [isConnectingModal, setIsConnectingModal] = useState<boolean>(false);
   const [modalError, setModalError] = useState<string | null>(null);
 
+  // Evaluated project IDs during this mount to prevent repeated evaluation across rerenders
+  const evaluatedProjectsRef = useRef<Set<string>>(new Set());
+
   // Package download state
   const [downloadingProjectIds, setDownloadingProjectIds] = useState<Set<string>>(new Set());
   const [downloadFeedback, setDownloadFeedback] = useState<{ id: string; message: string; isError: boolean } | null>(null);
 
-  // Load stored GA4 metrics on mount / project update
+  const performSilentRefresh = async (project: DeveloperProject, propId: string) => {
+    if (inFlightGA4PropertyFetches.has(propId)) return;
+    inFlightGA4PropertyFetches.add(propId);
+    setBackgroundRefreshingIds((prev) => new Set(prev).add(project.id));
+
+    try {
+      const result = await fetchGA4Report(propId, false);
+      const record: StoredGA4MetricsRecord = {
+        propertyId: propId,
+        visitors: result.visitors,
+        views: result.views,
+        engagementRate: result.engagementRate,
+        newUsers: result.newUsers,
+        visitorsTrend: result.visitorsTrend,
+        viewsTrend: result.viewsTrend,
+        engagementTrend: result.engagementTrend,
+        newUsersTrend: result.newUsersTrend,
+        activeUsers: result.activeUsers,
+        eventCount: result.eventCount,
+        keyEvents: result.keyEvents,
+        fetchedAt: result.fetchedAt,
+      };
+      await saveProjectGA4Metrics(project.id, record);
+      setMetricsMap((prev) => ({ ...prev, [project.id]: record }));
+      setRefreshErrors((prev) => {
+        const copy = { ...prev };
+        delete copy[project.id];
+        return copy;
+      });
+      setProjectErrors((prev) => {
+        const copy = { ...prev };
+        delete copy[project.id];
+        return copy;
+      });
+    } catch (err: any) {
+      // Non-blocking failure:
+      // Keep old cached metrics visible (do NOT delete metricsMap[project.id]).
+      // Do NOT surface an intrusive error modal or wipe out existing data.
+      const msg = err?.message || "Background refresh failed.";
+      setRefreshErrors((prev) => ({ ...prev, [project.id]: msg }));
+    } finally {
+      inFlightGA4PropertyFetches.delete(propId);
+      setBackgroundRefreshingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(project.id);
+        return next;
+      });
+    }
+  };
+
+  // Load stored GA4 metrics on mount / project update and apply 24h stale-on-open policy
   useEffect(() => {
     let isMounted = true;
-    getGA4MetricsMap()
-      .then((map) => {
-        if (isMounted && map) {
-          setMetricsMap(map);
+
+    async function loadAndReconcileMetrics() {
+      try {
+        const map = (await getGA4MetricsMap()) || {};
+        if (!isMounted) return;
+        setMetricsMap(map);
+
+        const now = Date.now();
+        for (const proj of projects) {
+          const propId = cleanPropertyId(proj.gaPropertyId);
+          if (!propId) continue;
+
+          // Prevent duplicate checks for this project in the current mount session
+          if (evaluatedProjectsRef.current.has(proj.id)) continue;
+          evaluatedProjectsRef.current.add(proj.id);
+
+          const cached = map[proj.id];
+          const hasMatchingCache = Boolean(cached && cached.propertyId === propId);
+
+          if (!hasMatchingCache) {
+            // No cache: passive permission check; do not prompt interactive OAuth automatically
+            const hasPerms = await checkAnalyticsPermissions();
+            if (!isMounted) return;
+            if (hasPerms) {
+              await performSilentRefresh(proj, propId);
+            }
+          } else if (isAnalyticsCacheStale(cached.fetchedAt, now)) {
+            // Stale cache (>= 24h): stale cache already visible, perform ONE silent background refresh
+            if (!isMounted) return;
+            await performSilentRefresh(proj, propId);
+          }
+          // If cache is younger than 24h: show cache, do NOT fetch.
         }
-      })
-      .catch(() => {});
+      } catch (err) {
+        console.warn("[DeveloperView] Failed to load/reconcile GA4 metrics:", err);
+      }
+    }
+
+    loadAndReconcileMetrics();
+
     return () => {
       isMounted = false;
     };
@@ -183,6 +275,11 @@ export function DeveloperView({
     const propId = cleanPropertyId(project.gaPropertyId);
     if (!propId) return;
     setConnectingProjectIds((prev) => new Set(prev).add(project.id));
+    setRefreshErrors((prev) => {
+      const copy = { ...prev };
+      delete copy[project.id];
+      return copy;
+    });
     try {
       // Verify Analytics permissions are still granted (handles upgrade from required→optional)
       const hasPerms = await checkAnalyticsPermissions();
@@ -222,9 +319,15 @@ export function DeveloperView({
         delete copy[project.id];
         return copy;
       });
+      setRefreshErrors((prev) => {
+        const copy = { ...prev };
+        delete copy[project.id];
+        return copy;
+      });
     } catch (err: any) {
       const msg = err?.message || "Refresh failed.";
       setProjectErrors((prev) => ({ ...prev, [project.id]: msg }));
+      setRefreshErrors((prev) => ({ ...prev, [project.id]: msg }));
     } finally {
       setConnectingProjectIds((prev) => {
         const copy = new Set(prev);
@@ -242,6 +345,11 @@ export function DeveloperView({
       return copy;
     });
     setProjectErrors((prev) => {
+      const copy = { ...prev };
+      delete copy[projectId];
+      return copy;
+    });
+    setRefreshErrors((prev) => {
       const copy = { ...prev };
       delete copy[projectId];
       return copy;
@@ -411,6 +519,7 @@ export function DeveloperView({
                   ? reloadingIds.has(proj.localExtensionId)
                   : false;
                 const isConnecting = connectingProjectIds.has(proj.id);
+                const isBackgroundRefreshing = backgroundRefreshingIds.has(proj.id);
                 const storedRecord = metricsMap[proj.id];
                 const isConnected = !!(
                   storedRecord &&
@@ -418,6 +527,7 @@ export function DeveloperView({
                   storedRecord.propertyId === cleanPropertyId(proj.gaPropertyId)
                 );
                 const projectError = projectErrors[proj.id];
+                const refreshError = refreshErrors[proj.id];
 
                 return (
                   <article
@@ -636,13 +746,19 @@ export function DeveloperView({
                             href={getGA4PropertyReportsUrl(proj.gaPropertyId)}
                             target="_blank"
                             rel="noreferrer"
-                            className="dev-status-chip dev-chip-connected dev-chip-linked"
-                            title={`Open Google Analytics reports for property ${cleanPropertyId(proj.gaPropertyId)} (new tab)`}
+                            className={`dev-status-chip dev-chip-connected dev-chip-linked ${refreshError ? "dev-chip-stale" : ""}`}
+                            title={
+                              refreshError
+                                ? `Analytics connected (cached - update failed). Click to open Google Analytics reports.`
+                                : `Open Google Analytics reports for property ${cleanPropertyId(proj.gaPropertyId)} (new tab)`
+                            }
                           >
                             <span className="dev-status-dot-frame">
-                              <span className="dev-status-dot connected" />
+                              <span className={`dev-status-dot ${refreshError ? "stale" : "connected"}`} />
                             </span>
-                            <span className="dev-chip-label">Analytics connected</span>
+                            <span className="dev-chip-label">
+                              {refreshError ? "Analytics connected (cached)" : "Analytics connected"}
+                            </span>
                             <MaterialSymbol name="open_in_new" size={14} color="currentColor" />
                           </a>
                         ) : projectError ? (
@@ -789,6 +905,14 @@ export function DeveloperView({
                           <div className="dev-ga4-metric-status">
                             {isConnected ? (
                               <div className="dev-ga4-metric-actions">
+                                {refreshError && (
+                                  <span
+                                    className="dev-ga4-cached-warning"
+                                    title={`Update failed: ${refreshError}`}
+                                  >
+                                    Cached (update failed)
+                                  </span>
+                                )}
                                 <button
                                   type="button"
                                   className="dev-ga4-refresh-btn"
@@ -796,11 +920,15 @@ export function DeveloperView({
                                     e.stopPropagation();
                                     handleRefreshGA4(proj);
                                   }}
-                                  disabled={isConnecting}
+                                  disabled={isConnecting || isBackgroundRefreshing}
                                   title="Refresh 28-day store listing analytics"
                                   aria-label="Refresh metrics"
                                 >
-                                  <MaterialSymbol name="refresh" size={12} className={isConnecting ? "spin-icon" : ""} />
+                                  <MaterialSymbol
+                                    name="refresh"
+                                    size={12}
+                                    className={isConnecting || isBackgroundRefreshing ? "spin-icon" : ""}
+                                  />
                                   <span>Refresh</span>
                                 </button>
                               </div>

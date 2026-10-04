@@ -4328,6 +4328,19 @@ details.dev-menu-container > summary::-webkit-details-marker {
   box-shadow: 0 0 0 2px rgba(217, 48, 37, 0.2);
 }
 
+.dev-status-dot.stale {
+  background-color: #f9ab00;
+  box-shadow: 0 0 0 2px rgba(249, 171, 0, 0.2);
+}
+
+.dev-ga4-cached-warning {
+  font-size: 11px;
+  color: var(--text-secondary, #5f6368);
+  font-style: italic;
+  margin-right: 4px;
+  user-select: none;
+}
+
 /* Analytics Performance Summary Line Elements */
 .dev-ga4-period-label {
   font-size: 10px;
