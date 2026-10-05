@@ -89,7 +89,7 @@ KEY CAPABILITIES
 • Search & Filter: Filter history by event type or search by extension name.
 • Single Canonical Backup Location: Centralized under Options → Backup & Data.
 • Export Configuration (JSON): Save groups, Site Rules, and preferences to a portable JSON file.
-• Import Configuration (JSON): Easily restore your configuration on any browser from a previously exported backup file.
+• Import Configuration (JSON): Restore your groups, Site Rules and preferences in another Chrome profile or Extension Drawer installation from a previously exported backup file.
 • Export Extension List (HTML): Generate a clean, offline HTML catalog of your installed extensions with direct Web Store links.
 
 5. HISTORY IMPORT & EXPORT

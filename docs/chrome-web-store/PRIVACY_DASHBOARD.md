@@ -57,11 +57,11 @@ Required to display optional local desktop notifications when extensions are ins
   URLs of currently open tabs are evaluated transiently in memory against user-configured domain and path rules solely to determine which extensions should be enabled or disabled on that website. Browsing history and URLs are never saved to persistent storage, never recorded in extension history, and never transmitted to any external server.
   ```
 
-### Category: User Activity / Installed Extensions *(VERIFY IN CURRENT DASHBOARD)*
-- **Is it collected/handled?** **Yes** (Installed extension metadata).
+### Category: Authentication Information
+- **Is it collected/handled?** **Yes** (Temporary OAuth token for optional Google Analytics connection).
 - **Usage Description:**
   ```text
-  Extension names, versions, enabled status, and IDs are read locally via chrome.management to display and control extensions in the UI.
+  Used only when the user explicitly connects Google Analytics in the optional Developer Workspace. Chrome Identity provides a temporary OAuth access token used to make read-only requests to the Google Analytics Data API. Raw OAuth tokens are not persisted in Extension Drawer storage or sent to Extension Drawer servers.
   ```
 
 ---
