@@ -7,6 +7,9 @@
 
 > **Extension Drawer** is an independent Manifest V3 browser extension manager built from and inspired by the open-source **NooBoss** project originally created by [AInoob](https://github.com/AInoob).
 
+> ### 🚀 Now available on the Chrome Web Store
+> [**Install Extension Drawer →**](https://chromewebstore.google.com/detail/onkcjpfgllpfbimnchjehboikhippnka)
+
 <p align="center">
   <img src="docs/chrome-web-store/screenshots/marketing/1-manage-groups.png" alt="Extension Drawer - Manage Extensions & Groups" width="100%" />
 </p>
