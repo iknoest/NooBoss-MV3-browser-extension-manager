@@ -127,3 +127,23 @@ export function sortGroupMemberExtensions(
     return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
   });
 }
+
+/**
+ * Builds a user-initiated web search URL to help discover/identify a missing extension.
+ * Defaults to: chrome extension "<EXTENSION_ID>"
+ * If a known name is provided: chrome extension "<NAME>" "<EXTENSION_ID>"
+ */
+export function buildExtensionWebSearchUrl(
+  extensionId: string,
+  extensionName?: string,
+  isKnown: boolean = false
+): string {
+  const cleanId = (extensionId || "").trim();
+  const cleanName = (extensionName || "").trim();
+  const query =
+    isKnown && cleanName && cleanName !== cleanId && cleanName !== "Unknown extension"
+      ? `chrome extension "${cleanName}" "${cleanId}"`
+      : `chrome extension "${cleanId}"`;
+  const params = new URLSearchParams({ q: query });
+  return `https://www.google.com/search?${params.toString()}`;
+}

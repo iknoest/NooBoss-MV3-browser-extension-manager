@@ -749,21 +749,27 @@ async function verifyAcceptance() {
   if (!copyBtn) throw new Error("Copy ID button not found on unknown missing card!");
   console.log("  ✓ Copy ID action button present on missing member card.");
 
-  const lookupBtn = await unknownCard.asElement().$(".missing-lookup-btn");
-  if (!lookupBtn) throw new Error("Look up button not found on unknown missing card!");
-  console.log("  ✓ Look up action button present on genuinely unknown missing card.");
+  const searchWebBtn = await unknownCard.asElement().$(".missing-search-btn");
+  if (!searchWebBtn) throw new Error("Search web button not found on unknown missing card!");
+  const btnText = await searchWebBtn.evaluate((el) => el.textContent.trim());
+  if (!btnText.includes("Search web")) {
+    throw new Error(`Expected 'Search web' label, got: ${btnText}`);
+  }
+  console.log("  ✓ Search web action button present with 'Search web' label on genuinely unknown missing card.");
 
   // Click Copy ID and verify immediate non-blocking gesture
   await copyBtn.evaluate((el) => el.click());
   await new Promise((r) => setTimeout(r, 100));
 
-  // Click Look up and verify Chrome Web Store search link invocation
-  await lookupBtn.evaluate((el) => el.click());
+  // Click Search web and verify explicit Google search tab invocation with quoted extension ID
+  await searchWebBtn.evaluate((el) => el.click());
   await new Promise((r) => setTimeout(r, 100));
   const openedTabs = await page.evaluate(() => window.__openedTabs);
-  const lookedUp = openedTabs.some((u) => u.includes("chromewebstore.google.com/search?q=ext_completely_unknown"));
-  if (!lookedUp) throw new Error(`Look up tab was not opened! Opened tabs: ${JSON.stringify(openedTabs)}`);
-  console.log("  ✓ Look up successfully invoked Chrome Web Store search URL without background network requests.");
+  const searchedGoogle = openedTabs.some((u) => u.includes("google.com/search") && u.includes(encodeURIComponent('"ext_completely_unknown"')));
+  if (!searchedGoogle) throw new Error(`Search web tab was not opened! Opened tabs: ${JSON.stringify(openedTabs)}`);
+  const usedCws = openedTabs.some((u) => u.includes("chromewebstore.google.com/search"));
+  if (usedCws) throw new Error("CWS search URL was unexpectedly opened!");
+  console.log("  ✓ Search web successfully invoked explicit Google search URL with quoted ID, and CWS search is completely eliminated.");
 
   // Test reversible Remove-from-Group with Undo in focused view:
   // Remove ext_cached_missing from group

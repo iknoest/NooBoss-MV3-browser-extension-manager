@@ -19,6 +19,7 @@ import { BUY_ME_A_BEER_URL } from "../../src/shared/external-link";
 import {
   resolveLastKnownExtensionName,
   resolveMissingMemberIdentity,
+  buildExtensionWebSearchUrl,
 } from "../../src/popup/components/group-member-utils";
 import { computeGroupRuntimeSummary } from "../../src/popup/components/group-summary";
 import { Selector } from "../../src/popup/components/Selector";
@@ -1084,7 +1085,28 @@ describe("Extension Drawer 1.2.1 Post-Launch UX Patch", () => {
       expect(resolveLastKnownExtensionName("completely_unknown_id", hist, cache, installedList)).toBeNull();
     });
 
-    it("renders Copy ID and Look up for genuinely unknown missing members", () => {
+    it("buildExtensionWebSearchUrl creates explicit Google search query with quoted extension ID and no CWS dependency", () => {
+      // 1. Unknown extension: chrome extension "<ID>"
+      const unknownUrl = buildExtensionWebSearchUrl("hnchgcelpejnpglbnaieofanfoikiepb");
+      expect(unknownUrl).not.toContain("chromewebstore.google.com");
+      expect(unknownUrl.startsWith("https://www.google.com/search?")).toBe(true);
+
+      const parsedUnknown = new URL(unknownUrl);
+      const queryParam = parsedUnknown.searchParams.get("q");
+      expect(queryParam).toBe('chrome extension "hnchgcelpejnpglbnaieofanfoikiepb"');
+      expect(unknownUrl).toContain(encodeURIComponent('"hnchgcelpejnpglbnaieofanfoikiepb"'));
+
+      // 2. Known extension with name: chrome extension "<NAME>" "<ID>"
+      const knownUrl = buildExtensionWebSearchUrl("hnchgcelpejnpglbnaieofanfoikiepb", "Rakuten Browser Extension", true);
+      expect(knownUrl).not.toContain("chromewebstore.google.com");
+      const parsedKnown = new URL(knownUrl);
+      const knownQueryParam = parsedKnown.searchParams.get("q");
+      expect(knownQueryParam).toBe('chrome extension "Rakuten Browser Extension" "hnchgcelpejnpglbnaieofanfoikiepb"');
+      expect(knownUrl).toContain("%22Rakuten+Browser+Extension%22");
+      expect(knownUrl).toContain("%22hnchgcelpejnpglbnaieofanfoikiepb%22");
+    });
+
+    it("renders Copy ID and Search web for genuinely unknown missing members, opens tab only on explicit click", () => {
       const vnode = MissingGroupMembers({
         missingIds: ["unknown_missing_ext_id"],
         knownExtensions: {},
@@ -1103,17 +1125,40 @@ describe("Extension Drawer 1.2.1 Post-Launch UX Patch", () => {
       expect(copyBtn).not.toBeNull();
       expect(copyBtn.props["aria-label"]).toBe("Copy ID unknown_missing_ext_id");
 
-      // Look up button present for unknown missing member
-      const lookupBtn = findVNode(vnode, (n) => n.props?.className?.includes("missing-lookup-btn"));
-      expect(lookupBtn).not.toBeNull();
-      expect(lookupBtn.props["aria-label"]).toContain("Look up unknown_missing_ext_id");
+      // Search web button present for unknown missing member
+      const searchWebBtn = findVNode(vnode, (n) => n.props?.className?.includes("missing-search-btn"));
+      expect(searchWebBtn).not.toBeNull();
+      expect(searchWebBtn.props["aria-label"]).toBe("Search web for unknown_missing_ext_id");
+      expect(searchWebBtn.props.title).toBe("Search web for this extension");
+      const labelSpan = findVNode(searchWebBtn, (n) => n.type === "span");
+      expect(labelSpan.props.children).toBe("Search web");
+
+      // Verify CWS search URL is NOT used anywhere
+      expect(JSON.stringify(vnode)).not.toContain("chromewebstore.google.com/search");
 
       // Remove from group button present
       const removeBtn = findVNode(vnode, (n) => n.props?.className?.includes("missing-remove-btn"));
       expect(removeBtn).not.toBeNull();
+
+      // Test click interaction and privacy: no search happens before click
+      const createSpy = vi.fn();
+      (globalThis as any).chrome = { tabs: { create: createSpy } };
+
+      expect(createSpy).not.toHaveBeenCalled();
+
+      // Click Search web explicitly
+      const mockEvent = { stopPropagation: vi.fn() };
+      searchWebBtn.props.onClick(mockEvent);
+
+      expect(mockEvent.stopPropagation).toHaveBeenCalled();
+      expect(createSpy).toHaveBeenCalledTimes(1);
+      const calledUrl = createSpy.mock.calls[0][0].url;
+      expect(calledUrl).toContain("https://www.google.com/search?");
+      expect(calledUrl).toContain(encodeURIComponent('"unknown_missing_ext_id"'));
+      expect(calledUrl).not.toContain("chromewebstore.google.com");
     });
 
-    it("omits Look up button for known missing members while preserving Copy ID and Remove", () => {
+    it("omits Search web button for known missing members while preserving Copy ID and Remove", () => {
       const vnode = MissingGroupMembers({
         missingIds: ["known_missing_ext_id"],
         knownExtensions: {
@@ -1135,13 +1180,20 @@ describe("Extension Drawer 1.2.1 Post-Launch UX Patch", () => {
       const copyBtn = findVNode(vnode, (n) => n.props?.className?.includes("missing-copy-btn"));
       expect(copyBtn).not.toBeNull();
 
-      // Look up NOT present because identity is already known
-      const lookupBtn = findVNode(vnode, (n) => n.props?.className?.includes("missing-lookup-btn"));
-      expect(lookupBtn).toBeNull();
+      // Search web NOT present because identity is already known
+      const searchWebBtn = findVNode(vnode, (n) => n.props?.className?.includes("missing-search-btn"));
+      expect(searchWebBtn).toBeNull();
 
       // Remove present
       const removeBtn = findVNode(vnode, (n) => n.props?.className?.includes("missing-remove-btn"));
       expect(removeBtn).not.toBeNull();
+    });
+
+    it("verifies manifest.json introduces zero new permissions for web search feature", () => {
+      const manifestPath = path.resolve(__dirname, "../../src/manifest.json");
+      const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf-8"));
+      expect(manifest.permissions).toEqual(["management", "storage", "tabs", "notifications"]);
+      expect(manifest.optional_permissions).toEqual(["downloads", "identity"]);
     });
 
     it("verifies inventory-load correctness: loading and error states NEVER report missing members", () => {

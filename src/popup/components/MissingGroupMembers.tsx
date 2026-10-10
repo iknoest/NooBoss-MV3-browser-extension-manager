@@ -1,6 +1,6 @@
 import type { HistoryRecord, KnownExtensionMetadata, ExtensionInfo } from "../../shared/types";
 import { MaterialSymbol } from "./MaterialSymbols";
-import { resolveMissingMemberIdentity } from "./group-member-utils";
+import { resolveMissingMemberIdentity, buildExtensionWebSearchUrl } from "./group-member-utils";
 
 export interface MissingGroupMembersProps {
   missingIds: string[];
@@ -48,9 +48,9 @@ export function MissingGroupMembers({
     }
   };
 
-  const handleLookupId = (e: MouseEvent, id: string) => {
+  const handleSearchWeb = (e: MouseEvent, id: string, name?: string, isKnown?: boolean) => {
     e.stopPropagation();
-    const url = `https://chromewebstore.google.com/search?q=${encodeURIComponent(id)}`;
+    const url = buildExtensionWebSearchUrl(id, name, isKnown);
     if (typeof chrome !== "undefined" && chrome.tabs?.create) {
       chrome.tabs.create({ url });
     } else if (typeof window !== "undefined") {
@@ -118,13 +118,13 @@ export function MissingGroupMembers({
                 {!isKnown && (
                   <button
                     type="button"
-                    className="btn btn-secondary action-btn missing-lookup-btn"
-                    onClick={(e) => handleLookupId(e as unknown as MouseEvent, id)}
-                    title="Look up extension in Chrome Web Store"
-                    aria-label={`Look up ${id} in Chrome Web Store`}
+                    className="btn btn-secondary action-btn missing-search-btn missing-lookup-btn"
+                    onClick={(e) => handleSearchWeb(e as unknown as MouseEvent, id, displayName, isKnown)}
+                    title="Search web for this extension"
+                    aria-label={`Search web for ${id}`}
                   >
                     <MaterialSymbol name="travel_explore" size={14} fallback="search" />
-                    <span>Look up</span>
+                    <span>Search web</span>
                   </button>
                 )}
                 <button
