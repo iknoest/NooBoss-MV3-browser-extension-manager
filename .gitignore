@@ -26,3 +26,5 @@ dist.zip
 tests/fixtures/legacy-0.1.9/
 /release/
 HANDOVER.md
+docs/marketing/renders/
+docs/chrome-web-store/evidence-*.png
