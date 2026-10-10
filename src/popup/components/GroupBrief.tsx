@@ -111,7 +111,11 @@ export function GroupBrief({
             <span className="item-name" title={group.name}>{group.name}</span>
             <span className="item-version">
               {summary.summaryText}
-              {summary.exceptionText && <span className="exception-text"> · {summary.exceptionText}</span>}
+              {summary.exceptionText && (
+                <span className="exception-text" title={summary.hasMissing ? summary.missingTooltipText : undefined}>
+                  {" · "}{summary.exceptionText}
+                </span>
+              )}
             </span>
           </div>
         </div>
@@ -174,7 +178,11 @@ export function GroupBrief({
         <span className="list-name" title={group.name}>{group.name}</span>
         <span className="list-version">
           {summary.summaryText}
-          {summary.exceptionText && <span className="exception-text"> · {summary.exceptionText}</span>}
+          {summary.exceptionText && (
+            <span className="exception-text" title={summary.hasMissing ? summary.missingTooltipText : undefined}>
+              {" · "}{summary.exceptionText}
+            </span>
+          )}
         </span>
       </div>
     );
@@ -206,7 +214,11 @@ export function GroupBrief({
           </span>
           <span className="item-version">
             {summary.summaryText}
-            {summary.exceptionText && <span className="exception-text"> · {summary.exceptionText}</span>}
+            {summary.exceptionText && (
+              <span className="exception-text" title={summary.hasMissing ? summary.missingTooltipText : undefined}>
+                {" · "}{summary.exceptionText}
+              </span>
+            )}
           </span>
         </div>
 
@@ -297,7 +309,11 @@ export function GroupBrief({
         </span>
         <span className="list-version">
           {summary.summaryText}
-          {summary.exceptionText && <span className="exception-text"> · {summary.exceptionText}</span>}
+          {summary.exceptionText && (
+            <span className="exception-text" title={summary.hasMissing ? summary.missingTooltipText : undefined}>
+              {" · "}{summary.exceptionText}
+            </span>
+          )}
         </span>
         {withControl && (
           <div className="list-actions" onClick={(e) => e.stopPropagation()}>

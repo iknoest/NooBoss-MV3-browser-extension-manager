@@ -10,6 +10,7 @@ export interface GroupRuntimeSummary {
   exceptionText?: string;
   hasUnavailable: boolean;
   hasMissing: boolean;
+  missingTooltipText?: string;
 }
 
 export function computeGroupRuntimeSummary(
@@ -41,6 +42,9 @@ export function computeGroupRuntimeSummary(
   }
 
   const exceptionText = exceptions.length > 0 ? exceptions.join(" · ") : undefined;
+  const missingTooltipText = missingMemberCount > 0
+    ? `${missingMemberCount} saved group member${missingMemberCount > 1 ? "s are" : " is"} not currently installed in Chrome.`
+    : undefined;
 
   return {
     configuredMemberCount,
@@ -52,5 +56,6 @@ export function computeGroupRuntimeSummary(
     exceptionText,
     hasUnavailable: unavailableMemberCount > 0,
     hasMissing: missingMemberCount > 0,
+    missingTooltipText,
   };
 }

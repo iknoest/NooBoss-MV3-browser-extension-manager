@@ -688,6 +688,7 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
               onCopyGroup={handleCopyGroup}
               onDeleteGroup={handleDeleteGroup}
               onCreateGroup={handleCreateGroup}
+              onUpdateGroup={handleUpdateGroup}
               onOpenSubWindow={handleOpenSubWindow}
               focusedGroupId={focusedGroupId}
               onFocusGroup={handleFocusGroup}

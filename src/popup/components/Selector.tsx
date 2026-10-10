@@ -8,6 +8,7 @@ import { MaterialSymbol } from "./MaterialSymbols";
 import { sortGroupMemberExtensions } from "./group-member-utils";
 import { computeGroupRuntimeSummary } from "./group-summary";
 import { GroupCommandControl } from "./GroupCommandControl";
+import { MissingGroupMembers } from "./MissingGroupMembers";
 
 export type SortMode =
   | "recently_installed"
@@ -140,6 +141,7 @@ export interface SelectorProps {
   onCopyGroup?: (id: string) => void;
   onDeleteGroup?: (id: string) => void;
   onCreateGroup?: () => void;
+  onUpdateGroup?: (group: ExtensionGroup) => void;
   onOpenSubWindow?: (type: "extension" | "group", id: string) => void;
   themeMainColor?: string;
   filterTypeOnly?: string;
@@ -175,6 +177,7 @@ export function Selector({
   onCopyGroup,
   onDeleteGroup,
   onCreateGroup,
+  onUpdateGroup,
   onOpenSubWindow,
   themeMainColor,
   filterTypeOnly,
@@ -224,6 +227,17 @@ export function Selector({
   const focusedGroup = useMemo(() => {
     return activeFocusedGroupId ? groups.find((g) => g.id === activeFocusedGroupId) || null : null;
   }, [activeFocusedGroupId, groups]);
+
+  const missingMemberIds = useMemo(() => {
+    if (!focusedGroup) return [];
+    return (focusedGroup.extensionIds || []).filter((id) => !extensions.some((e) => e.id === id));
+  }, [focusedGroup, extensions]);
+
+  const handleRemoveMissingMember = (idToRemove: string) => {
+    if (!focusedGroup) return;
+    const nextIds = (focusedGroup.extensionIds || []).filter((id) => id !== idToRemove);
+    onUpdateGroup?.({ ...focusedGroup, extensionIds: nextIds });
+  };
 
   const hasApps = useMemo(
     () => extensions.some((e) => e.type === "app" || e.type === "hosted_app" || e.type === "packaged_app"),
@@ -677,7 +691,16 @@ export function Selector({
             <span className="group-focus-stats">
               {computeGroupRuntimeSummary(focusedGroup, extensions).summaryText}
               {computeGroupRuntimeSummary(focusedGroup, extensions).exceptionText && (
-                <span className="exception-text"> · {computeGroupRuntimeSummary(focusedGroup, extensions).exceptionText}</span>
+                <span
+                  className="exception-text"
+                  title={
+                    computeGroupRuntimeSummary(focusedGroup, extensions).hasMissing
+                      ? computeGroupRuntimeSummary(focusedGroup, extensions).missingTooltipText
+                      : undefined
+                  }
+                >
+                  {" · "}{computeGroupRuntimeSummary(focusedGroup, extensions).exceptionText}
+                </span>
               )}
             </span>
           </div>
@@ -706,14 +729,20 @@ export function Selector({
       {/* Group Focus Empty State */}
       {focusedGroup && extensionList.length === 0 && appList.length === 0 && themeList.length === 0 && (
         <div className="group-focus-empty-state">
-          <p>No extensions are assigned to this group yet.</p>
-          <button
-            type="button"
-            className="btn btn-secondary action-btn"
-            onClick={() => onOpenSubWindow?.("group", focusedGroup.id)}
-          >
-            Edit group membership
-          </button>
+          {missingMemberIds.length > 0 ? (
+            <p>No installed extensions in this group.</p>
+          ) : (
+            <>
+              <p>No extensions are assigned to this group yet.</p>
+              <button
+                type="button"
+                className="btn btn-secondary action-btn"
+                onClick={() => onOpenSubWindow?.("group", focusedGroup.id)}
+              >
+                Edit group membership
+              </button>
+            </>
+          )}
         </div>
       )}
 
@@ -831,6 +860,17 @@ export function Selector({
             ))}
           </div>
         </div>
+      )}
+
+      {/* Missing Group Members Section (Outcome 1A) */}
+      {focusedGroup && (
+        <MissingGroupMembers
+          missingIds={missingMemberIds}
+          history={history}
+          searchFilter={filterName}
+          onRemoveMember={handleRemoveMissingMember}
+          themeMainColor={themeMainColor}
+        />
       )}
     </div>
   );

@@ -3368,6 +3368,146 @@ details.dev-menu-container > summary::-webkit-details-marker {
   font-size: 13px;
 }
 
+/* ── Missing Group Members Section (1.2.1 UX Patch) ────────── */
+.missing-group-members-section {
+  margin: 16px 0 20px 0;
+  padding: 12px 14px;
+  background-color: var(--bg-card, #ffffff);
+  border: 1px dashed var(--border-subtle, #dadce0);
+  border-radius: var(--radius-md, 8px);
+}
+
+[data-theme="dark"] .missing-group-members-section {
+  background-color: var(--bg-card, #202124);
+  border-color: var(--border-subtle, #3c4043);
+}
+
+.missing-group-members-section.in-editor {
+  margin: 12px 0 16px 0;
+  background-color: var(--bg-secondary, #f8f9fa);
+}
+
+[data-theme="dark"] .missing-group-members-section.in-editor {
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+.missing-members-heading {
+  font-size: 13px !important;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 10px 0 !important;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.missing-members-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.missing-member-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background-color: var(--bg-secondary, #f8f9fa);
+  border: 1px solid var(--border-subtle, #dadce0);
+  border-radius: var(--radius-md, 6px);
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+  flex-wrap: wrap;
+}
+
+[data-theme="dark"] .missing-member-card {
+  background-color: rgba(255, 255, 255, 0.03);
+  border-color: var(--border-subtle, #3c4043);
+}
+
+.missing-member-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: var(--bg-hover, rgba(0, 0, 0, 0.04));
+  border-radius: var(--radius-md, 6px);
+  flex-shrink: 0;
+}
+
+[data-theme="dark"] .missing-member-icon-wrapper {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.missing-member-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 140px;
+}
+
+.missing-member-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.missing-member-id {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  color: var(--text-muted, #70757a);
+  word-break: break-all;
+  line-height: 1.3;
+}
+
+.missing-member-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.missing-remove-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  padding: 4px 10px;
+  height: 28px;
+  border-radius: var(--radius-md, 6px);
+  cursor: pointer;
+  background-color: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+  transition: all 0.15s ease;
+}
+
+.missing-remove-btn:hover {
+  background-color: rgba(217, 48, 37, 0.08);
+  color: #c5221f;
+  border-color: #f28b82;
+}
+
+[data-theme="dark"] .missing-remove-btn:hover {
+  background-color: rgba(242, 139, 130, 0.15);
+  color: #f28b82;
+  border-color: #d93025;
+}
+
+.status-pill.missing {
+  background-color: #fce8e6;
+  color: #c5221f;
+  border: 1px solid rgba(197, 34, 31, 0.2);
+}
+
+[data-theme="dark"] .status-pill.missing {
+  background-color: rgba(217, 48, 37, 0.2);
+  color: #f28b82;
+  border-color: rgba(242, 139, 130, 0.3);
+}
+
 /* ── Selection Status Bar in Group Editor / AutoState (Outcome B) ────────── */
 .selection-status-bar {
   display: flex;

@@ -10,6 +10,7 @@ import { computeGroupRuntimeSummary } from "./group-summary";
 import { ExtensionSwitch } from "./ExtensionBrief";
 import { MaterialSymbol } from "./MaterialSymbols";
 import { isValidCwsId } from "../../shared/package-downloader";
+import { MissingGroupMembers } from "./MissingGroupMembers";
 
 export interface SubWindowProps {
   display: "" | "extension" | "group";
@@ -339,6 +340,15 @@ export function SubWindow({
       onUpdateGroup?.({ ...group, extensionIds: nextIds });
     };
 
+    const missingMemberIds = (group.extensionIds || []).filter((id) => !extensions.some((e) => e.id === id));
+
+    const handleRemoveMissingMember = (idToRemove: string) => {
+      const nextIds = group.extensionIds.filter((id) => id !== idToRemove);
+      setMembershipUndoStack((prev) => [...prev, [...group.extensionIds]]);
+      setMembershipRedoStack([]);
+      onUpdateGroup?.({ ...group, extensionIds: nextIds });
+    };
+
     return (
       <div className="subwindow-overlay" onClick={onClose}>
         <div className="subwindow-box group-subwindow" onClick={(e) => e.stopPropagation()}>
@@ -368,7 +378,16 @@ export function SubWindow({
                 <span className="group-count-text">
                   {computeGroupRuntimeSummary(group, extensions).summaryText}
                   {computeGroupRuntimeSummary(group, extensions).exceptionText && (
-                    <span className="exception-text"> · {computeGroupRuntimeSummary(group, extensions).exceptionText}</span>
+                    <span
+                      className="exception-text"
+                      title={
+                        computeGroupRuntimeSummary(group, extensions).hasMissing
+                          ? computeGroupRuntimeSummary(group, extensions).missingTooltipText
+                          : undefined
+                      }
+                    >
+                      {" · "}{computeGroupRuntimeSummary(group, extensions).exceptionText}
+                    </span>
                   )}
                 </span>
                 {onToggleGroup && (
@@ -404,12 +423,24 @@ export function SubWindow({
             </div>
           </div>
 
+          {missingMemberIds.length > 0 && (
+            <MissingGroupMembers
+              missingIds={missingMemberIds}
+              history={history}
+              isEditor={true}
+              title={`Missing from Chrome (${missingMemberIds.length})`}
+              onRemoveMember={handleRemoveMissingMember}
+              themeMainColor={themeMainColor}
+            />
+          )}
+
           <h3 className="subwindow-section-heading">Select extensions for this group</h3>
 
           <Selector
             extensions={extensions}
             groups={[]}
             history={history}
+            onUpdateGroup={onUpdateGroup}
             viewMode={editorViewMode}
             onChangeViewMode={(mode) => {
               if (mode === "list" || mode === "bigTile") {

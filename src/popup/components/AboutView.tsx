@@ -98,7 +98,7 @@ export function AboutView({
         <p style={{ margin: "6px 0 12px 0" }}>
           Extension Drawer is free and open source. If it saves you time or helps with your extension workflow, you can support its continued development.
         </p>
-        <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "center" }}>
           <a
             href={BUY_ME_A_BEER_URL}
             target="_blank"
@@ -111,9 +111,6 @@ export function AboutView({
             <span className="beer-icon" aria-hidden="true">🍻</span>
             <span className="beer-label">Buy me a Beer</span>
           </a>
-          <span className="about-support-helper">
-            Opens Buy Me a Coffee in a new tab.
-          </span>
         </div>
       </section>
 

@@ -110,9 +110,11 @@ async function verifyAcceptance() {
 
   await page.evaluateOnNewDocument((initExts) => {
     window.__mockExts = JSON.parse(JSON.stringify(initExts));
-    window.__mockGrps = [];
+    const savedGrps = localStorage.getItem("__test_groups");
+    window.__mockGrps = savedGrps ? JSON.parse(savedGrps) : [];
     window.__mockRules = [];
-    window.__mockHist = [];
+    const savedHist = localStorage.getItem("__test_history");
+    window.__mockHist = savedHist ? JSON.parse(savedHist) : [];
     const savedSetts = localStorage.getItem("__test_settings");
     window.__mockSettings = savedSetts ? JSON.parse(savedSetts) : {
       theme: "light",
@@ -162,6 +164,12 @@ async function verifyAcceptance() {
           if (msg.type === "OPEN_CHROME_DETAILS") {
             window.__openedTabs.push(`chrome://extensions/?id=${msg.id}`);
             return { success: true };
+          }
+          if (msg.type === "UPDATE_GROUP") {
+            const idx = window.__mockGrps.findIndex((g) => g.id === msg.group.id);
+            if (idx >= 0) window.__mockGrps[idx] = msg.group;
+            else window.__mockGrps.push(msg.group);
+            return { success: true, group: msg.group };
           }
           if (msg.type === "GET_DEVELOPER_PROJECTS") return [];
           if (msg.type === "GET_ALL_GA4_METRICS") return {};
@@ -503,8 +511,13 @@ async function verifyAcceptance() {
   const aboutBtnHref = await page.$eval(".about-support-btn", (el) => el.getAttribute("href"));
   if (aboutBtnHref !== "https://www.buymeacoffee.com/avavavava") throw new Error(`Unexpected about CTA href: ${aboutBtnHref}`);
 
-  const helperText = await page.$eval(".about-support-helper", (el) => el.textContent.trim());
-  if (helperText !== "Opens Buy Me a Coffee in a new tab.") throw new Error(`Unexpected helper text: ${helperText}`);
+  const helperEl = await page.$(".about-support-helper");
+  if (helperEl) throw new Error("Found redundant .about-support-helper text in About page!");
+  const aboutSectionText = await page.$eval(".about-support-section", (el) => el.textContent);
+  if (aboutSectionText.includes("Opens Buy Me a Coffee in a new tab.")) {
+    throw new Error("Found redundant helper copy in About support section!");
+  }
+  console.log("  ✓ Redundant helper text cleanly removed from About support section.");
 
   const backupDataText = await page.evaluate(() => {
     const lis = Array.from(document.querySelectorAll(".about-view li"));
@@ -518,8 +531,148 @@ async function verifyAcceptance() {
   console.log("  ✓ Canonical Support section and CTA verified in About page.");
   console.log("  ✓ Criterion 11 PASSED.\n");
 
+  // ---------------------------------------------------------------------------
+  // CRITERION 12: Missing group members identifiable & actionable in focused view & editor
+  // ---------------------------------------------------------------------------
+  console.log("[12/12] Checking missing group members identifiable and actionable in real Chrome...");
+
+  // Setup mock groups and history
+  await page.evaluate(() => {
+    const grps = [
+      {
+        id: "group_with_missing",
+        name: "Test Missing Group",
+        extensionIds: ["normal_ext_enabled", "missing_ext_404"],
+        color: "#1a73e8",
+        createdAt: 100,
+      },
+      {
+        id: "group_clean_zero",
+        name: "Clean Group Zero",
+        extensionIds: ["normal_ext_enabled"],
+        color: "#34a853",
+        createdAt: 200,
+      },
+    ];
+    const hist = [
+      {
+        id: "h_404",
+        timestamp: Date.now() - 50000,
+        event: "uninstalled",
+        extensionId: "missing_ext_404",
+        extensionName: "Better History",
+        extensionVersion: "1.0",
+        source: "user",
+      },
+    ];
+    localStorage.setItem("__test_groups", JSON.stringify(grps));
+    localStorage.setItem("__test_history", JSON.stringify(hist));
+  });
+
+  // Reload page so NooBossApp mounts with test groups and history
+  await page.reload();
+  await new Promise((r) => setTimeout(r, 600));
+
+  // 1. Group summary verification: Test Missing Group shows "1 / 1 running · 1 missing"
+  const missingGroupCard = await page.evaluateHandle(() => {
+    const cards = Array.from(document.querySelectorAll(".group-tile, .group-big-tile, .group-list-row"));
+    return cards.find((el) => el.textContent.includes("Test Missing Group"));
+  });
+  if (!missingGroupCard.asElement()) throw new Error("Test Missing Group card not found!");
+  const missingCardText = await (await missingGroupCard.asElement().getProperty("textContent")).jsonValue();
+  if (!missingCardText.includes("1 missing")) {
+    throw new Error(`Expected missing indicator on group card, got: ${missingCardText}`);
+  }
+  console.log("  ✓ Group summary card displays missing count with preserved running denominator.");
+
+  // 2. Click Test Missing Group to enter focused group view
+  const missingCardEl = missingGroupCard.asElement();
+  await missingCardEl.evaluate((el) => el.click());
+  await new Promise((r) => setTimeout(r, 400));
+
+  // Verify group-focus-banner stats
+  const bannerStats = await page.$eval(".group-focus-stats", (el) => el.textContent);
+  if (!bannerStats.includes("1 / 1 running") || !bannerStats.includes("1 missing")) {
+    throw new Error(`Unexpected focus banner stats: ${bannerStats}`);
+  }
+
+  // Verify Missing from Chrome section exists in focused group view
+  const missingSection = await page.$(".missing-group-members-section");
+  if (!missingSection) throw new Error("Missing from Chrome section not rendered in focused group view!");
+
+  const missingHeading = await page.$eval(".missing-members-heading", (el) => el.textContent.trim());
+  if (!missingHeading.includes("Missing from Chrome (1)")) {
+    throw new Error(`Unexpected missing section heading: ${missingHeading}`);
+  }
+
+  const missingMemberName = await page.$eval(".missing-member-name", (el) => el.textContent.trim());
+  if (missingMemberName !== "Better History") {
+    throw new Error(`Expected resolved last-known name 'Better History', got: ${missingMemberName}`);
+  }
+
+  const missingMemberId = await page.$eval(".missing-member-id", (el) => el.textContent.trim());
+  if (missingMemberId !== "missing_ext_404") {
+    throw new Error(`Expected missing ID 'missing_ext_404', got: ${missingMemberId}`);
+  }
+
+  const missingPill = await page.$eval(".status-pill.missing", (el) => el.textContent.trim());
+  if (missingPill !== "Missing") {
+    throw new Error(`Expected Missing status pill, got: ${missingPill}`);
+  }
+  console.log("  ✓ Focused group view clearly identifies missing member by resolved name, ID, and status pill.");
+
+  // 3. Open Group Editor from focus banner
+  const editBtn = await page.$(".group-focus-edit-btn");
+  if (!editBtn) throw new Error("Group edit button not found in focus banner!");
+  await editBtn.click();
+  await new Promise((r) => setTimeout(r, 400));
+
+  const editorMissingSection = await page.$(".group-subwindow .missing-group-members-section");
+  if (!editorMissingSection) throw new Error("Distinct Missing from Chrome section not found in group editor!");
+  console.log("  ✓ Group editor clearly displays distinct Missing from Chrome section.");
+
+  // 4. Click 'Remove from group' on the missing member inside editor
+  const removeBtn = await page.$(".group-subwindow .missing-remove-btn");
+  if (!removeBtn) throw new Error("Remove from group button not found in editor!");
+  await removeBtn.click();
+  await new Promise((r) => setTimeout(r, 400));
+
+  // Verify missing member was removed and editor missing section disappears
+  const editorMissingAfter = await page.$(".group-subwindow .missing-group-members-section");
+  if (editorMissingAfter) throw new Error("Missing section should disappear after removing missing member!");
+
+  // Close editor via Done button
+  const doneBtn = await page.$(".group-done-btn");
+  if (!doneBtn) throw new Error("Done button not found in group editor!");
+  await doneBtn.click();
+  await new Promise((r) => setTimeout(r, 400));
+
+  // In focused group view, missing section should now be gone
+  const focusMissingAfter = await page.$(".missing-group-members-section");
+  if (focusMissingAfter) throw new Error("Missing section should disappear from focused group view after removal!");
+  console.log("  ✓ Remove from group action successfully pruned missing ID with immediate UI reflection.");
+
+  // 5. Back out to all extensions and check clean group (zero missing)
+  const backBtn = await page.$(".group-focus-back-btn");
+  await backBtn.click();
+  await new Promise((r) => setTimeout(r, 400));
+
+  const cleanGroupCard = await page.evaluateHandle(() => {
+    const cards = Array.from(document.querySelectorAll(".group-tile, .group-big-tile, .group-list-row"));
+    return cards.find((el) => el.textContent.includes("Clean Group Zero"));
+  });
+  if (!cleanGroupCard.asElement()) throw new Error("Clean Group Zero card not found!");
+  const cleanCardEl = cleanGroupCard.asElement();
+  await cleanCardEl.evaluate((el) => el.click());
+  await new Promise((r) => setTimeout(r, 400));
+
+  const cleanMissingSection = await page.$(".missing-group-members-section");
+  if (cleanMissingSection) throw new Error("Clean group with zero missing members should NOT render missing section!");
+  console.log("  ✓ Group with zero missing members remains visually unchanged with zero missing section.");
+  console.log("  ✓ Criterion 12 PASSED.\n");
+
   console.log("================================================================================");
-  console.log("  ALL 11 REAL CHROME ACCEPTANCE CRITERIA PASSED CLEANLY!");
+  console.log("  ALL 12 REAL CHROME ACCEPTANCE CRITERIA PASSED CLEANLY!");
   console.log("================================================================================\n");
 
   await browser.close();

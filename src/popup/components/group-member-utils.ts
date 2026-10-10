@@ -1,4 +1,32 @@
-import type { ExtensionInfo } from "../../shared/types";
+import type { ExtensionInfo, HistoryRecord } from "../../shared/types";
+
+/**
+ * Resolve the last-known extension name for a missing extension ID from Extension Drawer History.
+ * Returns null if not found or if history is empty.
+ * Group membership itself never depends on History.
+ */
+export function resolveLastKnownExtensionName(
+  extensionId: string,
+  history: HistoryRecord[] = []
+): string | null {
+  if (!extensionId || !history || history.length === 0) {
+    return null;
+  }
+
+  let latestName: string | null = null;
+  let latestTimestamp = -1;
+
+  for (const record of history) {
+    if (record.extensionId === extensionId && record.extensionName && record.extensionName.trim()) {
+      if (record.timestamp >= latestTimestamp) {
+        latestTimestamp = record.timestamp;
+        latestName = record.extensionName.trim();
+      }
+    }
+  }
+
+  return latestName;
+}
 
 /**
  * Sort extensions for group membership editor and selection contexts:

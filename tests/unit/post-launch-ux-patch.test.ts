@@ -5,9 +5,13 @@ import { ExtensionBrief } from "../../src/popup/components/ExtensionBrief";
 import { SubWindow } from "../../src/popup/components/SubWindow";
 import { Navigator } from "../../src/popup/components/Navigator";
 import { AboutView } from "../../src/popup/components/AboutView";
-import { DEFAULT_SETTINGS, type ExtensionInfo, type AppSettings } from "../../src/shared/types";
+import { DEFAULT_SETTINGS, type ExtensionInfo, type AppSettings, type HistoryRecord, type ExtensionGroup } from "../../src/shared/types";
 import { validateSettings } from "../../src/shared/import-export";
 import { BUY_ME_A_BEER_URL } from "../../src/shared/external-link";
+import { resolveLastKnownExtensionName } from "../../src/popup/components/group-member-utils";
+import { computeGroupRuntimeSummary } from "../../src/popup/components/group-summary";
+import { Selector } from "../../src/popup/components/Selector";
+import { MissingGroupMembers } from "../../src/popup/components/MissingGroupMembers";
 
 // Helper to recursively find VNodes matching a predicate
 function findVNode(vnode: any, predicate: (node: any) => boolean): any {
@@ -454,7 +458,7 @@ describe("Extension Drawer 1.2.1 Post-Launch UX Patch", () => {
       expect(aboutSource).toContain(
         "Extension Drawer is free and open source. If it saves you time or helps with your extension workflow, you can support its continued development."
       );
-      expect(aboutSource).toContain("Opens Buy Me a Coffee in a new tab.");
+      expect(aboutSource).not.toContain("Opens Buy Me a Coffee in a new tab.");
 
       const beerLink = findVNode(vnode, (n) => n.props?.className?.includes("about-support-btn"));
       expect(beerLink).not.toBeNull();
@@ -503,6 +507,279 @@ describe("Extension Drawer 1.2.1 Post-Launch UX Patch", () => {
       expect(capabilitiesIdx).toBeGreaterThan(-1);
       expect(supportIdx).toBeGreaterThan(capabilitiesIdx);
       expect(ackIdx).toBeGreaterThan(supportIdx);
+    });
+  });
+
+  // =========================================================================
+  // 5. Identifiable & Actionable Missing Group Members (1.2.1 UX Patch)
+  // =========================================================================
+  describe("5. Identifiable & Actionable Missing Group Members", () => {
+    const installedExt1: ExtensionInfo = {
+      id: "installed_ext_1",
+      name: "React Developer Tools",
+      shortName: "React",
+      description: "Dev tools",
+      version: "1.0.0",
+      enabled: true,
+      mayDisable: true,
+      type: "extension",
+      installType: "normal",
+      offlineEnabled: false,
+      optionsUrl: "",
+      permissions: [],
+      hostPermissions: [],
+    };
+
+    const installedExt2: ExtensionInfo = {
+      id: "installed_ext_2",
+      name: "Vite Inspector",
+      shortName: "Vite",
+      description: "Vite dev",
+      version: "2.0.0",
+      enabled: false,
+      mayDisable: true,
+      type: "extension",
+      installType: "normal",
+      offlineEnabled: false,
+      optionsUrl: "",
+      permissions: [],
+      hostPermissions: [],
+    };
+
+    const sampleHistory: HistoryRecord[] = [
+      {
+        id: "h1",
+        timestamp: 1000,
+        event: "installed",
+        extensionId: "missing_ext_known",
+        extensionName: "Old Better History",
+        extensionVersion: "1.0",
+        source: "user",
+      },
+      {
+        id: "h2",
+        timestamp: 2000,
+        event: "uninstalled",
+        extensionId: "missing_ext_known",
+        extensionName: "Better History",
+        extensionVersion: "1.1",
+        source: "user",
+      },
+      {
+        id: "h3",
+        timestamp: 1500,
+        event: "enabled",
+        extensionId: "installed_ext_1",
+        extensionName: "React Developer Tools",
+        extensionVersion: "1.0.0",
+        source: "user",
+      },
+    ];
+
+    it("calculates missing count, preserves running denominator, and provides accessible tooltip", () => {
+      const groupWithMissing: ExtensionGroup = {
+        id: "g1",
+        name: "Dev Tools",
+        extensionIds: ["installed_ext_1", "installed_ext_2", "missing_ext_known", "missing_ext_unknown"],
+        color: "#1a73e8",
+        createdAt: 100,
+      };
+
+      const summary = computeGroupRuntimeSummary(groupWithMissing, [installedExt1, installedExt2]);
+      expect(summary.configuredMemberCount).toBe(4);
+      expect(summary.installedMemberCount).toBe(2);
+      expect(summary.runningMemberCount).toBe(1);
+      expect(summary.missingMemberCount).toBe(2);
+      // Denominator represents currently installed members (2), not all 4
+      expect(summary.summaryText).toBe("1 / 2 running");
+      expect(summary.exceptionText).toBe("2 missing");
+      expect(summary.hasMissing).toBe(true);
+      expect(summary.missingTooltipText).toBe("2 saved group members are not currently installed in Chrome.");
+    });
+
+    it("resolves last-known extension name from history with fallback to Unknown extension", () => {
+      // Known extension in history: returns latest timestamp name
+      const resolvedName = resolveLastKnownExtensionName("missing_ext_known", sampleHistory);
+      expect(resolvedName).toBe("Better History");
+
+      // Unknown extension not in history: returns null
+      const unkName = resolveLastKnownExtensionName("missing_ext_unknown", sampleHistory);
+      expect(unkName).toBeNull();
+
+      // Empty history: returns null
+      expect(resolveLastKnownExtensionName("missing_ext_known", [])).toBeNull();
+    });
+
+    it("renders MissingGroupMembers component with name, ID, status pill, and Remove action", () => {
+      const onRemove = vi.fn();
+      const vnode = MissingGroupMembers({
+        missingIds: ["missing_ext_known", "missing_ext_unknown"],
+        history: sampleHistory,
+        onRemoveMember: onRemove,
+      });
+
+      expect(vnode).not.toBeNull();
+
+      // Heading shows count
+      const heading = findVNode(vnode, (n) => n.props?.className?.includes("missing-members-heading"));
+      expect(heading).not.toBeNull();
+
+      // Find cards
+      const cards = findVNode(vnode, (n) => n.props?.className?.includes("missing-members-list"));
+      expect(cards).not.toBeNull();
+      expect(cards.props.children).toHaveLength(2);
+
+      // Card 1: Better History
+      const card1 = cards.props.children[0];
+      const name1 = findVNode(card1, (n) => n.props?.className === "missing-member-name");
+      expect(name1.props.children).toBe("Better History");
+      const id1 = findVNode(card1, (n) => n.props?.className === "missing-member-id");
+      expect(id1.props.children).toBe("missing_ext_known");
+
+      // Card 2: Unknown extension fallback
+      const card2 = cards.props.children[1];
+      const name2 = findVNode(card2, (n) => n.props?.className === "missing-member-name");
+      expect(name2.props.children).toBe("Unknown extension");
+      const id2 = findVNode(card2, (n) => n.props?.className === "missing-member-id");
+      expect(id2.props.children).toBe("missing_ext_unknown");
+
+      // Missing pill
+      const pill = findVNode(card1, (n) => n.props?.className?.includes("status-pill missing"));
+      expect(pill).not.toBeNull();
+      expect(pill.props.children).toBe("Missing");
+
+      // Remove from group button
+      const removeBtn = findVNode(card1, (n) => n.props?.className?.includes("missing-remove-btn"));
+      expect(removeBtn).not.toBeNull();
+      removeBtn.props.onClick();
+      expect(onRemove).toHaveBeenCalledWith("missing_ext_known");
+    });
+
+    it("verifies Selector wires MissingGroupMembers in focused group view and removes missing ID safely", () => {
+      const selectorSource = fs.readFileSync("src/popup/components/Selector.tsx", "utf8");
+      expect(selectorSource).toContain("import { MissingGroupMembers } from \"./MissingGroupMembers\";");
+      expect(selectorSource).toContain("<MissingGroupMembers");
+      expect(selectorSource).toContain("missingIds={missingMemberIds}");
+      expect(selectorSource).toContain("onRemoveMember={handleRemoveMissingMember}");
+
+      const group: ExtensionGroup = {
+        id: "g_focus",
+        name: "Focused Group",
+        extensionIds: ["installed_ext_1", "missing_ext_1"],
+        color: "#1a73e8",
+        createdAt: 100,
+      };
+
+      const onUpdateGroup = vi.fn();
+
+      // Emulate Selector's handleRemoveMissingMember behavior
+      const handleRemove = (idToRemove: string) => {
+        const nextIds = (group.extensionIds || []).filter((id) => id !== idToRemove);
+        onUpdateGroup({ ...group, extensionIds: nextIds });
+      };
+
+      handleRemove("missing_ext_1");
+      expect(onUpdateGroup).toHaveBeenCalledWith({
+        ...group,
+        extensionIds: ["installed_ext_1"],
+      });
+    });
+
+    it("verifies group with zero missing members does not render missing section", () => {
+      // When missingIds is empty, MissingGroupMembers returns null
+      const renderedMissing = MissingGroupMembers({
+        missingIds: [],
+        history: sampleHistory,
+        onRemoveMember: vi.fn(),
+      });
+      expect(renderedMissing).toBeNull();
+
+      // Also returns null when filter matches nothing
+      const renderedFiltered = MissingGroupMembers({
+        missingIds: ["missing_ext_known"],
+        history: sampleHistory,
+        searchFilter: "non_matching_query",
+        onRemoveMember: vi.fn(),
+      });
+      expect(renderedFiltered).toBeNull();
+    });
+
+    it("verifies returning reinstalled extension automatically restores normal membership with 0 missing", () => {
+      const group: ExtensionGroup = {
+        id: "g_returning",
+        name: "Returning Test",
+        extensionIds: ["installed_ext_1", "ext_to_reinstall"],
+        color: "#1a73e8",
+        createdAt: 100,
+      };
+
+      // State 1: ext_to_reinstall is missing from Chrome
+      const summaryBefore = computeGroupRuntimeSummary(group, [installedExt1]);
+      expect(summaryBefore.configuredMemberCount).toBe(2);
+      expect(summaryBefore.installedMemberCount).toBe(1);
+      expect(summaryBefore.missingMemberCount).toBe(1);
+      expect(summaryBefore.hasMissing).toBe(true);
+
+      // State 2: ext_to_reinstall is reinstalled in Chrome
+      const reinstalledExt: ExtensionInfo = {
+        id: "ext_to_reinstall",
+        name: "Reinstalled Tool",
+        shortName: "Reinstalled",
+        description: "Back in Chrome",
+        version: "1.0.0",
+        enabled: true,
+        mayDisable: true,
+        type: "extension",
+        installType: "normal",
+        offlineEnabled: false,
+        optionsUrl: "",
+        permissions: [],
+        hostPermissions: [],
+      };
+
+      const summaryAfter = computeGroupRuntimeSummary(group, [installedExt1, reinstalledExt]);
+      expect(summaryAfter.configuredMemberCount).toBe(2);
+      expect(summaryAfter.installedMemberCount).toBe(2);
+      expect(summaryAfter.runningMemberCount).toBe(2);
+      expect(summaryAfter.missingMemberCount).toBe(0);
+      expect(summaryAfter.hasMissing).toBe(false);
+      expect(summaryAfter.summaryText).toBe("2 / 2 running");
+      expect(summaryAfter.exceptionText).toBeUndefined();
+    });
+
+    it("displays distinct Missing from Chrome section in SubWindow group editor and wires removal", () => {
+      const subwindowSource = fs.readFileSync("src/popup/components/SubWindow.tsx", "utf8");
+      expect(subwindowSource).toContain("import { MissingGroupMembers } from \"./MissingGroupMembers\";");
+      expect(subwindowSource).toContain("<MissingGroupMembers");
+      expect(subwindowSource).toContain("isEditor={true}");
+      expect(subwindowSource).toContain("title={`Missing from Chrome (${missingMemberIds.length})`}");
+      expect(subwindowSource).toContain("onRemoveMember={handleRemoveMissingMember}");
+
+      const group: ExtensionGroup = {
+        id: "g_editor",
+        name: "Editor Group",
+        extensionIds: ["installed_ext_1", "missing_ext_edit"],
+        color: "#1a73e8",
+        createdAt: 100,
+      };
+
+      const onUpdateGroup = vi.fn();
+      const undoStack: string[][] = [];
+
+      // Emulate SubWindow's handleRemoveMissingMember
+      const handleRemove = (idToRemove: string) => {
+        const nextIds = group.extensionIds.filter((id) => id !== idToRemove);
+        undoStack.push([...group.extensionIds]);
+        onUpdateGroup({ ...group, extensionIds: nextIds });
+      };
+
+      handleRemove("missing_ext_edit");
+      expect(onUpdateGroup).toHaveBeenCalledWith({
+        ...group,
+        extensionIds: ["installed_ext_1"],
+      });
+      expect(undoStack).toHaveLength(1);
+      expect(undoStack[0]).toEqual(["installed_ext_1", "missing_ext_edit"]);
     });
   });
 });
