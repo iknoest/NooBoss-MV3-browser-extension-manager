@@ -55,7 +55,7 @@ export function renderGroupIcon(group: ExtensionGroup, size: number = 32, color?
 export function GroupBrief({
   group,
   allExtensions = [],
-  viewMode = "bigTile",
+  viewMode = "tile",
   withControl = true,
   selected = null,
   onToggleGroup,

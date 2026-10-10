@@ -500,13 +500,28 @@ async function uninstallExtension(
   }
 }
 
-async function openExtensionOptions(id: string): Promise<void> {
+async function openExtensionOptions(
+  id: string
+): Promise<{ success: boolean; error?: string; disabled?: boolean }> {
   try {
     const ext = await chrome.management.get(id);
-    if (ext.optionsUrl) {
-      await chrome.tabs.create({ url: ext.optionsUrl });
+    if (!ext.optionsUrl || !ext.optionsUrl.trim()) {
+      return { success: false, error: 'No options page available' };
     }
-  } catch { /* ignore */ }
+    if (!ext.enabled) {
+      return { success: false, disabled: true, error: 'Extension is disabled' };
+    }
+    await chrome.tabs.create({ url: ext.optionsUrl });
+    return { success: true };
+  } catch (err) {
+    return {
+      success: false,
+      error:
+        err instanceof Error
+          ? err.message
+          : "Chrome does not allow this extension's settings page to be opened directly.",
+    };
+  }
 }
 
 async function openChromeDetails(id: string): Promise<void> {

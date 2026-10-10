@@ -279,6 +279,91 @@ html, body {
 }
 
 /* ==========================================================================
+   Navigation Utility Area & Buy me a Beer CTA
+   ========================================================================== */
+
+.nav-utility-area {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.buy-me-beer-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  background-color: #ffdd00;
+  color: #1a1a1a;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: var(--radius-pill);
+  font-family: var(--font-family);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  transition: background-color 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+  user-select: none;
+}
+
+.buy-me-beer-btn:hover {
+  background-color: #ffea38;
+  color: #000000;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
+  transform: translateY(-0.5px);
+}
+
+.buy-me-beer-btn:active {
+  background-color: #ecd000;
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.buy-me-beer-btn:focus-visible {
+  outline: 2px solid var(--theme-main, #1a73e8);
+  outline-offset: 2px;
+}
+
+.buy-me-beer-btn .beer-icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.buy-me-beer-btn .beer-label {
+  font-size: 12px;
+  line-height: 1;
+}
+
+@media (max-width: 680px) {
+  .buy-me-beer-btn .beer-label {
+    display: none;
+  }
+  .buy-me-beer-btn {
+    padding: 0 6px;
+    height: 28px;
+    width: 28px;
+    justify-content: center;
+  }
+}
+
+.popup-mode .buy-me-beer-btn .beer-label {
+  display: none;
+}
+
+.popup-mode .buy-me-beer-btn {
+  padding: 0 6px;
+  height: 28px;
+  width: 28px;
+  justify-content: center;
+}
+
+/* ==========================================================================
    Main Content Layout
    ========================================================================== */
 
@@ -3991,6 +4076,7 @@ details.dev-menu-container > summary::-webkit-details-marker {
   margin-top: 20px;
 }
 
+.confirm-modal-body,
 .dev-delete-confirm-text {
   font-size: 13px;
   color: var(--text-secondary);

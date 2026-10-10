@@ -201,7 +201,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   accentPreset: 'default',
   accentColor: '#1a73e8',
   sortOrder: 'name-state',
-  viewMode: 'bigTile',
+  viewMode: 'tile',
   developerMode: false,
 };
 

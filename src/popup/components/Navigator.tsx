@@ -14,8 +14,15 @@ export function Navigator({
   onNavigateMain,
   developerMode,
 }: NavigatorProps) {
+  const handleOpenBeer = (e: MouseEvent) => {
+    if (typeof chrome !== "undefined" && chrome.tabs?.create) {
+      e.preventDefault();
+      chrome.tabs.create({ url: "https://www.buymeacoffee.com/avavavava" });
+    }
+  };
+
   return (
-    <nav className="navigator">
+    <nav className="navigator" aria-label="Main navigation">
       <div className="nav-items-container">
         <button
           type="button"
@@ -66,6 +73,21 @@ export function Navigator({
         >
           {GL("about")}
         </button>
+      </div>
+
+      <div className="nav-utility-area">
+        <a
+          href="https://www.buymeacoffee.com/avavavava"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="buy-me-beer-btn"
+          title="Buy me a Beer"
+          aria-label="Buy me a Beer"
+          onClick={handleOpenBeer}
+        >
+          <span className="beer-icon" aria-hidden="true">🍻</span>
+          <span className="beer-label">Buy me a Beer</span>
+        </a>
       </div>
     </nav>
   );

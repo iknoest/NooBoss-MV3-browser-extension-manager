@@ -74,7 +74,7 @@ export function ExtensionSwitch({
 
 export function ExtensionBrief({
   extension,
-  viewMode = "bigTile",
+  viewMode = "tile",
   withControl = true,
   selected = null,
   iconUrl,
@@ -342,7 +342,7 @@ export function ExtensionBrief({
             )}
             {renderReloadBtn(16)}
             {renderDownloadZipBtn(16)}
-            {extension.optionsUrl && (
+            {Boolean(extension.optionsUrl?.trim()) && (
               <button
                 type="button"
                 className="action-icon-btn"
@@ -431,7 +431,7 @@ export function ExtensionBrief({
                 <Launchy color={themeMainColor} size={16} />
               </button>
             )}
-            {extension.optionsUrl && (
+            {Boolean(extension.optionsUrl?.trim()) && (
               <button
                 type="button"
                 className="action-icon-btn"
@@ -510,7 +510,7 @@ export function ExtensionBrief({
             <div className="tile-hover-actions">
               {renderReloadBtn(14, "tile-action-btn")}
               {renderDownloadZipBtn(14, "tile-action-btn")}
-              {extension.optionsUrl && (
+              {Boolean(extension.optionsUrl?.trim()) && (
                 <button
                   type="button"
                   className="tile-action-btn"

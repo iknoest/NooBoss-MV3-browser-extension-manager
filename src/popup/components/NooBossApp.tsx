@@ -46,7 +46,8 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
   const [selfExtension, setSelfExtension] = useState<ExtensionInfo | null>(null);
   const [dataLoaded, setDataLoaded] = useState(false);
 
-  const [viewMode, setViewMode] = useState<"tile" | "bigTile" | "list">("bigTile");
+  const [viewMode, setViewMode] = useState<"tile" | "bigTile" | "list">("tile");
+  const [optionsConfirmExt, setOptionsConfirmExt] = useState<ExtensionInfo | null>(null);
   const [focusedGroupId, setFocusedGroupId] = useState<string | null>(null);
   const [subWindow, setSubWindow] = useState<{ display: "" | "extension" | "group"; targetId: string }>({
     display: "",
@@ -252,12 +253,12 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
 
       setDataLoaded(true);
 
-      if (resolvedSetts.viewMode === "grid" || resolvedSetts.viewMode === "bigTile") {
-        setViewMode("bigTile");
-      } else if (resolvedSetts.viewMode === "tile") {
-        setViewMode("tile");
-      } else if (resolvedSetts.viewMode === "list") {
+      if (resolvedSetts.viewMode === "list") {
         setViewMode("list");
+      } else if (resolvedSetts.viewMode === "bigTile" || resolvedSetts.viewMode === "grid") {
+        setViewMode("bigTile");
+      } else {
+        setViewMode("tile");
       }
     } catch (e) {
       console.warn("[NooBoss] Failed to load data:", e);
@@ -359,7 +360,52 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
   };
 
   const handleOpenOptions = async (id: string) => {
-    await chrome.runtime?.sendMessage?.({ type: "OPEN_OPTIONS", id });
+    const targetExt = extensions.find((e) => e.id === id);
+    if (!targetExt) return;
+    if (!targetExt.optionsUrl || !targetExt.optionsUrl.trim()) return;
+
+    if (!targetExt.enabled) {
+      setOptionsConfirmExt(targetExt);
+      return;
+    }
+
+    try {
+      const res = await chrome.runtime?.sendMessage?.({ type: "OPEN_OPTIONS", id });
+      if (res && res.success === false) {
+        setDownloadNotice({
+          message: res.error || "Chrome does not allow this extension's settings page to be opened directly.",
+          isError: true,
+        });
+      }
+    } catch {
+      setDownloadNotice({
+        message: "Chrome does not allow this extension's settings page to be opened directly.",
+        isError: true,
+      });
+    }
+  };
+
+  const handleConfirmEnableAndOpenOptions = async () => {
+    if (!optionsConfirmExt) return;
+    const target = optionsConfirmExt;
+    setOptionsConfirmExt(null);
+
+    await handleToggleExtension(target.id, true);
+
+    try {
+      const res = await chrome.runtime?.sendMessage?.({ type: "OPEN_OPTIONS", id: target.id });
+      if (res && res.success === false) {
+        setDownloadNotice({
+          message: res.error || "Chrome does not allow this extension's settings page to be opened directly.",
+          isError: true,
+        });
+      }
+    } catch {
+      setDownloadNotice({
+        message: "Chrome does not allow this extension's settings page to be opened directly.",
+        isError: true,
+      });
+    }
   };
 
   const handleOpenDetails = async (id: string) => {
@@ -791,6 +837,46 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
           >
             ×
           </button>
+        </div>
+      )}
+
+      {/* Enable Extension to Open Settings Confirmation Modal */}
+      {optionsConfirmExt && (
+        <div
+          className="subwindow-overlay"
+          style={{ zIndex: 1200 }}
+          onClick={() => setOptionsConfirmExt(null)}
+        >
+          <div
+            className="confirm-modal-box options-enable-confirm-box"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="options-confirm-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="confirm-modal-title" id="options-confirm-title">
+              Enable extension to open settings?
+            </div>
+            <p className="confirm-modal-body">
+              This extension is currently off. Chrome may require it to be enabled before its settings page can open.
+            </p>
+            <div className="confirm-modal-actions">
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setOptionsConfirmExt(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary options-enable-confirm-btn"
+                onClick={handleConfirmEnableAndOpenOptions}
+              >
+                Enable and open settings
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -69,8 +69,8 @@ describe("Material Symbols & Usability Refinements", () => {
   });
 
   describe("View Mode Persistence & Defaults", () => {
-    it("defaults to bigTile viewMode in DEFAULT_SETTINGS", () => {
-      expect(DEFAULT_SETTINGS.viewMode).toBe("bigTile");
+    it("defaults to tile viewMode in DEFAULT_SETTINGS", () => {
+      expect(DEFAULT_SETTINGS.viewMode).toBe("tile");
     });
 
     it("maps legacy grid viewMode to bigTile on import", () => {

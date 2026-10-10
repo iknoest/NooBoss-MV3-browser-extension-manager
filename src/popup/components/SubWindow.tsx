@@ -113,7 +113,7 @@ export function SubWindow({
                   <MaterialSymbol name="refresh" size={18} color={ext.enabled ? themeMainColor : "var(--text-muted, #888)"} />
                 </button>
               )}
-              {ext.optionsUrl && (
+              {Boolean(ext.optionsUrl?.trim()) && (
                 <Optioney
                   color={themeMainColor}
                   className="subwindow-ctrl-icon"
