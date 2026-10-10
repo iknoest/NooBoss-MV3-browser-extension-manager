@@ -1,31 +1,100 @@
-import type { ExtensionInfo, HistoryRecord } from "../../shared/types";
+import type { ExtensionInfo, HistoryRecord, KnownExtensionMetadata } from "../../shared/types";
+
+export interface ResolvedMemberIdentity {
+  name: string;
+  isKnown: boolean;
+  source: 'installed' | 'cache' | 'history' | 'unknown';
+}
 
 /**
- * Resolve the last-known extension name for a missing extension ID from Extension Drawer History.
- * Returns null if not found or if history is empty.
- * Group membership itself never depends on History.
+ * Resolve the display name and identity confidence for an extension ID.
+ * Resolution order:
+ * 1. Current installed Chrome metadata, if present
+ * 2. Known-extension metadata cache
+ * 3. Latest matching Extension Drawer History record (ignoring uninstall ID placeholders)
+ * 4. Fallback: "Unknown extension"
  */
-export function resolveLastKnownExtensionName(
+export function resolveMissingMemberIdentity(
   extensionId: string,
-  history: HistoryRecord[] = []
-): string | null {
-  if (!extensionId || !history || history.length === 0) {
-    return null;
+  knownCache: Record<string, KnownExtensionMetadata> = {},
+  history: HistoryRecord[] = [],
+  installedExtensions: ExtensionInfo[] = []
+): ResolvedMemberIdentity {
+  if (!extensionId || !extensionId.trim()) {
+    return { name: "Unknown extension", isKnown: false, source: "unknown" };
   }
 
-  let latestName: string | null = null;
-  let latestTimestamp = -1;
+  // 1. Current installed Chrome metadata, if present
+  const installed = installedExtensions.find((e) => e.id === extensionId);
+  if (installed && installed.name && installed.name.trim()) {
+    return {
+      name: installed.name.trim(),
+      isKnown: true,
+      source: "installed",
+    };
+  }
 
+  // 2. Known-extension metadata cache
+  const cached = knownCache[extensionId];
+  if (cached && cached.name && cached.name.trim()) {
+    return {
+      name: cached.name.trim(),
+      isKnown: true,
+      source: "cache",
+    };
+  }
+
+  // 3. Latest matching Extension Drawer History record
+  let latestHistoryName: string | null = null;
+  let latestHistoryTime = -1;
   for (const record of history) {
-    if (record.extensionId === extensionId && record.extensionName && record.extensionName.trim()) {
-      if (record.timestamp >= latestTimestamp) {
-        latestTimestamp = record.timestamp;
-        latestName = record.extensionName.trim();
+    if (
+      record.extensionId === extensionId &&
+      record.extensionName &&
+      record.extensionName.trim() &&
+      record.extensionName.trim() !== extensionId // exclude raw ID fallbacks
+    ) {
+      if (record.timestamp >= latestHistoryTime) {
+        latestHistoryTime = record.timestamp;
+        latestHistoryName = record.extensionName.trim();
       }
     }
   }
 
-  return latestName;
+  if (latestHistoryName) {
+    return {
+      name: latestHistoryName,
+      isKnown: true,
+      source: "history",
+    };
+  }
+
+  // 4. Unknown extension
+  return {
+    name: "Unknown extension",
+    isKnown: false,
+    source: "unknown",
+  };
+}
+
+/**
+ * Resolve the last-known extension name for a missing extension ID.
+ * Returns null if genuinely unknown.
+ * Group membership itself never depends on History.
+ */
+export function resolveLastKnownExtensionName(
+  extensionId: string,
+  history: HistoryRecord[] = [],
+  knownCache: Record<string, KnownExtensionMetadata> = {},
+  installedExtensions: ExtensionInfo[] = []
+): string | null {
+  const resolved = resolveMissingMemberIdentity(
+    extensionId,
+    knownCache,
+    history,
+    installedExtensions
+  );
+  return resolved.isKnown ? resolved.name : null;
 }
 
 /**

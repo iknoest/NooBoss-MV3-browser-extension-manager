@@ -1,5 +1,5 @@
 import { useState } from "preact/hooks";
-import type { ExtensionInfo, ExtensionGroup, GroupIcon, HistoryRecord } from "../../shared/types";
+import type { ExtensionInfo, ExtensionGroup, GroupIcon, HistoryRecord, KnownExtensionMetadata } from "../../shared/types";
 import { Selector } from "./Selector";
 import { GL } from "./i18n";
 import { Optioney, Removy, Chromey, Closey, Edity } from "./icons";
@@ -31,6 +31,8 @@ export interface SubWindowProps {
   onReloadExtension?: (id: string) => Promise<void> | void;
   onDownloadZip?: (ext: ExtensionInfo) => Promise<void> | void;
   downloadingZipIds?: Set<string>;
+  knownExtensions?: Record<string, KnownExtensionMetadata>;
+  inventoryStatus?: 'loading' | 'ready' | 'error';
 }
 
 export function SubWindow({
@@ -52,6 +54,8 @@ export function SubWindow({
   onReloadExtension,
   onDownloadZip,
   downloadingZipIds,
+  knownExtensions = {},
+  inventoryStatus = "ready",
 }: SubWindowProps) {
   const [editorViewMode, setEditorViewMode] = useState<"list" | "bigTile">("list");
   const [showIconPicker, setShowIconPicker] = useState(false);
@@ -340,7 +344,10 @@ export function SubWindow({
       onUpdateGroup?.({ ...group, extensionIds: nextIds });
     };
 
-    const missingMemberIds = (group.extensionIds || []).filter((id) => !extensions.some((e) => e.id === id));
+    const isInventoryReady = inventoryStatus === "ready";
+    const missingMemberIds = isInventoryReady
+      ? (group.extensionIds || []).filter((id) => !extensions.some((e) => e.id === id))
+      : [];
 
     const handleRemoveMissingMember = (idToRemove: string) => {
       const nextIds = group.extensionIds.filter((id) => id !== idToRemove);
@@ -376,17 +383,17 @@ export function SubWindow({
               />
               <div className="group-meta-row">
                 <span className="group-count-text">
-                  {computeGroupRuntimeSummary(group, extensions).summaryText}
-                  {computeGroupRuntimeSummary(group, extensions).exceptionText && (
+                  {computeGroupRuntimeSummary(group, extensions, inventoryStatus).summaryText}
+                  {computeGroupRuntimeSummary(group, extensions, inventoryStatus).exceptionText && (
                     <span
                       className="exception-text"
                       title={
-                        computeGroupRuntimeSummary(group, extensions).hasMissing
-                          ? computeGroupRuntimeSummary(group, extensions).missingTooltipText
+                        computeGroupRuntimeSummary(group, extensions, inventoryStatus).hasMissing
+                          ? computeGroupRuntimeSummary(group, extensions, inventoryStatus).missingTooltipText
                           : undefined
                       }
                     >
-                      {" · "}{computeGroupRuntimeSummary(group, extensions).exceptionText}
+                      {" · "}{computeGroupRuntimeSummary(group, extensions, inventoryStatus).exceptionText}
                     </span>
                   )}
                 </span>
@@ -396,6 +403,7 @@ export function SubWindow({
                     allExtensions={extensions}
                     onToggleGroup={onToggleGroup}
                     size="small"
+                    inventoryStatus={inventoryStatus}
                   />
                 )}
               </div>
@@ -427,6 +435,8 @@ export function SubWindow({
             <MissingGroupMembers
               missingIds={missingMemberIds}
               history={history}
+              knownExtensions={knownExtensions}
+              installedExtensions={extensions}
               isEditor={true}
               title={`Missing from Chrome (${missingMemberIds.length})`}
               onRemoveMember={handleRemoveMissingMember}
@@ -440,6 +450,8 @@ export function SubWindow({
             extensions={extensions}
             groups={[]}
             history={history}
+            knownExtensions={knownExtensions}
+            inventoryStatus={inventoryStatus}
             onUpdateGroup={onUpdateGroup}
             viewMode={editorViewMode}
             onChangeViewMode={(mode) => {

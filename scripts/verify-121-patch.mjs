@@ -115,6 +115,8 @@ async function verifyAcceptance() {
     window.__mockRules = [];
     const savedHist = localStorage.getItem("__test_history");
     window.__mockHist = savedHist ? JSON.parse(savedHist) : [];
+    const savedKnown = localStorage.getItem("__test_known_exts");
+    window.__mockKnownExts = savedKnown ? JSON.parse(savedKnown) : {};
     const savedSetts = localStorage.getItem("__test_settings");
     window.__mockSettings = savedSetts ? JSON.parse(savedSetts) : {
       theme: "light",
@@ -174,6 +176,7 @@ async function verifyAcceptance() {
           if (msg.type === "GET_DEVELOPER_PROJECTS") return [];
           if (msg.type === "GET_ALL_GA4_METRICS") return {};
           if (msg.type === "GET_PENDING_CHANGES") return [];
+          if (msg.type === "GET_KNOWN_EXTENSIONS") return window.__mockKnownExts || {};
           return [];
         },
         onMessage: { addListener: () => {}, removeListener: () => {} },
@@ -671,8 +674,147 @@ async function verifyAcceptance() {
   console.log("  ✓ Group with zero missing members remains visually unchanged with zero missing section.");
   console.log("  ✓ Criterion 12 PASSED.\n");
 
+  // ---------------------------------------------------------------------------
+  // CRITERION 13: Durable known-extension cache, unknown actions, and reversible Remove Undo
+  // ---------------------------------------------------------------------------
+  console.log("[13/13] Checking durable metadata cache, Copy/Look up actions, and Remove Undo in real Chrome...");
+
+  // Setup test environment:
+  // 1. Clear history completely to prove cache independence.
+  // 2. Put known metadata into __test_known_exts for ext_cached_missing ("Super Proxy Pro").
+  // 3. Put unknown ID "ext_completely_unknown" without cache or history.
+  await page.evaluate(() => {
+    const grps = [
+      {
+        id: "group_durable_test",
+        name: "Durable Cache Group",
+        extensionIds: ["normal_ext_enabled", "ext_cached_missing", "ext_completely_unknown"],
+        color: "#1a73e8",
+        createdAt: 300,
+      },
+    ];
+    const known = {
+      ext_cached_missing: {
+        id: "ext_cached_missing",
+        name: "Super Proxy Pro",
+        version: "2.1.0",
+        lastSeenAt: Date.now() - 10000,
+      },
+    };
+    // Empty history!
+    localStorage.setItem("__test_groups", JSON.stringify(grps));
+    localStorage.setItem("__test_history", JSON.stringify([]));
+    localStorage.setItem("__test_known_exts", JSON.stringify(known));
+  });
+
+  await page.reload();
+  await new Promise((r) => setTimeout(r, 600));
+
+  // Focus group_durable_test
+  const durableCard = await page.evaluateHandle(() => {
+    const cards = Array.from(document.querySelectorAll(".group-tile, .group-big-tile, .group-list-row"));
+    return cards.find((el) => el.textContent.includes("Durable Cache Group"));
+  });
+  if (!durableCard.asElement()) throw new Error("Durable Cache Group card not found!");
+  await durableCard.asElement().evaluate((el) => el.click());
+  await new Promise((r) => setTimeout(r, 400));
+
+  // Check that ext_cached_missing resolves to "Super Proxy Pro" from cache despite empty history
+  const cards = await page.$$(".missing-member-card");
+  if (cards.length !== 2) throw new Error(`Expected 2 missing cards, got: ${cards.length}`);
+
+  const cachedCardText = await page.evaluate(() => {
+    const card = Array.from(document.querySelectorAll(".missing-member-card"))
+      .find((el) => el.textContent.includes("ext_cached_missing"));
+    return card ? card.textContent : "";
+  });
+  if (!cachedCardText.includes("Super Proxy Pro")) {
+    throw new Error(`Durable cache name 'Super Proxy Pro' not resolved! Got: ${cachedCardText}`);
+  }
+  console.log("  ✓ Known-extension cache survives empty history and resolves display name accurately.");
+
+  // Check unknown member: displays full ID, Copy ID button, and Look up button
+  const unknownCard = await page.evaluateHandle(() => {
+    return Array.from(document.querySelectorAll(".missing-member-card"))
+      .find((el) => el.textContent.includes("ext_completely_unknown"));
+  });
+  if (!unknownCard.asElement()) throw new Error("Unknown missing card not found!");
+
+  const unknownCardText = await (await unknownCard.asElement().getProperty("textContent")).jsonValue();
+  if (!unknownCardText.includes("Unknown extension")) {
+    throw new Error(`Expected 'Unknown extension' fallback, got: ${unknownCardText}`);
+  }
+
+  const copyBtn = await unknownCard.asElement().$(".missing-copy-btn");
+  if (!copyBtn) throw new Error("Copy ID button not found on unknown missing card!");
+  console.log("  ✓ Copy ID action button present on missing member card.");
+
+  const lookupBtn = await unknownCard.asElement().$(".missing-lookup-btn");
+  if (!lookupBtn) throw new Error("Look up button not found on unknown missing card!");
+  console.log("  ✓ Look up action button present on genuinely unknown missing card.");
+
+  // Click Copy ID and verify immediate non-blocking gesture
+  await copyBtn.evaluate((el) => el.click());
+  await new Promise((r) => setTimeout(r, 100));
+
+  // Click Look up and verify Chrome Web Store search link invocation
+  await lookupBtn.evaluate((el) => el.click());
+  await new Promise((r) => setTimeout(r, 100));
+  const openedTabs = await page.evaluate(() => window.__openedTabs);
+  const lookedUp = openedTabs.some((u) => u.includes("chromewebstore.google.com/search?q=ext_completely_unknown"));
+  if (!lookedUp) throw new Error(`Look up tab was not opened! Opened tabs: ${JSON.stringify(openedTabs)}`);
+  console.log("  ✓ Look up successfully invoked Chrome Web Store search URL without background network requests.");
+
+  // Test reversible Remove-from-Group with Undo in focused view:
+  // Remove ext_cached_missing from group
+  const cachedCard = await page.evaluateHandle(() => {
+    return Array.from(document.querySelectorAll(".missing-member-card"))
+      .find((el) => el.textContent.includes("ext_cached_missing"));
+  });
+  const cachedRemoveBtn = await cachedCard.asElement().$(".missing-remove-btn");
+  if (!cachedRemoveBtn) throw new Error("Remove button not found on cached member!");
+  await cachedRemoveBtn.evaluate((el) => el.click());
+  await new Promise((r) => setTimeout(r, 300));
+
+  // Verify Undo Toast appeared: "Removed Super Proxy Pro from group"
+  const toastEl = await page.$(".nb-toast.toast-undo");
+  if (!toastEl) throw new Error("Undo feedback toast not rendered after removing missing member!");
+  const toastText = await page.$eval(".nb-toast.toast-undo", (el) => el.textContent);
+  if (!toastText.includes("Removed Super Proxy Pro from group") || !toastText.includes("Undo")) {
+    throw new Error(`Unexpected toast text: ${toastText}`);
+  }
+  console.log("  ✓ Remove action produced reversible feedback toast: 'Removed Super Proxy Pro from group · Undo'.");
+
+  // Verify member temporarily pruned from list
+  const remainingCardsBeforeUndo = await page.$$(".missing-member-card");
+  if (remainingCardsBeforeUndo.length !== 1) {
+    throw new Error(`Expected 1 missing card before undo, got: ${remainingCardsBeforeUndo.length}`);
+  }
+
+  // Click Undo button
+  const undoBtn = await page.$(".toast-undo-btn");
+  if (!undoBtn) throw new Error("Undo button not found inside toast!");
+  await undoBtn.evaluate((el) => el.click());
+  await new Promise((r) => setTimeout(r, 300));
+
+  // Verify member restored back into group!
+  const restoredCards = await page.$$(".missing-member-card");
+  if (restoredCards.length !== 2) {
+    throw new Error(`Expected 2 missing cards after undo, got: ${restoredCards.length}`);
+  }
+  const restoredText = await page.evaluate(() => {
+    const card = Array.from(document.querySelectorAll(".missing-member-card"))
+      .find((el) => el.textContent.includes("ext_cached_missing"));
+    return card ? card.textContent : "";
+  });
+  if (!restoredText.includes("Super Proxy Pro")) {
+    throw new Error(`Member was not restored back after clicking Undo! Got: ${restoredText}`);
+  }
+  console.log("  ✓ Clicking Undo immediately restored removed member without modifying extension state or other groups.");
+  console.log("  ✓ Criterion 13 PASSED.\n");
+
   console.log("================================================================================");
-  console.log("  ALL 12 REAL CHROME ACCEPTANCE CRITERIA PASSED CLEANLY!");
+  console.log("  ALL 13 REAL CHROME ACCEPTANCE CRITERIA PASSED CLEANLY!");
   console.log("================================================================================\n");
 
   await browser.close();

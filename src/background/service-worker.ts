@@ -28,6 +28,9 @@ import {
   clearProjectGA4Metrics,
   getWelcomeSeen,
   setWelcomeSeen,
+  getKnownExtensions,
+  upsertKnownExtensions,
+  backfillKnownExtensionsFromHistory,
 } from '../shared/storage';
 import { computeDesiredStates } from '../shared/autostate';
 import { createExportData, validateImportData } from '../shared/import-export';
@@ -104,6 +107,17 @@ ensureTabsInitialized()
 async function initializeState(): Promise<void> {
   // Rebuild tab URL map authoritatively
   await rebuildTabUrls();
+  // Populate known extensions cache from current installed extensions
+  try {
+    const all = await chrome.management.getAll();
+    await upsertKnownExtensions(all);
+    const hist = await getHistory();
+    if (hist && hist.length > 0) {
+      await backfillKnownExtensionsFromHistory(hist);
+    }
+  } catch (e) {
+    console.warn('[NooBoss] Failed to sync known extensions on init:', e);
+  }
   // Run AutoState evaluation immediately
   await evaluateAutoState(true);
 }
@@ -169,6 +183,11 @@ chrome.tabs.onReplaced.addListener(async (addedTabId, removedTabId) => {
 // ── Management event listeners ──────────────────────────────
 
 chrome.management.onInstalled.addListener(async (extInfo) => {
+  try {
+    await upsertKnownExtensions([extInfo]);
+  } catch (e) {
+    console.warn('[NooBoss] Failed to upsert known extension on install:', e);
+  }
   const settings = await getSettings();
   if (settings.historyTrackInstall) {
     await addHistoryRecord(
@@ -193,13 +212,22 @@ chrome.management.onInstalled.addListener(async (extInfo) => {
 chrome.management.onUninstalled.addListener(async (id) => {
   const settings = await getSettings();
   if (settings.historyTrackUninstall) {
+    let uninstallName = id;
+    try {
+      const known = await getKnownExtensions();
+      if (known[id]?.name) {
+        uninstallName = known[id].name;
+      }
+    } catch {
+      // Fallback to id
+    }
     await addHistoryRecord(
       {
         id: generateId(),
         timestamp: Date.now(),
         event: 'uninstalled',
         extensionId: id,
-        extensionName: id, // Name unavailable after uninstall
+        extensionName: uninstallName,
         extensionVersion: '',
         source: 'external',
       },
@@ -209,19 +237,8 @@ chrome.management.onUninstalled.addListener(async (id) => {
   if (settings.notifyInstallUninstall) {
     notify(`Extension ${id} was uninstalled`);
   }
-  // Clean up group memberships
-  const groups = await getGroups();
-  let changed = false;
-  for (const group of groups) {
-    const idx = group.extensionIds.indexOf(id);
-    if (idx !== -1) {
-      group.extensionIds.splice(idx, 1);
-      changed = true;
-    }
-  }
-  if (changed) {
-    await saveGroups(groups);
-  }
+  // Missing members are preserved in groups so they recover on reinstall.
+  // Do NOT automatically remove missing IDs from groups.
   broadcastStateChanged();
 });
 
@@ -394,6 +411,9 @@ async function handleMessage(message: Message): Promise<unknown> {
     case 'TEST_AUTOSTATE_AUTOMATIC':
       return testAutoStateAutomatic();
 
+    case 'GET_KNOWN_EXTENSIONS':
+      return getKnownExtensions();
+
     default:
       return { error: 'Unknown message type' };
   }
@@ -403,6 +423,11 @@ async function handleMessage(message: Message): Promise<unknown> {
 
 async function getExtensions(): Promise<ExtensionInfo[]> {
   const allExtensions = await chrome.management.getAll();
+  try {
+    await upsertKnownExtensions(allExtensions);
+  } catch (e) {
+    console.warn('[NooBoss] Failed to upsert known extensions in getExtensions:', e);
+  }
   return allExtensions
     .filter((ext) => ext.id !== SELF_ID) // Never show self
     .map((ext) => ({

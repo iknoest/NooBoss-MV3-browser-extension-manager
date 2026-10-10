@@ -1,11 +1,11 @@
 import { useState, useMemo, useEffect } from "preact/hooks";
-import type { ExtensionInfo, ExtensionGroup, HistoryRecord } from "../../shared/types";
+import type { ExtensionInfo, ExtensionGroup, HistoryRecord, KnownExtensionMetadata } from "../../shared/types";
 import { ExtensionBrief } from "./ExtensionBrief";
 import { GroupBrief, renderGroupIcon } from "./GroupBrief";
 import { GL } from "./i18n";
 import { Listy, Tiley, BigTiley, Cleary, Optioney } from "./icons";
 import { MaterialSymbol } from "./MaterialSymbols";
-import { sortGroupMemberExtensions } from "./group-member-utils";
+import { sortGroupMemberExtensions, resolveMissingMemberIdentity } from "./group-member-utils";
 import { computeGroupRuntimeSummary } from "./group-summary";
 import { GroupCommandControl } from "./GroupCommandControl";
 import { MissingGroupMembers } from "./MissingGroupMembers";
@@ -148,6 +148,8 @@ export interface SelectorProps {
   developerMode?: boolean;
   onDownloadZip?: (ext: ExtensionInfo) => void;
   downloadingZipIds?: Set<string>;
+  knownExtensions?: Record<string, KnownExtensionMetadata>;
+  inventoryStatus?: 'loading' | 'ready' | 'error';
 }
 
 export function Selector({
@@ -185,6 +187,8 @@ export function Selector({
   history = [],
   onDownloadZip,
   downloadingZipIds,
+  knownExtensions = {},
+  inventoryStatus = "ready",
 }: SelectorProps) {
   const [internalFocusedGroupId, setInternalFocusedGroupId] = useState<string | null>(null);
   const activeFocusedGroupId = focusedGroupId !== undefined ? focusedGroupId : internalFocusedGroupId;
@@ -198,6 +202,10 @@ export function Selector({
   const [filterRunningState, setFilterRunningState] = useState<"all" | "enabled" | "attention">("all");
   const [undoStack, setUndoStack] = useState<Array<Record<string, boolean>>>([]);
   const [redoStack, setRedoStack] = useState<Array<Record<string, boolean>>>([]);
+  const [undoToast, setUndoToast] = useState<{
+    message: string;
+    onUndo: () => void;
+  } | null>(null);
 
   // Close sort help popover on outside click
   useEffect(() => {
@@ -211,6 +219,15 @@ export function Selector({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showSortHelp]);
+
+  // Auto-dismiss undo feedback toast after 6 seconds
+  useEffect(() => {
+    if (!undoToast) return;
+    const timer = setTimeout(() => {
+      setUndoToast(null);
+    }, 6000);
+    return () => clearTimeout(timer);
+  }, [undoToast]);
 
   // Keyboard shortcut: Escape clears active group focus
   useEffect(() => {
@@ -228,15 +245,37 @@ export function Selector({
     return activeFocusedGroupId ? groups.find((g) => g.id === activeFocusedGroupId) || null : null;
   }, [activeFocusedGroupId, groups]);
 
+  // Only calculate missing members when inventory state is ready.
+  // Never claim members are missing on loading or load failure.
+  const isInventoryReady = inventoryStatus === "ready";
   const missingMemberIds = useMemo(() => {
-    if (!focusedGroup) return [];
+    if (!focusedGroup || !isInventoryReady) return [];
     return (focusedGroup.extensionIds || []).filter((id) => !extensions.some((e) => e.id === id));
-  }, [focusedGroup, extensions]);
+  }, [focusedGroup, extensions, isInventoryReady]);
 
   const handleRemoveMissingMember = (idToRemove: string) => {
     if (!focusedGroup) return;
-    const nextIds = (focusedGroup.extensionIds || []).filter((id) => id !== idToRemove);
-    onUpdateGroup?.({ ...focusedGroup, extensionIds: nextIds });
+    const currentGroup = focusedGroup;
+    const prevExtensionIds = [...(currentGroup.extensionIds || [])];
+    const nextIds = prevExtensionIds.filter((id) => id !== idToRemove);
+
+    const identity = resolveMissingMemberIdentity(
+      idToRemove,
+      knownExtensions,
+      history,
+      extensions
+    );
+    const displayName = identity.name || "Unknown extension";
+
+    onUpdateGroup?.({ ...currentGroup, extensionIds: nextIds });
+
+    setUndoToast({
+      message: `Removed ${displayName} from group`,
+      onUndo: () => {
+        onUpdateGroup?.({ ...currentGroup, extensionIds: prevExtensionIds });
+        setUndoToast(null);
+      },
+    });
   };
 
   const hasApps = useMemo(
@@ -689,17 +728,17 @@ export function Selector({
             <span className="group-focus-name">{focusedGroup.name}</span>
             <span className="group-focus-separator">·</span>
             <span className="group-focus-stats">
-              {computeGroupRuntimeSummary(focusedGroup, extensions).summaryText}
-              {computeGroupRuntimeSummary(focusedGroup, extensions).exceptionText && (
+              {computeGroupRuntimeSummary(focusedGroup, extensions, inventoryStatus).summaryText}
+              {computeGroupRuntimeSummary(focusedGroup, extensions, inventoryStatus).exceptionText && (
                 <span
                   className="exception-text"
                   title={
-                    computeGroupRuntimeSummary(focusedGroup, extensions).hasMissing
-                      ? computeGroupRuntimeSummary(focusedGroup, extensions).missingTooltipText
+                    computeGroupRuntimeSummary(focusedGroup, extensions, inventoryStatus).hasMissing
+                      ? computeGroupRuntimeSummary(focusedGroup, extensions, inventoryStatus).missingTooltipText
                       : undefined
                   }
                 >
-                  {" · "}{computeGroupRuntimeSummary(focusedGroup, extensions).exceptionText}
+                  {" · "}{computeGroupRuntimeSummary(focusedGroup, extensions, inventoryStatus).exceptionText}
                 </span>
               )}
             </span>
@@ -766,6 +805,7 @@ export function Selector({
                 onOpenSubWindow={onOpenSubWindow}
                 onFocusGroup={(id) => setActiveFocusedGroupId(id)}
                 themeMainColor={themeMainColor}
+                inventoryStatus={inventoryStatus}
               />
             ))}
           </div>
@@ -867,10 +907,34 @@ export function Selector({
         <MissingGroupMembers
           missingIds={missingMemberIds}
           history={history}
+          knownExtensions={knownExtensions}
+          installedExtensions={extensions}
           searchFilter={filterName}
           onRemoveMember={handleRemoveMissingMember}
           themeMainColor={themeMainColor}
         />
+      )}
+
+      {/* Reversible Remove-from-Group Undo Feedback */}
+      {undoToast && (
+        <div className="nb-toast toast-undo" role="status" aria-live="polite">
+          <span className="toast-text">{undoToast.message}</span>
+          <button
+            type="button"
+            className="btn btn-secondary toast-undo-btn"
+            onClick={undoToast.onUndo}
+          >
+            Undo
+          </button>
+          <button
+            type="button"
+            className="toast-close"
+            onClick={() => setUndoToast(null)}
+            aria-label="Dismiss notification"
+          >
+            ×
+          </button>
+        </div>
       )}
     </div>
   );

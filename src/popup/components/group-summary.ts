@@ -15,7 +15,8 @@ export interface GroupRuntimeSummary {
 
 export function computeGroupRuntimeSummary(
   group: ExtensionGroup,
-  allExtensions: ExtensionInfo[] = []
+  allExtensions: ExtensionInfo[] = [],
+  inventoryStatus: 'loading' | 'ready' | 'error' = 'ready'
 ): GroupRuntimeSummary {
   const configuredIds = group.extensionIds || [];
   const configuredMemberCount = configuredIds.length;
@@ -28,8 +29,13 @@ export function computeGroupRuntimeSummary(
   // Unavailable: installed member that cannot be disabled (mayDisable === false)
   const unavailableMemberCount = installedExts.filter((e) => e.mayDisable === false).length;
 
-  // Missing: configured IDs that are no longer installed in Chrome
-  const missingMemberCount = configuredIds.filter((id) => !allExtensions.some((e) => e.id === id)).length;
+  // Missing: configured IDs that are no longer installed in Chrome.
+  // CRITICAL: Only computed when inventory state is authoritative ('ready').
+  // Loading or inventory error must NEVER report members as missing.
+  const isInventoryReady = inventoryStatus === 'ready';
+  const missingMemberCount = isInventoryReady
+    ? configuredIds.filter((id) => !allExtensions.some((e) => e.id === id)).length
+    : 0;
 
   const summaryText = `${runningMemberCount} / ${installedMemberCount} running`;
 

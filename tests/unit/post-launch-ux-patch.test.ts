@@ -5,13 +5,31 @@ import { ExtensionBrief } from "../../src/popup/components/ExtensionBrief";
 import { SubWindow } from "../../src/popup/components/SubWindow";
 import { Navigator } from "../../src/popup/components/Navigator";
 import { AboutView } from "../../src/popup/components/AboutView";
-import { DEFAULT_SETTINGS, type ExtensionInfo, type AppSettings, type HistoryRecord, type ExtensionGroup } from "../../src/shared/types";
+import {
+  DEFAULT_SETTINGS,
+  STORAGE_KEYS,
+  type ExtensionInfo,
+  type AppSettings,
+  type HistoryRecord,
+  type ExtensionGroup,
+  type KnownExtensionMetadata,
+} from "../../src/shared/types";
 import { validateSettings } from "../../src/shared/import-export";
 import { BUY_ME_A_BEER_URL } from "../../src/shared/external-link";
-import { resolveLastKnownExtensionName } from "../../src/popup/components/group-member-utils";
+import {
+  resolveLastKnownExtensionName,
+  resolveMissingMemberIdentity,
+} from "../../src/popup/components/group-member-utils";
 import { computeGroupRuntimeSummary } from "../../src/popup/components/group-summary";
 import { Selector } from "../../src/popup/components/Selector";
 import { MissingGroupMembers } from "../../src/popup/components/MissingGroupMembers";
+import {
+  getKnownExtensions,
+  saveKnownExtensions,
+  upsertKnownExtensions,
+  backfillKnownExtensionsFromHistory,
+  clearHistory,
+} from "../../src/shared/storage";
 
 // Helper to recursively find VNodes matching a predicate
 function findVNode(vnode: any, predicate: (node: any) => boolean): any {
@@ -780,6 +798,458 @@ describe("Extension Drawer 1.2.1 Post-Launch UX Patch", () => {
       });
       expect(undoStack).toHaveLength(1);
       expect(undoStack[0]).toEqual(["installed_ext_1", "missing_ext_edit"]);
+    });
+  });
+
+  // =========================================================================
+  // 6. Durable Known-Extension Identity Cache & Missing-State Hardening
+  // =========================================================================
+  describe("6. Durable Known-Extension Identity Cache & Missing-State Hardening", () => {
+    let mockStorage: Record<string, any> = {};
+
+    beforeEach(() => {
+      mockStorage = {};
+      (globalThis as any).chrome = {
+        storage: {
+          local: {
+            get: vi.fn(async (key: string) => ({ [key]: mockStorage[key] })),
+            set: vi.fn(async (items: Record<string, any>) => {
+              Object.assign(mockStorage, items);
+            }),
+          },
+        },
+      };
+    });
+
+    it("verifies STORAGE_KEYS includes KNOWN_EXTENSIONS with expected storage key name", () => {
+      expect(STORAGE_KEYS.KNOWN_EXTENSIONS).toBe("nooboss_known_extensions");
+    });
+
+    it("upserts metadata for installed extensions and updates on subsequent calls", async () => {
+      const ext1: ExtensionInfo = {
+        id: "durable_ext_1",
+        name: "Durable Extension One",
+        shortName: "Durable 1",
+        version: "1.0.0",
+        type: "extension",
+        enabled: true,
+        mayDisable: true,
+        description: "",
+        installType: "normal",
+        offlineEnabled: false,
+        optionsUrl: "",
+        permissions: [],
+        hostPermissions: [],
+      };
+
+      const cache = await upsertKnownExtensions([ext1]);
+      expect(cache["durable_ext_1"]).toBeDefined();
+      expect(cache["durable_ext_1"].name).toBe("Durable Extension One");
+      expect(cache["durable_ext_1"].version).toBe("1.0.0");
+      expect(cache["durable_ext_1"].lastSeenAt).toBeGreaterThan(0);
+      expect(mockStorage[STORAGE_KEYS.KNOWN_EXTENSIONS]["durable_ext_1"].name).toBe("Durable Extension One");
+
+      // Verify update: version bumped, name renamed
+      const ext1Updated = { ...ext1, name: "Durable Extension One Pro", version: "1.1.0" };
+      const cache2 = await upsertKnownExtensions([ext1Updated]);
+      expect(cache2["durable_ext_1"].name).toBe("Durable Extension One Pro");
+      expect(cache2["durable_ext_1"].version).toBe("1.1.0");
+    });
+
+    it("retains cached metadata even when an extension is no longer present in inventory", async () => {
+      const extA: ExtensionInfo = {
+        id: "ext_a",
+        name: "Extension A",
+        shortName: "A",
+        version: "2.0.0",
+        type: "extension",
+        enabled: true,
+        mayDisable: true,
+        description: "",
+        installType: "normal",
+        offlineEnabled: false,
+        optionsUrl: "",
+        permissions: [],
+        hostPermissions: [],
+      };
+      const extB: ExtensionInfo = {
+        id: "ext_b",
+        name: "Extension B",
+        shortName: "B",
+        version: "1.0.0",
+        type: "extension",
+        enabled: true,
+        mayDisable: true,
+        description: "",
+        installType: "normal",
+        offlineEnabled: false,
+        optionsUrl: "",
+        permissions: [],
+        hostPermissions: [],
+      };
+
+      // Both extensions installed
+      await upsertKnownExtensions([extA, extB]);
+
+      // Later, extA is uninstalled so inventory fetch only returns extB
+      await upsertKnownExtensions([extB]);
+
+      const stored = await getKnownExtensions();
+      expect(stored["ext_a"]).toBeDefined();
+      expect(stored["ext_a"].name).toBe("Extension A");
+      expect(stored["ext_b"]).toBeDefined();
+      expect(stored["ext_b"].name).toBe("Extension B");
+    });
+
+    it("survives clearHistory and retention trimming without loss of known extension identities", async () => {
+      mockStorage[STORAGE_KEYS.KNOWN_EXTENSIONS] = {
+        ext_survivor: {
+          id: "ext_survivor",
+          name: "Survivor Tool",
+          version: "3.2.1",
+          lastSeenAt: 1234567,
+        },
+      };
+      mockStorage[STORAGE_KEYS.HISTORY] = [
+        {
+          id: "h1",
+          timestamp: 100,
+          event: "installed",
+          extensionId: "ext_survivor",
+          extensionName: "Survivor Tool",
+          extensionVersion: "3.2.1",
+          source: "external",
+        },
+      ];
+
+      // Clear operational history
+      await clearHistory();
+      expect(mockStorage[STORAGE_KEYS.HISTORY]).toEqual([]);
+
+      // Known extension cache is completely intact!
+      const known = await getKnownExtensions();
+      expect(known["ext_survivor"]).toBeDefined();
+      expect(known["ext_survivor"].name).toBe("Survivor Tool");
+      expect(known["ext_survivor"].version).toBe("3.2.1");
+    });
+
+    it("backfills missing IDs from History without overwriting existing cache metadata", async () => {
+      mockStorage[STORAGE_KEYS.KNOWN_EXTENSIONS] = {
+        existing_cached: {
+          id: "existing_cached",
+          name: "Authoritative Cache Name",
+          version: "2.0.0",
+          lastSeenAt: 500,
+        },
+      };
+
+      const historyToBackfill: HistoryRecord[] = [
+        {
+          id: "h_old",
+          timestamp: 100,
+          event: "installed",
+          extensionId: "existing_cached",
+          extensionName: "Old History Name",
+          extensionVersion: "1.0.0",
+          source: "external",
+        },
+        {
+          id: "h_missing_older",
+          timestamp: 200,
+          event: "installed",
+          extensionId: "missing_from_history",
+          extensionName: "History Early Name",
+          extensionVersion: "0.9.0",
+          source: "external",
+        },
+        {
+          id: "h_missing_newer",
+          timestamp: 300,
+          event: "updated",
+          extensionId: "missing_from_history",
+          extensionName: "History Latest Name",
+          extensionVersion: "1.0.0",
+          source: "external",
+        },
+        {
+          id: "h_uninstalled_raw_id",
+          timestamp: 400,
+          event: "uninstalled",
+          extensionId: "uninstalled_no_name",
+          extensionName: "uninstalled_no_name", // Raw ID placeholder from uninstallation
+          extensionVersion: "",
+          source: "external",
+        },
+      ];
+
+      const backfilled = await backfillKnownExtensionsFromHistory(historyToBackfill);
+
+      // Existing cached entry is NEVER overwritten by lower-confidence history
+      expect(backfilled["existing_cached"].name).toBe("Authoritative Cache Name");
+
+      // Missing extension backfilled with latest history name
+      expect(backfilled["missing_from_history"]).toBeDefined();
+      expect(backfilled["missing_from_history"].name).toBe("History Latest Name");
+
+      // Raw ID placeholder is not backfilled as a valid name
+      expect(backfilled["uninstalled_no_name"]).toBeUndefined();
+    });
+
+    it("verifies resolution order: (1) installed -> (2) cache -> (3) history -> (4) Unknown extension", () => {
+      const installedList: ExtensionInfo[] = [
+        {
+          id: "ext_multi",
+          name: "Active Chrome Name",
+          shortName: "Active",
+          version: "3.0.0",
+          enabled: true,
+          mayDisable: true,
+          description: "",
+          type: "extension",
+          installType: "normal",
+          offlineEnabled: false,
+          optionsUrl: "",
+          permissions: [],
+          hostPermissions: [],
+        },
+      ];
+      const cache: Record<string, KnownExtensionMetadata> = {
+        ext_multi: {
+          id: "ext_multi",
+          name: "Cached Metadata Name",
+          lastSeenAt: 200,
+        },
+        ext_cached_only: {
+          id: "ext_cached_only",
+          name: "Only In Cache Name",
+          lastSeenAt: 300,
+        },
+      };
+      const hist: HistoryRecord[] = [
+        {
+          id: "h1",
+          timestamp: 100,
+          event: "installed",
+          extensionId: "ext_multi",
+          extensionName: "Oldest History Name",
+          extensionVersion: "1.0.0",
+          source: "external",
+        },
+        {
+          id: "h2",
+          timestamp: 150,
+          event: "installed",
+          extensionId: "ext_cached_only",
+          extensionName: "History Name for Cached",
+          extensionVersion: "1.0.0",
+          source: "external",
+        },
+        {
+          id: "h3",
+          timestamp: 250,
+          event: "installed",
+          extensionId: "ext_history_only",
+          extensionName: "Only In History Name",
+          extensionVersion: "1.0.0",
+          source: "external",
+        },
+      ];
+
+      // 1. Installed Chrome metadata wins over cache and history
+      const r1 = resolveMissingMemberIdentity("ext_multi", cache, hist, installedList);
+      expect(r1.name).toBe("Active Chrome Name");
+      expect(r1.source).toBe("installed");
+      expect(r1.isKnown).toBe(true);
+
+      // 2. Cache wins over history
+      const r2 = resolveMissingMemberIdentity("ext_cached_only", cache, hist, []);
+      expect(r2.name).toBe("Only In Cache Name");
+      expect(r2.source).toBe("cache");
+      expect(r2.isKnown).toBe(true);
+
+      // 3. History is fallback when cache is absent
+      const r3 = resolveMissingMemberIdentity("ext_history_only", {}, hist, []);
+      expect(r3.name).toBe("Only In History Name");
+      expect(r3.source).toBe("history");
+      expect(r3.isKnown).toBe(true);
+
+      // 4. Unknown extension when nothing is found
+      const r4 = resolveMissingMemberIdentity("completely_unknown_id", {}, [], []);
+      expect(r4.name).toBe("Unknown extension");
+      expect(r4.source).toBe("unknown");
+      expect(r4.isKnown).toBe(false);
+
+      // Backwards-compatible resolveLastKnownExtensionName helper
+      expect(resolveLastKnownExtensionName("ext_multi", hist, cache, installedList)).toBe("Active Chrome Name");
+      expect(resolveLastKnownExtensionName("completely_unknown_id", hist, cache, installedList)).toBeNull();
+    });
+
+    it("renders Copy ID and Look up for genuinely unknown missing members", () => {
+      const vnode = MissingGroupMembers({
+        missingIds: ["unknown_missing_ext_id"],
+        knownExtensions: {},
+        history: [],
+        onRemoveMember: vi.fn(),
+      });
+
+      expect(vnode).not.toBeNull();
+      // ID displayed
+      const idEl = findVNode(vnode, (n) => n.props?.className === "missing-member-id");
+      expect(idEl).not.toBeNull();
+      expect(idEl.props.children).toBe("unknown_missing_ext_id");
+
+      // Copy ID button present
+      const copyBtn = findVNode(vnode, (n) => n.props?.className?.includes("missing-copy-btn"));
+      expect(copyBtn).not.toBeNull();
+      expect(copyBtn.props["aria-label"]).toBe("Copy ID unknown_missing_ext_id");
+
+      // Look up button present for unknown missing member
+      const lookupBtn = findVNode(vnode, (n) => n.props?.className?.includes("missing-lookup-btn"));
+      expect(lookupBtn).not.toBeNull();
+      expect(lookupBtn.props["aria-label"]).toContain("Look up unknown_missing_ext_id");
+
+      // Remove from group button present
+      const removeBtn = findVNode(vnode, (n) => n.props?.className?.includes("missing-remove-btn"));
+      expect(removeBtn).not.toBeNull();
+    });
+
+    it("omits Look up button for known missing members while preserving Copy ID and Remove", () => {
+      const vnode = MissingGroupMembers({
+        missingIds: ["known_missing_ext_id"],
+        knownExtensions: {
+          known_missing_ext_id: {
+            id: "known_missing_ext_id",
+            name: "Identified Extension",
+            lastSeenAt: 1000,
+          },
+        },
+        history: [],
+        onRemoveMember: vi.fn(),
+      });
+
+      // Name resolved
+      const nameEl = findVNode(vnode, (n) => n.props?.className === "missing-member-name");
+      expect(nameEl.props.children).toBe("Identified Extension");
+
+      // Copy ID present
+      const copyBtn = findVNode(vnode, (n) => n.props?.className?.includes("missing-copy-btn"));
+      expect(copyBtn).not.toBeNull();
+
+      // Look up NOT present because identity is already known
+      const lookupBtn = findVNode(vnode, (n) => n.props?.className?.includes("missing-lookup-btn"));
+      expect(lookupBtn).toBeNull();
+
+      // Remove present
+      const removeBtn = findVNode(vnode, (n) => n.props?.className?.includes("missing-remove-btn"));
+      expect(removeBtn).not.toBeNull();
+    });
+
+    it("verifies inventory-load correctness: loading and error states NEVER report missing members", () => {
+      const group: ExtensionGroup = {
+        id: "g_inv_test",
+        name: "Inventory Test Group",
+        extensionIds: ["ext1", "ext_missing"],
+        color: "#1a73e8",
+        createdAt: 100,
+      };
+      const installedOnlyExt1: ExtensionInfo[] = [
+        {
+          id: "ext1",
+          name: "Ext 1",
+          shortName: "1",
+          version: "1.0",
+          enabled: true,
+          mayDisable: true,
+          description: "",
+          type: "extension",
+          installType: "normal",
+          offlineEnabled: false,
+          optionsUrl: "",
+          permissions: [],
+          hostPermissions: [],
+        },
+      ];
+
+      // When inventoryStatus is loading: missingMemberCount is 0, hasMissing is false
+      const loadingSummary = computeGroupRuntimeSummary(group, installedOnlyExt1, "loading");
+      expect(loadingSummary.missingMemberCount).toBe(0);
+      expect(loadingSummary.hasMissing).toBe(false);
+      expect(loadingSummary.exceptionText).toBeUndefined();
+
+      // When inventoryStatus is error: missingMemberCount is 0, hasMissing is false
+      const errorSummary = computeGroupRuntimeSummary(group, installedOnlyExt1, "error");
+      expect(errorSummary.missingMemberCount).toBe(0);
+      expect(errorSummary.hasMissing).toBe(false);
+      expect(errorSummary.exceptionText).toBeUndefined();
+
+      // When inventoryStatus is ready: missing member is authoritatively computed
+      const readySummary = computeGroupRuntimeSummary(group, installedOnlyExt1, "ready");
+      expect(readySummary.missingMemberCount).toBe(1);
+      expect(readySummary.hasMissing).toBe(true);
+      expect(readySummary.exceptionText).toBe("1 missing");
+    });
+
+    it("verifies focused group view handles reversible Remove-from-Group with Undo", () => {
+      const group: ExtensionGroup = {
+        id: "g_undo_test",
+        name: "Undo Group",
+        extensionIds: ["ext_installed", "ext_missing_1"],
+        color: "#1a73e8",
+        createdAt: 100,
+      };
+
+      const onUpdateGroup = vi.fn();
+      let capturedUndoCallback: (() => void) | null = null;
+      let toastMessage = "";
+
+      // Emulate Selector's handleRemoveMissingMember and undo action
+      const handleRemoveMissingMember = (idToRemove: string) => {
+        const prevExtensionIds = [...group.extensionIds];
+        const nextIds = prevExtensionIds.filter((id) => id !== idToRemove);
+        const identity = resolveMissingMemberIdentity(
+          idToRemove,
+          { ext_missing_1: { id: "ext_missing_1", name: "Missing Tool", lastSeenAt: 100 } },
+          [],
+          []
+        );
+        toastMessage = `Removed ${identity.name} from group`;
+        onUpdateGroup({ ...group, extensionIds: nextIds });
+
+        capturedUndoCallback = () => {
+          onUpdateGroup({ ...group, extensionIds: prevExtensionIds });
+        };
+      };
+
+      handleRemoveMissingMember("ext_missing_1");
+
+      // Verify removal
+      expect(onUpdateGroup).toHaveBeenCalledWith({
+        ...group,
+        extensionIds: ["ext_installed"],
+      });
+      expect(toastMessage).toBe("Removed Missing Tool from group");
+      expect(capturedUndoCallback).not.toBeNull();
+
+      // Trigger Undo
+      capturedUndoCallback!();
+
+      // Restored exact previous members without touching anything else
+      expect(onUpdateGroup).toHaveBeenLastCalledWith({
+        ...group,
+        extensionIds: ["ext_installed", "ext_missing_1"],
+      });
+    });
+
+    it("verifies service worker preserves missing members in groups on uninstallation", () => {
+      const swSource = fs.readFileSync("src/background/service-worker.ts", "utf8");
+      // onUninstalled listener must NOT splice from group.extensionIds
+      expect(swSource).toContain("chrome.management.onUninstalled.addListener");
+      expect(swSource).toContain("Do NOT automatically remove missing IDs from groups");
+      expect(swSource).not.toMatch(/group\.extensionIds\.splice/);
+
+      // GET_KNOWN_EXTENSIONS handled
+      expect(swSource).toContain("case 'GET_KNOWN_EXTENSIONS':");
+      expect(swSource).toContain("return getKnownExtensions();");
     });
   });
 });

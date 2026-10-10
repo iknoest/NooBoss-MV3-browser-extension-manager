@@ -84,6 +84,16 @@ export interface HistoryRecord {
   source: 'user' | 'autostate' | 'external';
 }
 
+/** Known extension metadata for durable local-first identity caching */
+export interface KnownExtensionMetadata {
+  id: string;
+  name: string;
+  shortName?: string;
+  version?: string;
+  type?: string;
+  lastSeenAt: number;
+}
+
 /** App settings/preferences */
 export interface AppSettings {
   /** Whether AutoState is globally enabled */
@@ -183,7 +193,10 @@ export type Message =
   | { type: 'STATE_CHANGED' }
   | { type: 'TEST_AUTOSTATE_AUTOMATIC' }
   | { type: 'AUTOSTATE_TEST_RESULT'; automatic: boolean; details: string }
-  | { type: 'GET_SELF' };
+  | { type: 'GET_SELF' }
+  | { type: 'GET_KNOWN_EXTENSIONS' }
+  | { type: 'KNOWN_EXTENSIONS_LIST'; knownExtensions: Record<string, KnownExtensionMetadata> }
+  | { type: 'SAVE_KNOWN_EXTENSIONS'; knownExtensions: Record<string, KnownExtensionMetadata> };
 
 /** Default settings */
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -211,6 +224,7 @@ export const STORAGE_KEYS = {
   AUTOSTATE_RULES: 'nooboss_autostate_rules',
   SETTINGS: 'nooboss_settings',
   HISTORY: 'nooboss_history',
+  KNOWN_EXTENSIONS: 'nooboss_known_extensions',
   AUTOSTATE_MANAGED: 'nooboss_autostate_managed',
   PENDING_CHANGES: 'nooboss_pending_changes',
   DEVELOPER_PROJECTS: 'nooboss_developer_projects',

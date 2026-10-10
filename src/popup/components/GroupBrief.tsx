@@ -17,6 +17,7 @@ export interface GroupBriefProps {
   onOpenSubWindow?: (type: "group", id: string) => void;
   onFocusGroup?: (id: string) => void;
   themeMainColor?: string;
+  inventoryStatus?: 'loading' | 'ready' | 'error';
 }
 
 export function renderGroupIcon(group: ExtensionGroup, size: number = 32, color?: string) {
@@ -65,10 +66,11 @@ export function GroupBrief({
   onOpenSubWindow,
   onFocusGroup,
   themeMainColor = "#1a73e8",
+  inventoryStatus = "ready",
 }: GroupBriefProps) {
   const isSelectable = selected !== null;
   const isSelected = selected === true;
-  const summary = computeGroupRuntimeSummary(group, allExtensions);
+  const summary = computeGroupRuntimeSummary(group, allExtensions, inventoryStatus);
 
   const handleEditGroup = (e: MouseEvent) => {
     e.stopPropagation();
@@ -230,6 +232,7 @@ export function GroupBrief({
                 allExtensions={allExtensions}
                 onToggleGroup={onToggleGroup}
                 size="medium"
+                inventoryStatus={inventoryStatus}
               />
             )}
             <button
@@ -295,6 +298,7 @@ export function GroupBrief({
               allExtensions={allExtensions}
               onToggleGroup={onToggleGroup}
               size="small"
+              inventoryStatus={inventoryStatus}
             />
           </div>
         )}
@@ -396,6 +400,7 @@ export function GroupBrief({
                 allExtensions={allExtensions}
                 onToggleGroup={onToggleGroup}
                 size="small"
+                inventoryStatus={inventoryStatus}
               />
             </div>
           )}

@@ -13,6 +13,8 @@ import {
   type HistoryRecord,
   type PendingAutoStateChange,
   type DeveloperProject,
+  type KnownExtensionMetadata,
+  type ExtensionInfo,
 } from './types';
 
 /** Get a typed value from storage */
@@ -84,6 +86,104 @@ export async function addHistoryRecord(
 
 export async function clearHistory(): Promise<void> {
   await saveHistory([]);
+}
+
+// ── Known Extensions Cache ──────────────────────────────────
+// Durable local-first metadata cache keyed by extension ID.
+// Survives history clearing, retention trimming, uninstallation, and restarts.
+
+export async function getKnownExtensions(): Promise<Record<string, KnownExtensionMetadata>> {
+  return get<Record<string, KnownExtensionMetadata>>(STORAGE_KEYS.KNOWN_EXTENSIONS, {});
+}
+
+export async function saveKnownExtensions(
+  cache: Record<string, KnownExtensionMetadata>
+): Promise<void> {
+  await set(STORAGE_KEYS.KNOWN_EXTENSIONS, cache);
+}
+
+export async function upsertKnownExtensions(
+  extensions: Array<ExtensionInfo | chrome.management.ExtensionInfo>
+): Promise<Record<string, KnownExtensionMetadata>> {
+  const cache = await getKnownExtensions();
+  const now = Date.now();
+  let changed = false;
+
+  for (const ext of extensions) {
+    if (!ext || !ext.id) continue;
+    const existing = cache[ext.id];
+    const name = ext.name || ext.shortName || ext.id;
+    const shortName = ext.shortName || ext.name || ext.id;
+    const version = ext.version || '';
+    const type = ext.type || '';
+
+    if (
+      !existing ||
+      existing.name !== name ||
+      existing.shortName !== shortName ||
+      existing.version !== version ||
+      existing.type !== type ||
+      now - existing.lastSeenAt > 60000
+    ) {
+      cache[ext.id] = {
+        id: ext.id,
+        name,
+        shortName,
+        version,
+        type,
+        lastSeenAt: now,
+      };
+      changed = true;
+    }
+  }
+
+  if (changed) {
+    await saveKnownExtensions(cache);
+  }
+  return cache;
+}
+
+export async function backfillKnownExtensionsFromHistory(
+  history: HistoryRecord[]
+): Promise<Record<string, KnownExtensionMetadata>> {
+  const cache = await getKnownExtensions();
+  let changed = false;
+
+  // Find latest valid history record for each extension ID
+  const latestByExtId: Record<string, HistoryRecord> = {};
+  for (const record of history) {
+    if (!record || !record.extensionId) continue;
+    const id = record.extensionId;
+    if (
+      record.extensionName &&
+      record.extensionName.trim() &&
+      record.extensionName.trim() !== id
+    ) {
+      const prev = latestByExtId[id];
+      if (!prev || (record.timestamp || 0) >= (prev.timestamp || 0)) {
+        latestByExtId[id] = record;
+      }
+    }
+  }
+
+  // Backfill into cache only for IDs not already in cache
+  for (const [id, record] of Object.entries(latestByExtId)) {
+    if (!cache[id]) {
+      cache[id] = {
+        id,
+        name: record.extensionName.trim(),
+        shortName: record.extensionName.trim(),
+        version: record.extensionVersion || '',
+        lastSeenAt: record.timestamp || Date.now(),
+      };
+      changed = true;
+    }
+  }
+
+  if (changed) {
+    await saveKnownExtensions(cache);
+  }
+  return cache;
 }
 
 // ── Pending Changes ─────────────────────────────────────────

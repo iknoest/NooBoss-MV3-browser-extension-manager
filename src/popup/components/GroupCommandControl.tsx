@@ -8,6 +8,7 @@ export interface GroupCommandControlProps {
   onToggleGroup?: (groupId: string, targetEnabled: boolean) => void;
   className?: string;
   size?: "small" | "medium";
+  inventoryStatus?: 'loading' | 'ready' | 'error';
 }
 
 export function GroupCommandControl({
@@ -16,8 +17,9 @@ export function GroupCommandControl({
   onToggleGroup,
   className = "",
   size = "medium",
+  inventoryStatus = "ready",
 }: GroupCommandControlProps) {
-  const summary = computeGroupRuntimeSummary(group, allExtensions);
+  const summary = computeGroupRuntimeSummary(group, allExtensions, inventoryStatus);
   const isDisabled = summary.installedMemberCount === 0;
 
   const handleOffClick = (e: JSX.TargetedMouseEvent<HTMLButtonElement>) => {

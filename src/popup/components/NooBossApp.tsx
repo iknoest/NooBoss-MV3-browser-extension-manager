@@ -7,6 +7,7 @@ import type {
   AppSettings,
   PendingAutoStateChange,
   DeveloperProject,
+  KnownExtensionMetadata,
 } from "../../shared/types";
 import { DEFAULT_SETTINGS } from "../../shared/types";
 import { Navigator, type MainLocation } from "./Navigator";
@@ -45,6 +46,8 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
   const [developerProjects, setDeveloperProjects] = useState<DeveloperProject[]>([]);
   const [selfExtension, setSelfExtension] = useState<ExtensionInfo | null>(null);
   const [dataLoaded, setDataLoaded] = useState(false);
+  const [inventoryStatus, setInventoryStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [knownExtensions, setKnownExtensions] = useState<Record<string, KnownExtensionMetadata>>({});
 
   const [viewMode, setViewMode] = useState<"tile" | "bigTile" | "list">("tile");
   const [optionsConfirmExt, setOptionsConfirmExt] = useState<ExtensionInfo | null>(null);
@@ -208,17 +211,28 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
         return;
       }
 
-      const [exts, grps, rls, hist, setts, pending, projs] = await Promise.all([
-        chrome.runtime.sendMessage({ type: "GET_EXTENSIONS" }),
-        chrome.runtime.sendMessage({ type: "GET_GROUPS" }),
-        chrome.runtime.sendMessage({ type: "GET_AUTOSTATE_RULES" }),
-        chrome.runtime.sendMessage({ type: "GET_HISTORY" }),
-        chrome.runtime.sendMessage({ type: "GET_SETTINGS" }),
-        chrome.runtime.sendMessage({ type: "GET_PENDING_CHANGES" }),
-        chrome.runtime.sendMessage({ type: "GET_DEVELOPER_PROJECTS" }),
+      const [exts, grps, rls, hist, setts, pending, projs, knownExts] = await Promise.all([
+        chrome.runtime.sendMessage({ type: "GET_EXTENSIONS" }).catch((err) => {
+          console.warn("[NooBoss] GET_EXTENSIONS failed:", err);
+          return null;
+        }),
+        chrome.runtime.sendMessage({ type: "GET_GROUPS" }).catch(() => []),
+        chrome.runtime.sendMessage({ type: "GET_AUTOSTATE_RULES" }).catch(() => []),
+        chrome.runtime.sendMessage({ type: "GET_HISTORY" }).catch(() => []),
+        chrome.runtime.sendMessage({ type: "GET_SETTINGS" }).catch(() => DEFAULT_SETTINGS),
+        chrome.runtime.sendMessage({ type: "GET_PENDING_CHANGES" }).catch(() => []),
+        chrome.runtime.sendMessage({ type: "GET_DEVELOPER_PROJECTS" }).catch(() => []),
+        chrome.runtime.sendMessage({ type: "GET_KNOWN_EXTENSIONS" }).catch(() => ({})),
       ]);
 
-      const resolvedExts = Array.isArray(exts) ? exts : exts?.extensions || [];
+      const resolvedExts = Array.isArray(exts) ? exts : exts?.extensions;
+      if (Array.isArray(resolvedExts)) {
+        setExtensions(resolvedExts);
+        setInventoryStatus("ready");
+      } else {
+        setInventoryStatus("error");
+      }
+
       const resolvedGrps = Array.isArray(grps) ? grps : grps?.groups || [];
       const resolvedRules = Array.isArray(rls) ? rls : rls?.rules || [];
       const resolvedHist = Array.isArray(hist) ? hist : hist?.records || [];
@@ -228,14 +242,18 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
           : DEFAULT_SETTINGS;
       const resolvedPending = Array.isArray(pending) ? pending : pending?.changes || [];
       const resolvedProjects = Array.isArray(projs) ? projs : projs?.projects || [];
+      const resolvedKnown =
+        knownExts && typeof knownExts === "object" && !Array.isArray(knownExts)
+          ? (knownExts.knownExtensions || knownExts)
+          : {};
 
-      setExtensions(resolvedExts);
       setGroups(resolvedGrps);
       setRules(resolvedRules);
       setHistoryRecords(resolvedHist);
       setSettings(resolvedSetts);
       setPendingChanges(resolvedPending);
       setDeveloperProjects(resolvedProjects);
+      setKnownExtensions(resolvedKnown);
 
       try {
         let selfInfo: ExtensionInfo | null = null;
@@ -262,6 +280,7 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
       }
     } catch (e) {
       console.warn("[NooBoss] Failed to load data:", e);
+      setInventoryStatus("error");
     }
   }, []);
 
@@ -696,6 +715,8 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
               developerMode={settings.developerMode ?? false}
               onDownloadZip={handleDownloadZip}
               downloadingZipIds={downloadingZipIds}
+              knownExtensions={knownExtensions}
+              inventoryStatus={inventoryStatus}
             />
           </div>
         )}
@@ -824,6 +845,8 @@ export function NooBossApp({ isFullManager = false }: NooBossAppProps) {
         onReloadExtension={handleReloadExtension}
         onDownloadZip={handleDownloadZip}
         downloadingZipIds={downloadingZipIds}
+        knownExtensions={knownExtensions}
+        inventoryStatus={inventoryStatus}
       />
 
       {/* Non-blocking Download Notice Toast */}
