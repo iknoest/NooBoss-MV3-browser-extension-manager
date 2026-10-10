@@ -4,8 +4,10 @@ import * as path from "path";
 import { ExtensionBrief } from "../../src/popup/components/ExtensionBrief";
 import { SubWindow } from "../../src/popup/components/SubWindow";
 import { Navigator } from "../../src/popup/components/Navigator";
+import { AboutView } from "../../src/popup/components/AboutView";
 import { DEFAULT_SETTINGS, type ExtensionInfo, type AppSettings } from "../../src/shared/types";
 import { validateSettings } from "../../src/shared/import-export";
+import { BUY_ME_A_BEER_URL } from "../../src/shared/external-link";
 
 // Helper to recursively find VNodes matching a predicate
 function findVNode(vnode: any, predicate: (node: any) => boolean): any {
@@ -437,6 +439,70 @@ describe("Extension Drawer 1.2.1 Post-Launch UX Patch", () => {
         "https://clients2.googleusercontent.com/*",
         "https://analyticsdata.googleapis.com/*",
       ]);
+    });
+  });
+
+  // =========================================================================
+  // 4. Canonical Project Support in About & Backup & Data Copy Refresh
+  // =========================================================================
+  describe("4. Canonical Project Support in About & Backup & Data Copy", () => {
+    it("renders Support the project section in About with exact copy and canonical CTA", () => {
+      const vnode = AboutView({});
+      const aboutSource = fs.readFileSync("src/popup/components/AboutView.tsx", "utf8");
+
+      expect(aboutSource).toContain("Support the project");
+      expect(aboutSource).toContain(
+        "Extension Drawer is free and open source. If it saves you time or helps with your extension workflow, you can support its continued development."
+      );
+      expect(aboutSource).toContain("Opens Buy Me a Coffee in a new tab.");
+
+      const beerLink = findVNode(vnode, (n) => n.props?.className?.includes("about-support-btn"));
+      expect(beerLink).not.toBeNull();
+      expect(beerLink.props?.href).toBe("https://www.buymeacoffee.com/avavavava");
+      expect(beerLink.props?.target).toBe("_blank");
+      expect(beerLink.props?.rel).toBe("noopener noreferrer");
+      expect(beerLink.props?.["aria-label"]).toBe("Buy me a Beer");
+
+      const beerIcon = findVNode(beerLink, (n) => n.props?.className === "beer-icon");
+      expect(beerIcon).not.toBeNull();
+      expect(beerIcon.props?.children).toBe("🍻");
+
+      const beerLabel = findVNode(beerLink, (n) => n.props?.className === "beer-label");
+      expect(beerLabel).not.toBeNull();
+      expect(beerLabel.props?.children).toBe("Buy me a Beer");
+    });
+
+    it("uses the same safe external navigation path and destination URL constant", () => {
+      expect(BUY_ME_A_BEER_URL).toBe("https://www.buymeacoffee.com/avavavava");
+      const aboutSource = fs.readFileSync("src/popup/components/AboutView.tsx", "utf8");
+      const navSource = fs.readFileSync("src/popup/components/Navigator.tsx", "utf8");
+
+      expect(aboutSource).toContain("BUY_ME_A_BEER_URL");
+      expect(aboutSource).toContain("openExternalLink");
+      expect(navSource).toContain("BUY_ME_A_BEER_URL");
+      expect(navSource).toContain("openExternalLink");
+    });
+
+    it("verifies Backup & Data capability copy explicitly mentions import as well as export", () => {
+      const aboutSource = fs.readFileSync("src/popup/components/AboutView.tsx", "utf8");
+      expect(aboutSource).toContain("Backup &amp; Data:");
+      expect(aboutSource).toContain(
+        "Export and import configuration and history, and export a human-readable extension list."
+      );
+      expect(aboutSource).not.toContain(
+        "Export configuration, extension lists and history, and restore configuration."
+      );
+    });
+
+    it("verifies Support the project is placed after capability overview and before acknowledgements", () => {
+      const aboutSource = fs.readFileSync("src/popup/components/AboutView.tsx", "utf8");
+      const capabilitiesIdx = aboutSource.indexOf("What can Extension Drawer do?");
+      const supportIdx = aboutSource.indexOf("Support the project");
+      const ackIdx = aboutSource.indexOf("Acknowledgements");
+
+      expect(capabilitiesIdx).toBeGreaterThan(-1);
+      expect(supportIdx).toBeGreaterThan(capabilitiesIdx);
+      expect(ackIdx).toBeGreaterThan(supportIdx);
     });
   });
 });

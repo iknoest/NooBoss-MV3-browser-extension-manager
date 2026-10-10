@@ -341,10 +341,10 @@ html, body {
 }
 
 @media (max-width: 680px) {
-  .buy-me-beer-btn .beer-label {
+  .navigator .buy-me-beer-btn .beer-label {
     display: none;
   }
-  .buy-me-beer-btn {
+  .navigator .buy-me-beer-btn {
     padding: 0 6px;
     height: 28px;
     width: 28px;
@@ -352,15 +352,38 @@ html, body {
   }
 }
 
-.popup-mode .buy-me-beer-btn .beer-label {
+.popup-mode .navigator .buy-me-beer-btn .beer-label {
   display: none;
 }
 
-.popup-mode .buy-me-beer-btn {
+.popup-mode .navigator .buy-me-beer-btn {
   padding: 0 6px;
   height: 28px;
   width: 28px;
   justify-content: center;
+}
+
+/* About Support Section CTA */
+.about-support-btn {
+  height: 34px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.about-support-btn .beer-icon {
+  font-size: 15px;
+}
+
+.about-support-btn .beer-label {
+  display: inline !important;
+  font-size: 13px;
+}
+
+.about-support-helper {
+  font-size: 12px;
+  color: var(--text-muted, #888888);
+  line-height: 1.4;
 }
 
 /* ==========================================================================

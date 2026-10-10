@@ -1,4 +1,5 @@
 import { GL } from "./i18n";
+import { BUY_ME_A_BEER_URL, openExternalLink } from "../../shared/external-link";
 
 export type MainLocation = "extensions" | "autostate" | "history" | "developer" | "options" | "about" | "welcome";
 
@@ -15,10 +16,7 @@ export function Navigator({
   developerMode,
 }: NavigatorProps) {
   const handleOpenBeer = (e: MouseEvent) => {
-    if (typeof chrome !== "undefined" && chrome.tabs?.create) {
-      e.preventDefault();
-      chrome.tabs.create({ url: "https://www.buymeacoffee.com/avavavava" });
-    }
+    openExternalLink(BUY_ME_A_BEER_URL, e);
   };
 
   return (
@@ -77,7 +75,7 @@ export function Navigator({
 
       <div className="nav-utility-area">
         <a
-          href="https://www.buymeacoffee.com/avavavava"
+          href={BUY_ME_A_BEER_URL}
           target="_blank"
           rel="noopener noreferrer"
           className="buy-me-beer-btn"

@@ -1,4 +1,5 @@
 import { MaterialSymbol } from "./MaterialSymbols";
+import { BUY_ME_A_BEER_URL, openExternalLink } from "../../shared/external-link";
 
 export interface AboutViewProps {
   themeMainColor?: string;
@@ -10,12 +11,7 @@ export function AboutView({
   onOpenWelcome,
 }: AboutViewProps) {
   const handleOpenLink = (url: string, e: MouseEvent) => {
-    e.preventDefault();
-    if (typeof chrome !== "undefined" && chrome.tabs && chrome.tabs.create) {
-      chrome.tabs.create({ url });
-    } else {
-      window.open(url, "_blank", "noopener,noreferrer");
-    }
+    openExternalLink(url, e);
   };
 
   return (
@@ -72,7 +68,7 @@ export function AboutView({
             <strong>History:</strong> Review install, update, enable and disable activity recorded by Extension Drawer.
           </li>
           <li>
-            <strong>Backup &amp; Data:</strong> Export configuration, extension lists and history, and restore configuration.
+            <strong>Backup &amp; Data:</strong> Export and import configuration and history, and export a human-readable extension list.
           </li>
           <li>
             <strong>Developer Workspace:</strong> Optional advanced tools for local builds, GitHub, Chrome Web Store listings, Google Analytics, and Store-extension ZIP download.
@@ -94,7 +90,34 @@ export function AboutView({
         </ol>
       </section>
 
-      {/* 3. Acknowledgements */}
+      {/* 3. Support the project */}
+      <section className="about-support-section" style={{ marginBottom: "20px" }}>
+        <h3 style={{ fontSize: "15px", fontWeight: "600", margin: "12px 0 6px 0" }}>
+          Support the project
+        </h3>
+        <p style={{ margin: "6px 0 12px 0" }}>
+          Extension Drawer is free and open source. If it saves you time or helps with your extension workflow, you can support its continued development.
+        </p>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+          <a
+            href={BUY_ME_A_BEER_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="buy-me-beer-btn about-support-btn"
+            title="Buy me a Beer"
+            aria-label="Buy me a Beer"
+            onClick={(e) => openExternalLink(BUY_ME_A_BEER_URL, e)}
+          >
+            <span className="beer-icon" aria-hidden="true">🍻</span>
+            <span className="beer-label">Buy me a Beer</span>
+          </a>
+          <span className="about-support-helper">
+            Opens Buy Me a Coffee in a new tab.
+          </span>
+        </div>
+      </section>
+
+      {/* 4. Acknowledgements */}
       <section style={{ marginBottom: "20px" }}>
         <h3 style={{ fontSize: "15px", fontWeight: "600", margin: "12px 0 6px 0" }}>
           Acknowledgements

@@ -103,7 +103,7 @@ describe("Onboarding, About IA, History Deduplication & Extension Sorting", () =
       expect(aboutSource).toContain("Review install, update, enable and disable activity recorded by Extension Drawer.");
 
       expect(aboutSource).toContain("Backup &amp; Data:");
-      expect(aboutSource).toContain("Export configuration, extension lists and history, and restore configuration.");
+      expect(aboutSource).toContain("Export and import configuration and history, and export a human-readable extension list.");
 
       expect(aboutSource).toContain("Developer Workspace:");
       expect(aboutSource).toContain("Optional advanced tools for local builds, GitHub, Chrome Web Store listings, Google Analytics, and Store-extension ZIP download.");

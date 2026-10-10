@@ -478,10 +478,48 @@ async function verifyAcceptance() {
     }
     console.log(`  ✓ No horizontal overflow in ${mode} mode.`);
   }
-  console.log("  ✓ Criterion 10 PASSED.\n");
+  // ---------------------------------------------------------------------------
+  // CRITERION 11: About page support section & refreshed Backup & Data copy
+  // ---------------------------------------------------------------------------
+  console.log("[11/11] Checking About page canonical support section & refreshed copy...");
+  // Navigate to About
+  const aboutNavLink = await page.evaluateHandle(() => {
+    const links = Array.from(document.querySelectorAll(".nav-link"));
+    return links.find((el) => el.textContent.includes("About"));
+  });
+  if (!aboutNavLink.asElement()) throw new Error("About nav link not found!");
+  await aboutNavLink.asElement().click();
+  await new Promise((r) => setTimeout(r, 400));
+
+  const aboutSection = await page.$(".about-support-section");
+  if (!aboutSection) throw new Error("Support the project section not found in About page!");
+
+  const aboutSupportTitle = await page.$eval(".about-support-section h3", (el) => el.textContent.trim());
+  if (aboutSupportTitle !== "Support the project") throw new Error(`Unexpected support title: ${aboutSupportTitle}`);
+
+  const aboutSupportBtn = await page.$(".about-support-btn");
+  if (!aboutSupportBtn) throw new Error("About support button not found!");
+
+  const aboutBtnHref = await page.$eval(".about-support-btn", (el) => el.getAttribute("href"));
+  if (aboutBtnHref !== "https://www.buymeacoffee.com/avavavava") throw new Error(`Unexpected about CTA href: ${aboutBtnHref}`);
+
+  const helperText = await page.$eval(".about-support-helper", (el) => el.textContent.trim());
+  if (helperText !== "Opens Buy Me a Coffee in a new tab.") throw new Error(`Unexpected helper text: ${helperText}`);
+
+  const backupDataText = await page.evaluate(() => {
+    const lis = Array.from(document.querySelectorAll(".about-view li"));
+    const backupLi = lis.find((el) => el.textContent.includes("Backup & Data:"));
+    return backupLi ? backupLi.textContent : "";
+  });
+  if (!backupDataText.includes("Export and import configuration and history, and export a human-readable extension list.")) {
+    throw new Error(`Backup & Data copy was not refreshed! Got: ${backupDataText}`);
+  }
+  console.log("  ✓ Backup & Data copy correctly mentions import and export.");
+  console.log("  ✓ Canonical Support section and CTA verified in About page.");
+  console.log("  ✓ Criterion 11 PASSED.\n");
 
   console.log("================================================================================");
-  console.log("  ALL 10 REAL CHROME ACCEPTANCE CRITERIA PASSED CLEANLY!");
+  console.log("  ALL 11 REAL CHROME ACCEPTANCE CRITERIA PASSED CLEANLY!");
   console.log("================================================================================\n");
 
   await browser.close();
