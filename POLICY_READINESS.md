@@ -1,7 +1,7 @@
 # Policy Readiness & Compliance Specification
 
 **Product:** Extension Drawer (Chrome Web Store title: *Extension Drawer: Extension Manager & Organizer*)  
-**Version:** 1.2.0  
+**Version:** 1.2.1  
 **Target Platform:** Chrome Manifest V3  
 
 ---
@@ -36,6 +36,10 @@ Advanced features require runtime user authorization and are never requested dur
    - `downloads`: Allows writing unpacked `.zip` archives directly to the user's downloads folder.
    - `https://clients2.google.com/*`<br>`https://clients2.googleusercontent.com/*`: Host permissions allowing package downloads directly from official Chrome Web Store distribution servers.
    - **Boundary**: Requested only when the user explicitly clicks the "Download ZIP" action on an eligible extension card.
+
+### C. User-Initiated External Links
+- **Boundary**: Standard browser tab navigation actions (e.g. clicking the project support link to open Buy Me a Coffee, or clicking "Search web" on an unidentified missing extension to open a Google search) occur strictly following explicit user clicks.
+- **Compliance**: These links operate as normal browser navigations, require zero extra extension permissions, execute zero background network calls or scraping, and do not transmit browsing history or user data.
 
 ---
 

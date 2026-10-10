@@ -1,6 +1,6 @@
 # Chrome Web Store Listing Package: Extension Drawer
 
-This document contains canonical, copy-ready fields for submitting **Extension Drawer 1.2.0** to the Chrome Web Store Developer Dashboard.
+This document contains canonical, copy-ready fields for submitting **Extension Drawer 1.2.1** to the Chrome Web Store Developer Dashboard.
 
 ---
 
@@ -28,9 +28,9 @@ Manage, group and automate Chrome extensions with Site Rules, history, backup an
 
 ### Primary Category (Dashboard Selection)
 ```text
-Productivity
+Tools
 ```
-*(Alternative Category: Developer Tools / Workflow & Planning)*
+*(Reconciled with live Chrome Web Store Developer Dashboard; alternative: Productivity)*
 
 ### Language
 ```text
@@ -69,7 +69,7 @@ KEY CAPABILITIES
 • One-Shot Bulk Commands: Toggle entire workflows on or off with a single click using [ OFF | ON ] segmented controls.
 • Live Running Counters: Monitor real-time status on every group card (e.g., "5 / 6 running").
 • Seamless Overlap: Groups act as convenient command shortcuts without persistent state-fighting. Overlapping groups and individual extension toggles work together naturally.
-• Safe Handling: Uninstalled ("1 missing") and policy-restricted ("1 unavailable") extensions are clearly indicated without blocking batch commands for eligible members.
+• Safe Handling: Missing members retain their last-known identity when available, can be cleaned up from groups, and genuinely unknown IDs can be searched manually. Policy-restricted ("1 unavailable") extensions remain clearly indicated without blocking batch commands.
 • 3,000+ Icons: Choose from self-hosted Google Material Symbols, curated presets, or custom icon uploads.
 
 3. SITE RULES

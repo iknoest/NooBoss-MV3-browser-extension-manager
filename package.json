@@ -1,6 +1,6 @@
 {
   "name": "nooboss-mv3",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Modern Chrome extension manager with groups and AutoState - MV3 rebuild of NooBoss",
   "private": true,
   "type": "module",

@@ -8,7 +8,7 @@
 > **Extension Drawer** is an independent Manifest V3 browser extension manager built from and inspired by the open-source **NooBoss** project originally created by [AInoob](https://github.com/AInoob).
 
 > ### 🚀 Now available on the Chrome Web Store
-> [**Install Extension Drawer →**](https://chromewebstore.google.com/detail/onkcjpfgllpfbimnchjehboikhippnka)
+> [**Install Extension Drawer →**](https://chromewebstore.google.com/detail/onkcjpfgllpfbimnchjehboikhippnka) · [**🍻 Buy me a Beer**](https://www.buymeacoffee.com/avavavava)
 
 <p align="center">
   <img src="docs/chrome-web-store/screenshots/marketing/1-manage-groups.png" alt="Extension Drawer - Manage Extensions & Groups" width="100%" />
@@ -33,9 +33,9 @@ The original **NooBoss**, created by [AInoob](https://github.com/AInoob) ([Origi
 - **Instant Controls**: Enable, disable, inspect Chrome management metadata, open options pages, or uninstall extensions in a single click.
 - **Visual Contrast**: Clear visual states and dimmed styling differentiate disabled extensions at a glance without sacrificing switch legibility.
 - **Three Flexible View Modes**:
+  - **Tile** *(Default)*: Compact grid (up to 6 columns) with responsive, contained hover and keyboard-focus action overlays (default for fresh installs; user preferences are preserved).
   - **Big Tile**: 2-column balanced layout with quick-action strips and detailed metadata.
   - **List**: Compact 44px rows optimized for high-density scanning.
-  - **Tile**: Compact grid (up to 6 columns) with responsive, contained hover and keyboard-focus action overlays.
 - **User-Centered Sorting**:
   - *Recently installed / updated*: Surfaces newly added or updated extensions.
   - *Enabled first*: Groups active extensions ahead of disabled ones.
@@ -49,7 +49,7 @@ The original **NooBoss**, created by [AInoob](https://github.com/AInoob) ([Origi
 - **One-Shot Bulk Commands**: Groups feature a clean `[ OFF | ON ]` segmented control that quickly enables or disables all eligible group members in a single gesture.
 - **Live Running Counters**: Every group displays its real-time operational status (e.g. `5 / 6 running`).
 - **Harmonious Overlap**: Groups act as convenient command shortcuts rather than persistent desired-state loops. Overlapping group memberships and individual extension toggles work together naturally without state-fighting.
-- **Edge-Case Safety**: Uninstalled extensions (`· 1 missing`) and policy-restricted extensions (`· 1 unavailable`) are clearly identified without blocking batch execution for remaining members.
+- **Edge-Case Safety**: Missing members (`· 1 missing`) are preserved rather than silently deleted, retaining their last-known identity when available. Missing members can be easily removed with reversible undo, and genuinely unknown IDs offer an explicit user-triggered web search. Policy-restricted extensions (`· 1 unavailable`) remain clearly identified without blocking batch execution.
 - **Customizable Icons**: Over 3,000 self-hosted Google Material Symbols, curated presets, and custom icon uploads.
 
 ---

@@ -1,8 +1,8 @@
 # Privacy Policy for Extension Drawer
 
-**Effective Date:** October 4, 2026  
+**Effective Date:** October 10, 2026  
 **Product:** Extension Drawer (Chrome Web Store title: *Extension Drawer: Extension Manager & Organizer*)  
-**Version:** 1.2.0  
+**Version:** 1.2.1  
 **Repository:** [https://github.com/iknoest/NooBoss-MV3-browser-extension-manager](https://github.com/iknoest/NooBoss-MV3-browser-extension-manager)  
 
 ---
@@ -49,7 +49,7 @@ Extension Drawer accesses local data through Chrome extension APIs strictly to p
 
 ## 3. Optional Features & Network Behavior
 
-Extension Drawer does not run background network trackers. Network access is restricted to two advanced optional features:
+Extension Drawer does not run background network trackers. Extension-initiated API and data network access is strictly restricted to two advanced optional features:
 
 ### A. Optional Developer Analytics
 Extension Drawer includes an optional Developer Workspace designed for extension authors.
@@ -86,6 +86,16 @@ Users can download unpacked `.zip` archives of extensions available in the Chrom
 - **Privacy Guarantees**:
   - All package processing and decompression happen client-side.
   - No Extension Drawer relay server, proxy server, or intermediate third-party backend is involved.
+
+### C. User-Initiated External Links
+Extension Drawer provides convenience shortcuts that open standard browser tabs strictly following explicit user clicks:
+- **Project Support (`Buy me a Beer`)**: Clicking the top navigation shortcut or the About page support button opens `https://www.buymeacoffee.com/avavavava` in a normal browser tab.
+- **Missing Extension Web Search (`Search web`)**: Clicking the "Search web" button on an unidentified missing group member card opens a Google search in a normal browser tab with the query `chrome extension "<EXTENSION_ID>"`.
+- **Privacy & Security Boundaries**:
+  - External links open exclusively after direct user interaction (click); no network requests or tab creations happen before the click.
+  - Extension Drawer does not read, scrape, process, or automatically store search results or external page content.
+  - These navigation actions are standard browser tab navigations and require no additional extension permissions.
+  - No behavioral telemetry, referral tracking tags, or background API calls are made.
 
 ---
 
