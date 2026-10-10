@@ -1,23 +1,24 @@
 # Extension Drawer Promo Video — Voice-Over Script & Storyboard
 
 **Title:** Extension Drawer — Fast, Local-First Chrome Extension Management  
-**Target Duration:** 50–60 Seconds (1920×1080 @ 30fps)  
+**Main Video Target Duration:** 35–45 Seconds (1920×1080 @ 30fps)  
+**Social Cut Target Duration:** 15–20 Seconds (1920×1080 @ 30fps)  
 **Tone:** Clean, professional, developer-friendly, clear and direct.  
-**Audio Strategy:** Caption-first video with optional spoken voice-over narration.
+**Audio Strategy:** Caption-first video with optional spoken voice-over narration. Zero reliance on background audio for functional comprehension.
 
 ---
 
-## 60-Second Main Video Script
+## 45-Second Interactive Product Demo Script
 
 | Time | Scene | Visual Content & Action | On-Screen Caption | Optional Voice-Over Narration |
 | :--- | :--- | :--- | :--- | :--- |
-| **0:00 – 0:05** | **1. The Hook** | Extension Drawer logo badge zooms in smoothly over a high-density, populated Tile catalog grid. Visual contrast between active and disabled extensions. | `Managing 100 Chrome extensions shouldn't be this hard.` | *"If you manage dozens of Chrome extensions, your browser is cluttered, slow, and hard to organize. Extension Drawer fixes that."* |
-| **0:05 – 0:16** | **2. Extension Management** | Clean Tile view catalog. Real-time search filter typing (`privacy`). Instant enable/disable switch toggle. Quick sort by *Enabled first* and *Recently installed*. Reliable settings navigation. | `Search, sort and control your extensions.` | *"Instantly search, sort, and toggle any extension in a compact Tile grid. See what's running, inspect metadata, and open settings without dead tabs."* |
-| **0:16 – 0:28** | **3. Command-Based Groups** | Focused group view (*Development Stack*, *Privacy & Security*). Real-time running counter badge (`5 / 6 running · 1 missing`). One-shot `[ OFF \| ON ]` bulk command. Pruning a missing member with instant `Undo` feedback. | `Switch whole workflows with one click.` | *"Organize your extensions into command-based groups. Turn on your development, privacy, or shopping stack with a single click — with zero state-fighting."* |
-| **0:28 – 0:40** | **4. Automate with Site Rules** | Site Rules manager view. Creating a rule for `github.com`. Choosing *Temporary while open* lifecycle. Live plain-language rule preview. Target extension automatically activates on site open and deactivates on tab close. | `Only run extensions where you actually need them.` | *"Automate your browser with Site Rules. Extensions turn on automatically only when you open matching sites, and deactivate when you close them."* |
-| **0:40 – 0:48** | **5. History & Local Backup** | Audit trail history view filtering by *Enabled* and *Updated* events. Options → Backup & Data showing JSON configuration export/import and CSV history import with duplicate prevention. | `History and portable local backups.` | *"Review a complete management audit trail, and export or restore portable configuration backups across all your Chrome profiles."* |
-| **0:48 – 0:56** | **6. Developer Workspace (Optional)** | Optional Developer tab with linked unpacked projects. One-click reload gesture. Store links. Fictional 28-day Google Analytics 4 performance metrics cards. Direct CRX/ZIP download button. | `Built-in tools for extension developers.` | *"For extension authors, the optional Developer Workspace adds one-click unpacked reloads, store links, read-only analytics, and package downloads."* |
-| **0:56 – 1:00** | **7. End Card & Call to Action** | Centered Extension Drawer icon and wordmark with warm accent glow. Subtitles: Free & open source · Available on Chrome Web Store & GitHub. | `Extension Drawer`<br>`Free & open source`<br>`Chrome Web Store · GitHub` | *"Extension Drawer. Free, open source, and available now on the Chrome Web Store."* |
+| **0:00 – 0:02.5** | **1. The Hook** | Bold opening title card arrives, immediately unveiling the live high-density Extension Drawer 1.2.1 Tile view grid. | `Managing 100+ Chrome extensions?` | *"Managing dozens of Chrome extensions shouldn't be this hard. Extension Drawer brings clarity to your browser."* |
+| **0:02.5 – 0:09.5** | **2. Search & Control** | Cursor moves to search input, progressively types `privacy`. Grid filters live to *Privacy & Content Shield*. Cursor moves to switch, clicks OFF: switch slides, header counter updates `6 / 8` → `5 / 8`. Search is cleared. | `Search, sort and control your extensions.` | *"Instantly search, filter, and toggle any extension in a compact Tile grid with real-time feedback."* |
+| **0:09.5 – 0:16.5** | **3. Command Groups** | Cursor navigates to Groups, clicks into *Development Stack* (4 members). Cursor clicks `OFF`: all 4 switches slide OFF, counter updates `4 / 4` → `0 / 4`. Cursor clicks `ON`: all 4 switches slide back ON, counter updates `0 / 4` → `4 / 4`. | `Switch whole workflows with one click.` | *"Organize extensions into command groups. Switch your entire development or privacy workflow with a single click."* |
+| **0:16.5 – 0:28.5** | **4. Site Rules Hero** | Cursor creates a rule for *React DevTools* on `localhost:3000`. Split view renders browser tab opening `http://localhost:3000`: target extension automatically switches ON! Tab is closed: extension automatically restores back to OFF! | `Only run extensions where you actually need them.` | *"Automate your browser with Site Rules. Extensions turn ON automatically when you open matching sites, and restore when you close them."* |
+| **0:28.5 – 0:34.0** | **5. History Continuity** | Cursor clicks History in navigator. Freshly logged events from previous actions appear at top. Cursor selects `Enabled` filter: table filters instantly. | `See exactly what changed.` | *"Review a full audit trail of exactly what changed and when."* |
+| **0:34.0 – 0:40.0** | **6. Developer Workspace** | Cursor clicks Developer. Unpacked project card displayed. Cursor clicks `Reload`: spin feedback, toast `✓ Reloaded in 38ms`, timestamp `Just now`. Cursor glances at GitHub/Store links and live store metrics. | `Built-in tools for extension developers.` | *"For extension creators, enjoy instant unpacked reloads, direct store links, and read-only analytics."* |
+| **0:40.0 – 0:43.5** | **7. End Card** | Centered Extension Drawer icon and wordmark with warm accent glow. Subtitles: Free & open source · Available on Chrome Web Store & GitHub. | `Extension Drawer`<br>`Free & open source`<br>`Chrome Web Store · GitHub` | *"Extension Drawer. Free and open source on the Chrome Web Store and GitHub."* |
 
 ---
 
@@ -25,8 +26,8 @@
 
 | Time | Scene | On-Screen Caption | Visual Focus |
 | :--- | :--- | :--- | :--- |
-| **0:00 – 0:04** | **Tile Catalog** | `Manage 100+ extensions effortlessly.` | Rapid search filtering and one-click toggle in Tile grid. |
-| **0:04 – 0:08** | **Groups** | `One-click workflow switching.` | One-shot group toggle `[ OFF \| ON ]` with live running count. |
-| **0:08 – 0:13** | **Site Rules** | `Automate extensions by site.` | Rule matching domain, temporary while open indicator. |
-| **0:13 – 0:17** | **Dev Tools** | `Built-in developer workspace.` | Unpacked project reload and package download. |
-| **0:17 – 0:20** | **End Card** | `Extension Drawer · Get it free on Chrome Web Store` | Official icon, CWS badge, GitHub link. |
+| **0:00 – 0:04** | **Tile Search & Toggle** | `Search & control 100+ extensions.` | Progressive typing `privacy` → Tile grid filters → Click switch OFF with visible counter reaction. |
+| **0:04 – 0:08** | **Groups Execution** | `Switch workflows with one click.` | Development Stack: Click `OFF` (all 4 turn off, counter `0 / 4`) → Click `ON` (all return on, counter `4 / 4`). |
+| **0:08 – 0:14** | **Site Rules Hero Proof** | `Only run extensions where you need them.` | Tab opens `localhost:3000` → React DevTools turns ON → Tab closes → Restores back to OFF. |
+| **0:14 – 0:17** | **Dev Workspace** | `Built-in tools for developers.` | Click `Reload` → Spin animation & `✓ Reloaded in 38ms` toast feedback. |
+| **0:17 – 0:19.5** | **End Card** | `Extension Drawer · Free & Open Source` | Official brand icon, Chrome Web Store badge, GitHub link. |
