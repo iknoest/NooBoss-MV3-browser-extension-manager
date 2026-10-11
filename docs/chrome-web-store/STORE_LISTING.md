@@ -53,9 +53,9 @@ KEY CAPABILITIES
 1. EXTENSION MANAGEMENT
 • Instant Controls: Enable, disable, inspect Chrome metadata, open options pages, or uninstall extensions in a single click.
 • 3 Flexible View Modes:
+  - Tile View (Default): Compact grid with responsive, contained action overlays.
   - Big Tile: 2-column balanced cards with metadata and quick actions.
   - List View: Compact 44px rows for high-density scanning.
-  - Tile View: Compact grid with responsive, contained action overlays.
 • User-Centered Sorting:
   - Recently installed / updated: Quickly find newly added extensions.
   - Enabled first: Keep active extensions at the top.
@@ -155,3 +155,20 @@ docs/chrome-web-store/screenshots/cws/
 ├── 4-developer-workspace.png  # Developer Workspace (Neutral fictional projects, optional GA4 telemetry)
 └── 5-getting-started.png      # Getting Started (Default first-run navigation without Developer tab)
 ```
+
+---
+
+## 5. Promotional Graphic Tiles & Demo Video
+
+### Global Promo Video URL
+```text
+https://www.youtube.com/watch?v=T_Q7nbabXnU
+```
+
+### Verified Promo Graphic Tiles
+```text
+docs/marketing/renders/
+├── small-promo-tile-440x280.png    # Small promo tile (440 × 280 Canvas, 24-bit PNG)
+└── marquee-promo-tile-1400x560.png # Marquee promo tile (1400 × 560 Canvas, 24-bit PNG)
+```
+

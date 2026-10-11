@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>20s 4-Panel Simultaneous Concept Evaluation</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 2400px;
+      height: 1350px;
+      overflow: hidden;
+      background: #070b14;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: #f8fafc;
+      padding: 36px 48px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* HEADER */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      padding-bottom: 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    }
+    .header-left h1 {
+      font-size: 36px;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .badge-test {
+      font-size: 14px;
+      font-weight: 700;
+      background: rgba(239, 68, 68, 0.18);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      color: #f87171;
+      padding: 4px 14px;
+      border-radius: 9999px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .header-left p {
+      font-size: 16px;
+      color: #94a3b8;
+      margin-top: 6px;
+    }
+    .header-meta {
+      text-align: right;
+      font-size: 15px;
+      color: #38bdf8;
+      font-weight: 700;
+    }
+
+    /* 4-PANEL GRID */
+    .grid-container {
+      flex: 1;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .quadrant {
+      background: #0f172a;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .quadrant-header {
+      height: 44px;
+      background: rgba(15, 23, 42, 0.95);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .quadrant-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #f1f5f9;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .quadrant-title span.dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #38bdf8;
+    }
+    .quadrant-tag {
+      font-size: 12px;
+      font-weight: 700;
+      color: #94a3b8;
+      background: rgba(255, 255, 255, 0.06);
+      padding: 3px 10px;
+      border-radius: 9999px;
+    }
+
+    .quadrant-body {
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+      background: #090d16;
+    }
+    .quadrant-body img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: top center;
+    }
+
+    /* Mobile simulation preview box */
+    .mobile-sim-badge {
+      position: absolute;
+      bottom: 12px;
+      right: 12px;
+      background: rgba(15, 23, 42, 0.90);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      color: #f87171;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* FOOTER EVALUATION BAR */
+    .eval-bar {
+      height: 110px;
+      background: #0f172a;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 16px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+
+    .eval-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .eval-label {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .eval-label.warn { color: #f59e0b; }
+    .eval-label.fail { color: #ef4444; }
+    .eval-label.decision { color: #38bdf8; }
+    .eval-text {
+      font-size: 13.5px;
+      color: #cbd5e1;
+      line-height: 1.4;
+    }
+
+    .eval-verdict {
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      padding: 12px 20px;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-width: 280px;
+      text-align: center;
+    }
+    .eval-verdict-title {
+      font-size: 14px;
+      font-weight: 800;
+      color: #ef4444;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .eval-verdict-sub {
+      font-size: 12.5px;
+      color: #fca5a5;
+      margin-top: 3px;
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <h1>
+        <span>Extension Drawer 1.2.1 — 20s Alternative Test</span>
+        <span class="badge-test">4-Panel Simultaneous Concept Evaluation</span>
+      </h1>
+      <p>Empirical readability & visual communication assessment: 4-Quadrant Simultaneous Grid vs. Sequential Progressive Story</p>
+    </div>
+    <div class="header-meta">
+      Resolution: 2400 × 1350 (16:9) · Mobile Scaledown Model (400px width)
+    </div>
+  </div>
+
+  <!-- 2x2 Simultaneous Grid -->
+  <div class="grid-container">
+
+    <!-- Quadrant 1: Groups -->
+    <div class="quadrant">
+      <div class="quadrant-header">
+        <div class="quadrant-title">
+          <span class="dot"></span>
+          <span>Quadrant 1: Workflow Groups (Dev Stack 2/2 ➔ 0/2 ➔ 2/2)</span>
+        </div>
+        <div class="quadrant-tag">Feature: Groups</div>
+      </div>
+      <div class="quadrant-body">
+        <img id="img-q1" src="/Users/ava/Projects/NooBoss-MV3/docs/marketing/renders/director_frames_45/frame_00300.jpg" alt="Groups" />
+        <div class="mobile-sim-badge">⚠ Mobile Width: 200px (Text Blurry)</div>
+      </div>
+    </div>
+
+    <!-- Quadrant 2: Site Rules Row -->
+    <div class="quadrant">
+      <div class="quadrant-header">
+        <div class="quadrant-title">
+          <span class="dot"></span>
+          <span>Quadrant 2: Site Rules Definition (wikipedia.org ➔ Dark Reader)</span>
+        </div>
+        <div class="quadrant-tag">Feature: Automation</div>
+      </div>
+      <div class="quadrant-body">
+        <img id="img-q2" src="/Users/ava/Projects/NooBoss-MV3/docs/marketing/renders/1_site_rule.png" alt="Site Rules" />
+        <div class="mobile-sim-badge">⚠ Mobile Width: 200px (URL Sub-pixel)</div>
+      </div>
+    </div>
+
+    <!-- Quadrant 3: Split-Screen Live Match -->
+    <div class="quadrant">
+      <div class="quadrant-header">
+        <div class="quadrant-title">
+          <span class="dot"></span>
+          <span>Quadrant 3: Live Cause & Effect (Split-Screen Wikipedia Dark Mode)</span>
+        </div>
+        <div class="quadrant-tag">Feature: Cause & Effect</div>
+      </div>
+      <div class="quadrant-body">
+        <img id="img-q3" src="/Users/ava/Projects/NooBoss-MV3/docs/marketing/renders/3_wiki_after.png" alt="Cause and Effect" />
+        <div class="mobile-sim-badge">⚠ Mobile Width: 200px (Split Indistinguishable)</div>
+      </div>
+    </div>
+
+    <!-- Quadrant 4: Developer Workspace -->
+    <div class="quadrant">
+      <div class="quadrant-header">
+        <div class="quadrant-title">
+          <span class="dot"></span>
+          <span>Quadrant 4: Developer Workspace (Unpacked Builds & 1-Click Reload)</span>
+        </div>
+        <div class="quadrant-tag">Feature: Developer</div>
+      </div>
+      <div class="quadrant-body">
+        <img id="img-q4" src="/Users/ava/Projects/NooBoss-MV3/docs/marketing/renders/7_dev_workspace_card.png" alt="Developer Workspace" />
+        <div class="mobile-sim-badge">⚠ Mobile Width: 200px (Buttons Unreadable)</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Evaluation Bar -->
+  <div class="eval-bar">
+    <div class="eval-col" style="border-right: 1px solid rgba(255,255,255,0.08); padding-right: 20px;">
+      <span class="eval-label warn">1. Desktop View (1920px Fullscreen)</span>
+      <span class="eval-text">
+        Each quadrant renders at ~960×540px. Large headers are readable, but viewers suffer cognitive split: simultaneous motion in 4 quadrants diffuses attention.
+      </span>
+    </div>
+
+    <div class="eval-col" style="border-right: 1px solid rgba(255,255,255,0.08); padding-right: 20px;">
+      <span class="eval-label fail">2. Mobile / Reddit Feed View (400px Embed Width)</span>
+      <span class="eval-text">
+        <strong>FATAL DEFECT:</strong> Each quadrant compresses down to ~200×112px. Normal 13px UI text shrinks to ~2.7px sub-pixel blur. Extension names, URLs, and switch states become completely illegible.
+      </span>
+    </div>
+
+    <div class="eval-verdict">
+      <div class="eval-verdict-title">Verdict: REJECTED for 20s Cut</div>
+      <div class="eval-verdict-sub">Adopt Sequential Cut: Groups (4.5s) ➔ Rules (8s) ➔ Dev (4.5s)</div>
+    </div>
+  </div>
+
+</body>
+</html>

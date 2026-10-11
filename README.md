@@ -16,6 +16,20 @@
 
 ---
 
+### 🎬 See Extension Drawer in Action
+
+<p align="center">
+  <a href="https://www.youtube.com/watch?v=T_Q7nbabXnU" target="_blank" rel="noopener noreferrer">
+    <img src="docs/marketing/renders/youtube-thumbnail-1280x720.png" alt="Extension Drawer 45s Product Demo" width="100%" />
+  </a>
+</p>
+
+<p align="center">
+  <em>▶ <a href="https://www.youtube.com/watch?v=T_Q7nbabXnU">Watch the 45-second interactive product demo on YouTube</a></em>
+</p>
+
+---
+
 ## Lineage & Motivation
 
 The original **NooBoss**, created by [AInoob](https://github.com/AInoob) ([Original NooBoss Repository](https://github.com/AInoob/NooBoss)), set the benchmark for visual extension management in Google Chrome. With the ecosystem transition to Manifest V3 and the deprecation of Manifest V2, the original extension became incompatible with modern Chrome releases.
